@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useCart } from '../context/CartContext';
 import { useWishlist } from '../context/WishlistContext';
@@ -40,6 +40,25 @@ const ProductDetail = () => {
   const [reviews, setReviews] = useState([]);
   const [activeTab, setActiveTab] = useState('description');
 
+  // Use ref to track current quantity (bypasses React Strict Mode issues)
+  const quantityRef = useRef(1);
+
+  // Update ref whenever quantity state changes
+  useEffect(() => {
+    quantityRef.current = quantity;
+    console.log('Quantity ref updated to:', quantityRef.current);
+  }, [quantity]);
+
+  // Debug quantity state changes
+  useEffect(() => {
+    console.log('Quantity state changed to:', quantity);
+  }, [quantity]);
+
+  // Debug component re-renders
+  useEffect(() => {
+    console.log('ProductDetail component rendered with quantity:', quantity);
+  });
+
   useEffect(() => {
     const fetchProduct = async () => {
       try {
@@ -52,9 +71,14 @@ const ProductDetail = () => {
           setSelectedSize(response.data.sizes[0]);
         }
         if (response.data.colors && Array.isArray(response.data.colors) && response.data.colors.length > 0) {
-          const validColors = response.data.colors.filter(color => color && typeof color === 'string');
-          if (validColors.length > 0) {
-            setSelectedColor(validColors[0]);
+          // Handle different color formats
+          const firstColor = response.data.colors[0];
+          if (typeof firstColor === 'string') {
+            setSelectedColor(firstColor);
+          } else if (firstColor && typeof firstColor === 'object' && firstColor.name) {
+            setSelectedColor(firstColor.name);
+          } else if (firstColor && typeof firstColor === 'object' && firstColor.color) {
+            setSelectedColor(firstColor.color);
           }
         }
         
@@ -70,6 +94,7 @@ const ProductDetail = () => {
     };
 
     fetchProduct();
+    // Don't reset quantity here - let it persist
   }, [id]);
 
   useEffect(() => {
@@ -89,20 +114,59 @@ const ProductDetail = () => {
     }
   };
 
-  const handleAddToCart = () => {
+  // Test function to isolate the issue
+  const testAddToCart = () => {
+    console.log('=== TEST ADD TO CART ===');
+    console.log('Current quantity state:', quantity);
+    
     if (product && selectedSize && selectedColor) {
-      addToCart({
+      const testItem = {
         ...product,
         selectedSize,
         selectedColor,
-        quantity
-      });
+        quantity: 5 // Hardcoded test quantity
+      };
+      console.log('Test item with hardcoded quantity 5:', testItem);
+      addToCart(testItem);
+      console.log('Test addToCart called with quantity 5');
     } else {
-      alert('Please select size and color before adding to cart');
+      console.log('Missing size or color for test');
     }
   };
 
-  const handleBuyNow = () => {
+  const handleAddToCart = useCallback(() => {
+    console.log('🚨 handleAddToCart FUNCTION CALLED! 🚨');
+    console.log('=== handleAddToCart DEBUG ===');
+    console.log('Current quantity state:', quantity);
+    console.log('Current quantity ref:', quantityRef.current);
+    console.log('Selected size:', selectedSize);
+    console.log('Selected color:', selectedColor);
+    console.log('Product:', product);
+    
+    // Force a direct check of the current quantity
+    const currentQuantity = quantityRef.current; // Use ref instead of state
+    console.log('Direct quantity check (from ref):', currentQuantity);
+    
+    if (product && selectedSize && selectedColor) {
+      const cartItem = {
+        ...product,
+        selectedSize,
+        selectedColor,
+        quantity: currentQuantity // Use the ref value
+      };
+      console.log('Cart item being created:', cartItem);
+      console.log('Final quantity being sent to cart:', cartItem.quantity);
+      addToCart(cartItem);
+    } else {
+      let missingOptions = [];
+      if (!selectedSize) missingOptions.push('size');
+      if (!selectedColor) missingOptions.push('color');
+      alert(`Please select ${missingOptions.join(' and ')} before adding to cart`);
+    }
+    console.log('=== END handleAddToCart DEBUG ===');
+  }, [product, selectedSize, selectedColor, quantity, addToCart]); // Add quantity back to dependencies
+
+  const handleBuyNow = useCallback(() => {
     if (product && selectedSize && selectedColor) {
       addToCart({
         ...product,
@@ -110,11 +174,14 @@ const ProductDetail = () => {
         selectedColor,
         quantity
       });
+      navigate('/checkout');
     } else {
-      alert('Please select size and color before proceeding');
+      let missingOptions = [];
+      if (!selectedSize) missingOptions.push('size');
+      if (!selectedColor) missingOptions.push('color');
+      alert(`Please select ${missingOptions.join(' and ')} before proceeding`);
     }
-    navigate('/checkout');
-  };
+  }, [product, selectedSize, selectedColor, quantity, navigate, addToCart]); // Add quantity to dependencies
 
   const handleWishlistToggle = () => {
     if (isWishlisted) {
@@ -361,15 +428,45 @@ const ProductDetail = () => {
                         {selectedColor ? `Selected: ${selectedColor}` : 'Make a Colour selection'}
                       </div>
                       <div className="color-options">
-                        {product.colors.filter(color => color && typeof color === 'string').map(color => (
-                          <button
-                            key={color}
-                            className={`color-option ${selectedColor === color ? 'selected' : ''}`}
-                            onClick={() => setSelectedColor(color)}
-                            style={{ backgroundColor: color.toLowerCase() }}
-                            title={color}
-                          />
-                        ))}
+                        {product.colors.filter(color => color).map(color => {
+                          // Handle different color formats
+                          let colorName, colorValue;
+                          if (typeof color === 'string') {
+                            colorName = color;
+                            colorValue = color.toLowerCase();
+                          } else if (color && typeof color === 'object') {
+                            colorName = color.name || color.color || color.value || 'Unknown';
+                            colorValue = color.hex || color.code || color.name || 'gray';
+                          }
+                          
+                          return (
+                            <button
+                              key={colorName}
+                              className={`color-option ${selectedColor === colorName ? 'selected' : ''}`}
+                              onClick={() => {
+                                console.log('Color selected:', colorName, 'Original color data:', color);
+                                setSelectedColor(colorName);
+                              }}
+                              style={{ 
+                                backgroundColor: colorValue,
+                                border: selectedColor === colorName ? '2px solid #000' : '1px solid #ddd',
+                                width: '30px',
+                                height: '30px',
+                                borderRadius: '50%',
+                                margin: '5px',
+                                cursor: 'pointer'
+                              }}
+                              title={colorName}
+                            />
+                          );
+                        })}
+                      </div>
+                      {/* Debug info */}
+                      <div style={{ fontSize: '12px', color: '#666', marginTop: '5px' }}>
+                        Available colors: {product.colors.filter(c => c).map(color => {
+                          if (typeof color === 'string') return color;
+                          return color.name || color.color || color.value || 'Unknown';
+                        }).join(', ')}
                       </div>
                     </div>
                   )}
@@ -379,7 +476,11 @@ const ProductDetail = () => {
                     <label className="option-label">Quantity:</label>
                     <div className="quantity-controls">
                       <button 
-                        onClick={() => setQuantity(Math.max(1, quantity - 1))}
+                        onClick={() => {
+                          const newQuantity = Math.max(1, quantity - 1);
+                          console.log('Decreasing quantity from', quantity, 'to', newQuantity);
+                          setQuantity(newQuantity);
+                        }}
                         className="quantity-btn"
                         disabled={quantity <= 1}
                       >
@@ -388,17 +489,84 @@ const ProductDetail = () => {
                       <input 
                         type="number" 
                         value={quantity} 
-                        onChange={(e) => setQuantity(Math.max(1, parseInt(e.target.value) || 1))}
+                        onChange={(e) => {
+                          const newQuantity = Math.max(1, parseInt(e.target.value) || 1);
+                          console.log('Input quantity changed from', quantity, 'to', newQuantity);
+                          setQuantity(newQuantity);
+                        }}
                         className="quantity-input"
                         min="1"
                         max={product.stockQuantity || 99}
                       />
                       <button 
-                        onClick={() => setQuantity(quantity + 1)}
+                        onClick={() => {
+                          const newQuantity = quantity + 1;
+                          console.log('Increasing quantity from', quantity, 'to', newQuantity);
+                          setQuantity(newQuantity);
+                        }}
                         className="quantity-btn"
                         disabled={product.stockQuantity && quantity >= product.stockQuantity}
                       >
                         +
+                      </button>
+                    </div>
+                    <div style={{ fontSize: '12px', color: '#666', marginTop: '5px' }}>
+                      Current quantity state: {quantity}
+                      <button 
+                        onClick={() => {
+                          console.log('Test button clicked! Current quantity:', quantity);
+                          setQuantity(quantity + 1);
+                          console.log('Quantity set to:', quantity + 1);
+                        }}
+                        style={{ 
+                          marginLeft: '10px', 
+                          padding: '2px 8px', 
+                          fontSize: '10px',
+                          background: '#007bff',
+                          color: 'white',
+                          border: 'none',
+                          borderRadius: '3px',
+                          cursor: 'pointer'
+                        }}
+                      >
+                        Test +1
+                      </button>
+                      <button 
+                        onClick={() => {
+                          console.log('Force update clicked! Setting quantity to 5');
+                          setQuantity(5);
+                        }}
+                        style={{ 
+                          marginLeft: '10px', 
+                          padding: '2px 8px', 
+                          fontSize: '10px',
+                          background: '#28a745',
+                          color: 'white',
+                          border: 'none',
+                          borderRadius: '3px',
+                          cursor: 'pointer'
+                        }}
+                      >
+                        Force Set to 5
+                      </button>
+                      <button 
+                        onClick={() => {
+                          console.log('Direct set test clicked!');
+                          setQuantity(10);
+                          console.log('setQuantity(10) called');
+                        }}
+                        style={{ 
+                          marginLeft: '10px', 
+                          padding: '2px 8px', 
+                          fontSize: '10px',
+                          background: '#ffc107',
+                          color: 'black',
+                          border: 'none',
+                          borderRadius: '3px',
+                          cursor: 'pointer'
+                        }}
+                      >
+                        Direct Set 10
                       </button>
                     </div>
                     {product.stockQuantity && (
@@ -426,6 +594,39 @@ const ProductDetail = () => {
                       disabled={stockStatus.status === 'out-of-stock'}
                     >
                       Buy Now
+                    </button>
+                    
+                    <button 
+                      onClick={testAddToCart}
+                      style={{ 
+                        background: '#dc3545', 
+                        color: 'white', 
+                        border: 'none', 
+                        padding: '10px 20px', 
+                        borderRadius: '5px', 
+                        cursor: 'pointer',
+                        marginTop: '10px'
+                      }}
+                    >
+                      Test Add (Qty 5)
+                    </button>
+                    
+                    <button 
+                      onClick={() => {
+                        console.log('🚨 Direct call test button clicked! 🚨');
+                        handleAddToCart();
+                      }}
+                      style={{ 
+                        background: '#6f42c1', 
+                        color: 'white', 
+                        border: 'none', 
+                        padding: '10px 20px', 
+                        borderRadius: '5px', 
+                        cursor: 'pointer',
+                        marginTop: '10px'
+                      }}
+                    >
+                      Direct Call handleAddToCart
                     </button>
                   </div>
                   

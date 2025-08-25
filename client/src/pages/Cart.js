@@ -8,14 +8,40 @@ import './Cart.css';
 const Cart = () => {
   const { items, total, itemCount, updateQuantity, removeFromCart, clearCart } = useCart();
 
-  const handleQuantityChange = (productId, newQuantity) => {
+  // Create unique key for cart operations
+  const createItemKey = (item) => {
+    const size = item.selectedSize || '';
+    const color = item.selectedColor || '';
+    return `${item._id}_${size}_${color}`;
+  };
+
+  const handleQuantityChange = (item, newQuantity) => {
     if (newQuantity > 0) {
-      updateQuantity(productId, newQuantity);
+      updateQuantity(createItemKey(item), newQuantity);
     }
   };
 
-  const handleRemoveItem = (productId) => {
-    removeFromCart(productId);
+  const handleRemoveItem = (item) => {
+    removeFromCart(createItemKey(item));
+  };
+
+  // Debug function to show cart state
+  const debugCart = () => {
+    console.log('=== CART DEBUG ===');
+    console.log('Cart items:', items);
+    console.log('Total:', total);
+    console.log('Item count:', itemCount);
+    items.forEach((item, index) => {
+      console.log(`Item ${index}:`, {
+        id: item._id,
+        name: item.name,
+        size: item.selectedSize,
+        color: item.selectedColor,
+        quantity: item.quantity,
+        key: createItemKey(item)
+      });
+    });
+    console.log('=== END CART DEBUG ===');
   };
 
   if (itemCount === 0) {
@@ -55,6 +81,17 @@ const Cart = () => {
           >
             <h1>Shopping Cart</h1>
             <p>{itemCount} item{itemCount !== 1 ? 's' : ''} in your cart</p>
+            <button onClick={debugCart} style={{ 
+              background: '#007bff', 
+              color: 'white', 
+              border: 'none', 
+              padding: '5px 10px', 
+              borderRadius: '4px', 
+              cursor: 'pointer',
+              marginTop: '10px'
+            }}>
+              Debug Cart
+            </button>
           </motion.div>
         </div>
 
@@ -83,11 +120,17 @@ const Cart = () => {
                       </Link>
                     </h3>
                     <p className="item-price">₹{item.price.toLocaleString()}</p>
+                    {(item.selectedSize || item.selectedColor) && (
+                      <div className="item-options">
+                        {item.selectedSize && <span className="option-tag">Size: {item.selectedSize}</span>}
+                        {item.selectedColor && <span className="option-tag">Color: {item.selectedColor}</span>}
+                      </div>
+                    )}
                   </div>
 
                   <div className="item-quantity">
                     <button
-                      onClick={() => handleQuantityChange(item._id, item.quantity - 1)}
+                      onClick={() => handleQuantityChange(item, item.quantity - 1)}
                       className="quantity-btn minus-btn"
                       disabled={item.quantity <= 1}
                       title="Decrease quantity"
@@ -96,7 +139,7 @@ const Cart = () => {
                     </button>
                     <span className="quantity-value">{item.quantity}</span>
                     <button
-                      onClick={() => handleQuantityChange(item._id, item.quantity + 1)}
+                      onClick={() => handleQuantityChange(item, item.quantity + 1)}
                       className="quantity-btn plus-btn"
                       title="Increase quantity"
                     >
@@ -109,7 +152,7 @@ const Cart = () => {
                   </div>
 
                   <button
-                    onClick={() => handleRemoveItem(item._id)}
+                    onClick={() => handleRemoveItem(item)}
                     className="remove-btn"
                     title="Remove item"
                   >

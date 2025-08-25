@@ -1,12 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { useCart } from '../context/CartContext';
 import { useWishlist } from '../context/WishlistContext';
-import { FiHeart, FiEye, FiShoppingCart, FiImage } from 'react-icons/fi';
+import { FiHeart, FiImage } from 'react-icons/fi';
 import './ProductCard.css';
 
 const ProductCard = ({ product }) => {
-  const { addToCart } = useCart();
   const { addToWishlist, removeFromWishlist, isInWishlist } = useWishlist();
   const [isWishlisted, setIsWishlisted] = useState(false);
   const [imageError, setImageError] = useState(false);
@@ -15,11 +13,6 @@ const ProductCard = ({ product }) => {
   useEffect(() => {
     setIsWishlisted(isInWishlist(product._id));
   }, [product._id, isInWishlist]);
-
-  const handleAddToCart = (e) => {
-    e.preventDefault();
-    addToCart(product, 1);
-  };
 
   const handleWishlist = (e) => {
     e.preventDefault();
@@ -165,13 +158,8 @@ const ProductCard = ({ product }) => {
 
         {/* Bottom Row - Buttons */}
         <div className="product-bottom">
-          <button className="add-to-cart-btn" onClick={handleAddToCart}>
-            <FiShoppingCart />
-            Add to cart
-          </button>
-          
           <Link to={`/products/${product._id}`} className="view-btn">
-            <FiEye />
+            <FiImage />
             View
           </Link>
         </div>

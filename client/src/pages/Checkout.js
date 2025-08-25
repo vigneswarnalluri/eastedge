@@ -10,7 +10,7 @@ import './Checkout.css';
 const Checkout = () => {
   const navigate = useNavigate();
   const { items: cartItems, clearCart, getTotalPrice, isInitialized } = useCart();
-  const { user } = useAuth();
+  const { user, isAuthenticated } = useAuth();
   
   // All hooks must be called before any conditional returns
   const [loading, setLoading] = useState(false);
@@ -30,6 +30,19 @@ const Checkout = () => {
   });
   const [errors, setErrors] = useState({});
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState('razorpay');
+
+  // Redirect unauthenticated users to login
+  useEffect(() => {
+    if (!isAuthenticated) {
+      navigate('/login', { 
+        state: { 
+          message: 'Please log in to complete your checkout',
+          redirectTo: '/checkout'
+        }
+      });
+      return;
+    }
+  }, [isAuthenticated, navigate]);
 
   // Handle cart loading
   useEffect(() => {
@@ -58,6 +71,11 @@ const Checkout = () => {
       return () => clearTimeout(timer);
     }
   }, [cartItems, isInitialized]);
+
+  // Don't render anything if not authenticated
+  if (!isAuthenticated) {
+    return null;
+  }
 
   // Show loading state while cart is initializing
   if (cartLoading) {

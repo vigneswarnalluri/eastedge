@@ -15,16 +15,41 @@ const cartReducer = (state, action) => {
   console.log('Cart reducer called with action:', action.type, 'payload:', action.payload);
   console.log('Current state:', state);
   
+  // Create a unique key that includes product ID, size, and color
+  const createItemKey = (item) => {
+    const size = (item.selectedSize || '').toString().trim();
+    const color = (item.selectedColor || '').toString().trim();
+    const key = `${item._id}_${size}_${color}`;
+    console.log('Creating key for item:', { id: item._id, size, color, key });
+    return key;
+  };
+  
   let newState;
   
   switch (action.type) {
     case 'ADD_ITEM':
-      const existingItem = state.items.find(item => item._id === action.payload._id);
+      const payloadKey = createItemKey(action.payload);
+      console.log('=== ADD_ITEM DEBUG ===');
+      console.log('Payload key:', payloadKey);
+      console.log('Payload selectedSize:', action.payload.selectedSize);
+      console.log('Payload selectedColor:', action.payload.selectedColor);
+      console.log('Payload quantity:', action.payload.quantity);
+      console.log('Current cart items before adding:', state.items);
+      
+      const existingItem = state.items.find(item => {
+        const itemKey = createItemKey(item);
+        console.log('Comparing with existing item:', itemKey, 'vs', payloadKey);
+        return itemKey === payloadKey;
+      });
+      
+      console.log('Existing item found:', existingItem);
+      
       if (existingItem) {
+        console.log('Updating existing item quantity from', existingItem.quantity, 'to', existingItem.quantity + action.payload.quantity);
         newState = {
           ...state,
           items: state.items.map(item =>
-            item._id === action.payload._id
+            createItemKey(item) === payloadKey
               ? { ...item, quantity: item.quantity + action.payload.quantity }
               : item
           ),
@@ -32,6 +57,7 @@ const cartReducer = (state, action) => {
           itemCount: state.itemCount + action.payload.quantity
         };
       } else {
+        console.log('Adding new item to cart');
         newState = {
           ...state,
           items: [...state.items, action.payload],
@@ -40,13 +66,16 @@ const cartReducer = (state, action) => {
         };
       }
       console.log('New state after ADD_ITEM:', newState);
+      console.log('New cart items:', newState.items);
+      console.log('=== END ADD_ITEM DEBUG ===');
       return newState;
 
     case 'REMOVE_ITEM':
-      const itemToRemove = state.items.find(item => item._id === action.payload);
+      // createItemKey function should be available here
+      const itemToRemove = state.items.find(item => createItemKey(item) === action.payload);
       newState = {
         ...state,
-        items: state.items.filter(item => item._id !== action.payload),
+        items: state.items.filter(item => createItemKey(item) !== action.payload),
         total: state.total - (itemToRemove.price * itemToRemove.quantity),
         itemCount: state.itemCount - itemToRemove.quantity
       };
@@ -55,7 +84,7 @@ const cartReducer = (state, action) => {
 
     case 'UPDATE_QUANTITY':
       const updatedItems = state.items.map(item => {
-        if (item._id === action.payload.id) {
+        if (createItemKey(item) === action.payload.id) {
           return { ...item, quantity: action.payload.quantity };
         }
         return item;

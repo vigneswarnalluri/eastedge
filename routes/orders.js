@@ -1,14 +1,16 @@
 const express = require('express');
 const router = express.Router();
+const auth = require('../middleware/auth');
 
 // Mock orders storage (in a real app, this would be in MongoDB)
 let orders = [];
 let orderIdCounter = 1;
 
-// Create new order
-router.post('/', async (req, res) => {
+// Create new order - PROTECTED ROUTE
+router.post('/', auth, async (req, res) => {
   try {
     console.log('=== COD ORDER DEBUG ===');
+    console.log('User ID:', req.user._id);
     console.log('Request body:', req.body);
     console.log('Payment method:', req.body.paymentMethod);
     console.log('Total amount:', req.body.total);
@@ -18,6 +20,8 @@ router.post('/', async (req, res) => {
     
     const newOrder = {
       _id: `order_${orderIdCounter++}`,
+      userId: req.user._id, // Add user ID to order
+      userEmail: req.user.email,
       items,
       shipping,
       total,
@@ -45,13 +49,14 @@ router.post('/', async (req, res) => {
   }
 });
 
-// Get user orders
-router.get('/', async (req, res) => {
+// Get user orders - PROTECTED ROUTE
+router.get('/', auth, async (req, res) => {
   try {
-    // In a real app, you'd filter by user ID from JWT token
+    // Filter orders by user ID
+    const userOrders = orders.filter(order => order.userId === req.user._id);
     res.json({
       success: true,
-      orders: orders.slice(-10) // Return last 10 orders
+      orders: userOrders.slice(-10) // Return last 10 orders for this user
     });
   } catch (error) {
     res.status(500).json({ 
@@ -61,14 +66,22 @@ router.get('/', async (req, res) => {
   }
 });
 
-// Get single order
-router.get('/:id', async (req, res) => {
+// Get single order - PROTECTED ROUTE
+router.get('/:id', auth, async (req, res) => {
   try {
     const order = orders.find(o => o._id === req.params.id);
     if (!order) {
       return res.status(404).json({ 
         success: false, 
         message: 'Order not found' 
+      });
+    }
+    
+    // Check if user owns this order
+    if (order.userId !== req.user._id) {
+      return res.status(403).json({
+        success: false,
+        message: 'Access denied. You can only view your own orders.'
       });
     }
     
