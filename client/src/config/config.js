@@ -1,7 +1,7 @@
 const config = {
   // API base URL - will be different for development vs production
   API_BASE_URL: process.env.NODE_ENV === 'production' 
-    ? 'https://your-backend-url.onrender.com' // Replace with your actual backend URL
+    ? 'https://eastedge.in' // Your HostArmada backend URL
     : 'http://localhost:5000',
   
   // App configuration
