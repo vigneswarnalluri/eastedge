@@ -30,8 +30,6 @@ const connectDB = async () => {
       minPoolSize: 2,
       serverSelectionTimeoutMS: 10000,
       socketTimeoutMS: 45000,
-      bufferMaxEntries: 0,
-      bufferCommands: false,
     });
     console.log('✅ MongoDB Connected Successfully');
   } catch (err) {
