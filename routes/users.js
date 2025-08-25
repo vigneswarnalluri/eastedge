@@ -46,19 +46,26 @@ router.post('/register', async (req, res) => {
 // Login user
 router.post('/login', async (req, res) => {
   try {
+    console.log('🔐 Login attempt for email:', req.body.email);
     const { email, password } = req.body;
 
     // Find user
     const user = await User.findOne({ email });
     if (!user) {
+      console.log('❌ User not found for email:', email);
       return res.status(400).json({ message: 'Invalid credentials' });
     }
+
+    console.log('✅ User found:', user._id);
 
     // Check password
     const isMatch = await user.comparePassword(password);
     if (!isMatch) {
+      console.log('❌ Password mismatch for user:', user._id);
       return res.status(400).json({ message: 'Invalid credentials' });
     }
+
+    console.log('✅ Password verified for user:', user._id);
 
     // Generate token
     const token = jwt.sign(
@@ -66,6 +73,8 @@ router.post('/login', async (req, res) => {
       process.env.JWT_SECRET,
       { expiresIn: '7d' }
     );
+
+    console.log('✅ JWT token generated successfully for user:', user._id);
 
     res.json({
       _id: user._id,
@@ -75,6 +84,7 @@ router.post('/login', async (req, res) => {
       token
     });
   } catch (error) {
+    console.error('❌ Login error:', error);
     res.status(500).json({ message: error.message });
   }
 });
@@ -82,20 +92,30 @@ router.post('/login', async (req, res) => {
 // Get user profile
 router.get('/profile', async (req, res) => {
   try {
+    console.log('🔍 Profile request received');
     const token = req.header('Authorization')?.replace('Bearer ', '');
+    
     if (!token) {
+      console.log('❌ No token provided');
       return res.status(401).json({ message: 'No token, authorization denied' });
     }
 
+    console.log('✅ Token received, length:', token.length);
+
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    console.log('✅ JWT verified, userId:', decoded.userId);
+
     const user = await User.findById(decoded.userId).select('-password');
     
     if (!user) {
+      console.log('❌ User not found for userId:', decoded.userId);
       return res.status(404).json({ message: 'User not found' });
     }
 
+    console.log('✅ User profile retrieved successfully');
     res.json(user);
   } catch (error) {
+    console.error('❌ Profile error:', error);
     res.status(401).json({ message: 'Token is not valid' });
   }
  });

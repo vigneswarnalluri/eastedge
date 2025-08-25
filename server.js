@@ -9,6 +9,10 @@ dotenv.config({ path: './config.env' });
 
 // Check if environment variables are loaded
 console.log('NODE_ENV:', process.env.NODE_ENV || 'development');
+console.log('JWT_SECRET loaded:', !!process.env.JWT_SECRET);
+console.log('JWT_SECRET length:', process.env.JWT_SECRET?.length || 0);
+console.log('RAZORPAY_KEY_ID loaded:', !!process.env.RAZORPAY_KEY_ID);
+console.log('RAZORPAY_KEY_SECRET loaded:', !!process.env.RAZORPAY_KEY_SECRET);
 
 // Force set MongoDB URI if not loaded
 if (!process.env.MONGO_URI) {
@@ -63,6 +67,7 @@ app.use('/api/orders', require('./routes/orders'));
 app.use('/api/cart', require('./routes/cart'));
 app.use('/api/categories', require('./routes/categories'));
 app.use('/api/payments', require('./routes/payments'));
+app.use('/api/upload', require('./routes/upload'));
 
 // Error handling middleware
 app.use((err, req, res, next) => {

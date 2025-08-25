@@ -2,13 +2,14 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useCart } from '../context/CartContext';
 import { useWishlist } from '../context/WishlistContext';
-import { FiHeart, FiEye, FiShoppingCart } from 'react-icons/fi';
+import { FiHeart, FiEye, FiShoppingCart, FiImage } from 'react-icons/fi';
 import './ProductCard.css';
 
 const ProductCard = ({ product }) => {
   const { addToCart } = useCart();
   const { addToWishlist, removeFromWishlist, isInWishlist } = useWishlist();
   const [isWishlisted, setIsWishlisted] = useState(false);
+  const [imageError, setImageError] = useState(false);
 
   // Check if product is in wishlist on component mount
   useEffect(() => {
@@ -33,17 +34,84 @@ const ProductCard = ({ product }) => {
     }
   };
 
+  // Function to truncate description
+  const truncateDescription = (text, maxLength = 120) => {
+    if (!text || typeof text !== 'string') return "Premium quality product with exceptional design and comfort.";
+    if (text.length <= maxLength) return text;
+    return text.substring(0, maxLength).trim() + '...';
+  };
 
+  // Function to get product image
+  const getProductImage = () => {
+    if (imageError) {
+      console.log('Image error state, returning null for product:', product.name);
+      return null;
+    }
+    
+    // Try to get image from product.image first
+    if (product.image && typeof product.image === 'string') {
+      let imageUrl;
+      // If it's already an absolute URL, use it as is
+      if (product.image.startsWith('http')) {
+        imageUrl = product.image;
+      }
+      // If it's a relative path, make it absolute
+      else if (product.image.startsWith('/')) {
+        imageUrl = `${window.location.origin}${product.image}`;
+      }
+      // If it's just a filename, add the public path
+      else {
+        imageUrl = `${window.location.origin}/${product.image}`;
+      }
+      console.log('Using product.image:', imageUrl);
+      return imageUrl;
+    }
+    
+    // Try to get image from product.images array
+    if (Array.isArray(product.images) && product.images.length > 0) {
+      const firstImage = product.images[0];
+      if (typeof firstImage === 'string') {
+        let imageUrl;
+        if (firstImage.startsWith('http')) {
+          imageUrl = firstImage;
+        } else if (firstImage.startsWith('/')) {
+          imageUrl = `${window.location.origin}${firstImage}`;
+        } else {
+          imageUrl = `${window.location.origin}/${firstImage}`;
+        }
+        console.log('Using product.images[0]:', imageUrl);
+        return imageUrl;
+      }
+    }
+    
+    console.log('No image found for product:', product.name);
+    return null;
+  };
+
+  // Function to handle image error
+  const handleImageError = (e) => {
+    console.error('Image failed to load for product:', product.name, 'Error:', e);
+    setImageError(true);
+  };
 
   return (
     <div className="product-card">
       {/* Top Section - Image Area */}
       <div className="product-image-section">
-        <img 
-          src={product.image || (Array.isArray(product.images) && product.images.length > 0 ? product.images[0] : '/placeholder-image.jpg')} 
-          alt={typeof product.name === 'string' ? product.name : 'Product'}
-          className="product-image"
-        />
+        {getProductImage() ? (
+          <img 
+            src={getProductImage()} 
+            alt={typeof product.name === 'string' ? product.name : 'Product'}
+            className="product-image"
+            onError={handleImageError}
+            onLoad={() => console.log('Image loaded successfully for product:', product.name)}
+          />
+        ) : (
+          <div className="product-image-placeholder">
+            <FiImage size={48} />
+            <span>No Image</span>
+          </div>
+        )}
         
         {/* Wishlist Button */}
         <button 
@@ -86,10 +154,10 @@ const ProductCard = ({ product }) => {
 
         {/* Product Description */}
         <p className="product-description">
-          {typeof product.description === 'string' ? product.description : "Premium quality product with exceptional design and comfort."}
+          {truncateDescription(product.description)}
         </p>
 
-        {/* Price Section - Moved to top */}
+        {/* Price Section */}
         <div className="price-section">
           <span className="price-label">PRICE</span>
           <span className="price">₹{typeof product.price === 'number' ? product.price.toLocaleString() : '0'}</span>

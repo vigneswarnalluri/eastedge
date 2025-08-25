@@ -4,8 +4,8 @@
   "description": "Modern ecommerce website built with MERN stack",
   "main": "server.js",
   "scripts": {
-    "start": "node server.js",
-    "server": "nodemon server.js",
+    "start": "node server-render.js",
+    "server": "nodemon server-render.js",
     "client": "cd client && npm start",
     "dev": "concurrently \"npm run server\" \"npm run client\"",
     "build": "cd client && npm run build",

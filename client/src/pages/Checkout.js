@@ -2,7 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
+import { useUserPreferences } from '../context/UserPreferencesContext';
 import RazorpayPayment from '../components/RazorpayPayment';
+import api from '../services/api';
 import './Checkout.css';
 
 const Checkout = () => {
@@ -228,24 +230,12 @@ const Checkout = () => {
       console.log('Cart total:', getTotalPrice());
       console.log('COD total:', formData.paymentMethod === 'cod' ? getTotalPrice() + 50 : getTotalPrice());
 
-      const response = await fetch('/api/orders', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        },
-        body: JSON.stringify(orderData)
-      });
+      const response = await api.post('/api/orders', orderData);
 
-      if (response.ok) {
-        const result = await response.json();
-        console.log('COD order successful:', result);
-        clearCart();
-        setOrderPlaced(true);
-      } else {
-        const errorData = await response.json();
-        throw new Error(errorData.message || 'Failed to place order');
-      }
+      console.log('COD order successful:', response.data);
+      clearCart();
+      setOrderPlaced(true);
+
     } catch (error) {
       console.error('Order error:', error);
       setErrors({ submit: 'Failed to place order. Please try again.' });

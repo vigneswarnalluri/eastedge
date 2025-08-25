@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import axios from 'axios';
+import api from '../services/api';
 import ProductCard from '../components/ProductCard';
 import { FiFilter, FiSortAsc, FiSortDesc } from 'react-icons/fi';
 import './NewArrivals.css';
@@ -43,7 +43,7 @@ const NewArrivals = () => {
         if (max) params.append('maxPrice', max);
       }
 
-      const response = await axios.get(`/api/products?${params.toString()}`);
+      const response = await api.get(`/api/products?${params.toString()}`);
       
       // Handle API response format - products endpoint returns { products: [...], pagination: {...} }
       let filteredProducts = response.data.products ? response.data.products : 

@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useReducer, useEffect } from 'react';
-import axios from 'axios';
+import api from '../services/api';
 
 const AuthContext = createContext();
 
@@ -77,14 +77,14 @@ export const AuthProvider = ({ children }) => {
 
   // Set auth token header
   if (state.token) {
-    axios.defaults.headers.common['Authorization'] = `Bearer ${state.token}`;
+    api.defaults.headers.common['Authorization'] = `Bearer ${state.token}`;
   } else {
-    delete axios.defaults.headers.common['Authorization'];
+    delete api.defaults.headers.common['Authorization'];
   }
 
   const loadUser = async () => {
     try {
-      const res = await axios.get('/api/users/profile');
+      const res = await api.get('/api/users/profile');
       dispatch({ type: 'USER_LOADED', payload: res.data });
     } catch (error) {
       dispatch({ type: 'AUTH_ERROR' });
@@ -93,7 +93,7 @@ export const AuthProvider = ({ children }) => {
 
   const login = async (email, password) => {
     try {
-      const res = await axios.post('/api/users/login', { email, password });
+      const res = await api.post('/api/users/login', { email, password });
       dispatch({ type: 'LOGIN_SUCCESS', payload: res.data });
       return { success: true };
     } catch (error) {
@@ -104,7 +104,7 @@ export const AuthProvider = ({ children }) => {
 
   const register = async (name, email, password) => {
     try {
-      const res = await axios.post('/api/users/register', { name, email, password });
+      const res = await api.post('/api/users/register', { name, email, password });
       dispatch({ type: 'REGISTER_SUCCESS', payload: res.data });
       return { success: true };
     } catch (error) {
@@ -119,7 +119,7 @@ export const AuthProvider = ({ children }) => {
 
   const updateProfile = async (profileData) => {
     try {
-      const res = await axios.put('/api/users/profile', profileData);
+      const res = await api.put('/api/users/profile', profileData);
       dispatch({ type: 'USER_LOADED', payload: res.data });
       return { success: true };
     } catch (error) {

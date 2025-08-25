@@ -19,6 +19,7 @@ import {
   FiCreditCard
 } from 'react-icons/fi';
 import './ProductDetail.css';
+import api from '../services/api';
 
 const ProductDetail = () => {
   const { id } = useParams();
@@ -43,28 +44,23 @@ const ProductDetail = () => {
     const fetchProduct = async () => {
       try {
         setLoading(true);
-        const response = await fetch(`/api/products/${id}`);
-        if (response.ok) {
-          const data = await response.json();
-          setProduct(data);
-          
-          // Set default selections
-          if (data.sizes && Array.isArray(data.sizes) && data.sizes.length > 0) {
-            setSelectedSize(data.sizes[0]);
-          }
-          if (data.colors && Array.isArray(data.colors) && data.colors.length > 0) {
-            const validColors = data.colors.filter(color => color && typeof color === 'string');
-            if (validColors.length > 0) {
-              setSelectedColor(validColors[0]);
-            }
-          }
-          
-          // Fetch reviews
-          fetchReviews(data._id);
-          
-        } else {
-          setError('Product not found');
+        const response = await api.get(`/api/products/${id}`);
+        setProduct(response.data);
+        
+        // Set default selections
+        if (response.data.sizes && Array.isArray(response.data.sizes) && response.data.sizes.length > 0) {
+          setSelectedSize(response.data.sizes[0]);
         }
+        if (response.data.colors && Array.isArray(response.data.colors) && response.data.colors.length > 0) {
+          const validColors = response.data.colors.filter(color => color && typeof color === 'string');
+          if (validColors.length > 0) {
+            setSelectedColor(validColors[0]);
+          }
+        }
+        
+        // Fetch reviews
+        fetchReviews(response.data._id);
+        
       } catch (error) {
         console.error('Error fetching product:', error);
         setError('Failed to load product');
@@ -86,11 +82,8 @@ const ProductDetail = () => {
 
   const fetchReviews = async (productId) => {
     try {
-      const response = await fetch(`/api/products/${productId}/reviews`);
-      if (response.ok) {
-        const data = await response.json();
-        setReviews(data.reviews || []);
-      }
+      const response = await api.get(`/api/products/${productId}/reviews`);
+      setReviews(response.data.reviews || []);
     } catch (error) {
       console.error('Error fetching reviews:', error);
     }

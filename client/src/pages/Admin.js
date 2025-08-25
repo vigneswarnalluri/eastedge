@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { FiBarChart2, FiPackage, FiShoppingCart, FiUsers, FiStar, FiTag, FiFileText, FiSettings, FiLogOut, FiPlus, FiEye, FiEdit, FiTrash2, FiDownload, FiFilter, FiUpload } from 'react-icons/fi';
-import axios from 'axios';
+import api from '../services/api';
 import './Admin.css';
 
 const Admin = () => {
@@ -99,8 +99,8 @@ const Admin = () => {
       console.log('Fetching data from backend...');
       
       const [productsRes, categoriesRes] = await Promise.all([
-        axios.get('/api/products'),
-        axios.get('/api/categories')
+        api.get('/api/products'),
+        api.get('/api/categories')
       ]);
       
       console.log('Products response:', productsRes.data);
@@ -215,7 +215,7 @@ const Admin = () => {
        console.log('Processed colors for backend:', processedColors);
        console.log('Sending product data to backend:', productData);
 
-       const response = await axios.post('/api/products', productData);
+       const response = await api.post('/api/products', productData);
        console.log('Product added successfully:', response.data);
        
        setProducts([...products, response.data]);
@@ -335,7 +335,7 @@ const Admin = () => {
         console.log('Original colors from form:', productForm.colors);
         console.log('Processed colors for backend:', processedColors);
 
-        const response = await axios.put(`/api/products/${editingProduct._id}`, productData);
+        const response = await api.put(`/api/products/${editingProduct._id}`, productData);
         setProducts(products.map(p => p._id === editingProduct._id ? response.data : p));
         
         // Also refresh all frontend pages if they're open
@@ -380,7 +380,7 @@ const Admin = () => {
   const handleDeleteProduct = async (productId) => {
     if (window.confirm('Are you sure you want to delete this product?')) {
       try {
-        await axios.delete(`/api/products/${productId}`);
+        await api.delete(`/api/products/${productId}`);
         setProducts(products.filter(p => p._id !== productId));
         
         // Also refresh all frontend pages if they're open
@@ -431,7 +431,7 @@ const Admin = () => {
           categoryData.parentCategory = categoryForm.parentCategory;
         }
 
-        const response = await axios.post('/api/categories', categoryData);
+        const response = await api.post('/api/categories', categoryData);
         setCategories([...categories, response.data]);
         setCategoryForm({ name: '', description: '', status: 'active', parentCategory: null });
         setShowAddCategory(false);
@@ -483,7 +483,7 @@ const Admin = () => {
           };
 
           try {
-            const response = await axios.post('/api/categories', categoryData);
+            const response = await api.post('/api/categories', categoryData);
             console.log(`Created sub-category: ${subCat.name}`);
           } catch (error) {
             console.error(`Error creating sub-category ${subCat.name}:`, error);
@@ -503,7 +503,7 @@ const Admin = () => {
   const handleDeleteCategory = async (categoryId) => {
     if (window.confirm('Are you sure you want to delete this category? This will affect all products in this category.')) {
       try {
-        await axios.delete(`/api/categories/${categoryId}`);
+        await api.delete(`/api/categories/${categoryId}`);
         setCategories(categories.filter(cat => cat._id !== categoryId));
         // Also remove products in this category
         setProducts(products.filter(product => {
@@ -842,24 +842,40 @@ const Admin = () => {
                 />
               </div>
               <div className="form-group">
-                <label>Main Image *</label>
+                <label>Product Image *</label>
                 <input
                   type="file"
                   className="form-input"
                   accept="image/*"
-                  onChange={(e) => {
+                  onChange={async (e) => {
                     const file = e.target.files[0];
                     if (file) {
-                      // For now, we'll store the file name
-                      // In a real implementation, you'd upload to a server and get a URL
-                      setProductForm({...productForm, image: file.name});
-                      
-                      // Create a preview URL
-                      const reader = new FileReader();
-                      reader.onload = (e) => {
-                        setProductForm(prev => ({...prev, imagePreview: e.target.result}));
-                      };
-                      reader.readAsDataURL(file);
+                      try {
+                        // Create FormData for file upload
+                        const formData = new FormData();
+                        formData.append('image', file);
+                        
+                        // Upload image to server
+                        const uploadResponse = await api.post('/api/upload/image', formData, {
+                          headers: {
+                            'Content-Type': 'multipart/form-data',
+                          },
+                        });
+                        
+                        if (uploadResponse.data.success) {
+                          // Store the image path from server response
+                          setProductForm({
+                            ...productForm, 
+                            image: uploadResponse.data.imagePath,
+                            imagePreview: uploadResponse.data.imagePath
+                          });
+                        } else {
+                          alert('Failed to upload image');
+                        }
+                      } catch (error) {
+                        console.error('Image upload error:', error);
+                        alert('Failed to upload image: ' + error.message);
+                      }
                     }
                   }}
                   required
@@ -875,6 +891,88 @@ const Admin = () => {
                   </div>
                 )}
               </div>
+              
+              <div className="form-group">
+                <label>Additional Images</label>
+                <input
+                  type="file"
+                  className="form-input"
+                  accept="image/*"
+                  multiple
+                  onChange={async (e) => {
+                    const files = Array.from(e.target.files);
+                    if (files.length > 0) {
+                      try {
+                        // Create FormData for multiple file uploads
+                        const formData = new FormData();
+                        files.forEach(file => {
+                          formData.append('images', file);
+                        });
+                        
+                        // Upload images to server
+                        const uploadResponse = await api.post('/api/upload/images', formData, {
+                          headers: {
+                            'Content-Type': 'multipart/form-data',
+                          },
+                        });
+                        
+                        if (uploadResponse.data.success) {
+                          // Store the image paths from server response
+                          setProductForm({
+                            ...productForm, 
+                            images: [...productForm.images, ...uploadResponse.data.imagePaths]
+                          });
+                        } else {
+                          alert('Failed to upload images');
+                        }
+                      } catch (error) {
+                        console.error('Images upload error:', error);
+                        alert('Failed to upload images: ' + error.message);
+                      }
+                    }
+                  }}
+                />
+                <small className="form-help">Upload additional product images (JPG, PNG, WebP) - Max 5 images</small>
+                {productForm.images.length > 0 && (
+                  <div className="images-preview">
+                    <h4>Additional Images:</h4>
+                    <div style={{display: 'flex', gap: '10px', flexWrap: 'wrap', marginTop: '10px'}}>
+                      {productForm.images.map((imagePath, index) => (
+                        <div key={index} style={{position: 'relative'}}>
+                          <img 
+                            src={imagePath} 
+                            alt={`Product ${index + 1}`} 
+                            style={{width: '80px', height: '80px', objectFit: 'cover', borderRadius: '4px'}}
+                          />
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const newImages = productForm.images.filter((_, i) => i !== index);
+                              setProductForm({...productForm, images: newImages});
+                            }}
+                            style={{
+                              position: 'absolute',
+                              top: '-5px',
+                              right: '-5px',
+                              background: 'red',
+                              color: 'white',
+                              border: 'none',
+                              borderRadius: '50%',
+                              width: '20px',
+                              height: '20px',
+                              cursor: 'pointer',
+                              fontSize: '12px'
+                            }}
+                          >
+                            ×
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+              
               <div className="form-group">
                 <label>Description *</label>
                 <textarea

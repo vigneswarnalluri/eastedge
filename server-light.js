@@ -44,6 +44,9 @@ app.get('/api/health', (req, res) => {
 app.use('/api/products', require('./routes/products'));
 app.use('/api/users', require('./routes/users'));
 app.use('/api/categories', require('./routes/categories'));
+app.use('/api/upload', require('./routes/upload'));
+app.use('/api/orders', require('./routes/orders'));
+app.use('/api/payments', require('./routes/payments'));
 
 // Serve static assets in production
 if (process.env.NODE_ENV === 'production') {

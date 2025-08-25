@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import axios from 'axios';
+import api from '../services/api';
 import { motion } from 'framer-motion';
 import ProductCard from '../components/ProductCard';
 import { useUserPreferences } from '../context/UserPreferencesContext';
@@ -86,7 +86,7 @@ const Products = () => {
       });
 
       console.log('Fetching products with params:', params.toString());
-      const response = await axios.get(`/api/products?${params.toString()}`);
+      const response = await api.get(`/api/products?${params.toString()}`);
       
       // Handle API response format - products endpoint returns { products: [...], pagination: {...} }
       const productsData = response.data.products ? response.data.products : 

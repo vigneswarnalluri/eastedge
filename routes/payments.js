@@ -3,6 +3,15 @@ const Razorpay = require('razorpay');
 const crypto = require('crypto');
 const router = express.Router();
 
+// Test endpoint to verify route is working
+router.get('/test', (req, res) => {
+  res.json({ 
+    success: true, 
+    message: 'Payments route is working',
+    timestamp: new Date().toISOString()
+  });
+});
+
 // Initialize Razorpay
 const razorpay = new Razorpay({
   key_id: process.env.RAZORPAY_KEY_ID,
@@ -12,11 +21,19 @@ const razorpay = new Razorpay({
 // Create Razorpay Order
 router.post('/create-order', async (req, res) => {
   try {
+    console.log('🔐 Payment order creation request received');
+    console.log('Request body:', req.body);
+    console.log('RAZORPAY_KEY_ID:', !!process.env.RAZORPAY_KEY_ID);
+    console.log('RAZORPAY_KEY_SECRET:', !!process.env.RAZORPAY_KEY_SECRET);
+    
     const { amount, currency = 'INR', receipt, notes } = req.body;
 
     if (!amount) {
+      console.log('❌ Amount is missing');
       return res.status(400).json({ error: 'Amount is required' });
     }
+
+    console.log('✅ Amount received:', amount);
 
     const options = {
       amount: Math.round(amount * 100), // Razorpay expects amount in paise
@@ -25,7 +42,10 @@ router.post('/create-order', async (req, res) => {
       notes: notes || {},
     };
 
+    console.log('✅ Razorpay options:', options);
+
     const order = await razorpay.orders.create(options);
+    console.log('✅ Razorpay order created successfully:', order.id);
     
     res.json({
       success: true,
@@ -37,7 +57,7 @@ router.post('/create-order', async (req, res) => {
       },
     });
   } catch (error) {
-    console.error('Razorpay order creation error:', error);
+    console.error('❌ Razorpay order creation error:', error);
     res.status(500).json({ 
       error: 'Failed to create payment order',
       details: error.message 

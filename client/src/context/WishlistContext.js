@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import axios from 'axios';
+import api from '../services/api';
 
 const WishlistContext = createContext();
 
@@ -86,7 +86,7 @@ export const WishlistProvider = ({ children }) => {
     
     try {
       // Send wishlist to backend
-      await axios.post('/api/wishlist/sync', {
+      await api.post('/api/wishlist/sync', {
         userId,
         items: wishlistItems
       });

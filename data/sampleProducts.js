@@ -5,8 +5,8 @@ const sampleProducts = [
     description: "Elegant leather armchair with premium craftsmanship and comfortable seating. Perfect for living rooms and home offices.",
     price: 299.99,
     categoryName: "Furniture",
-    image: "/accessories.png",
-    images: ["/accessories.png"],
+    image: "/homegoods.png",
+    images: ["/homegoods.png"],
     sizes: ["Standard"],
     colors: [
       { name: "Brown", hexCode: "#8B4513", inStock: true },
@@ -93,8 +93,8 @@ const sampleProducts = [
     description: "Premium wireless headphones with noise cancellation and 30-hour battery life. Perfect for music lovers and professionals.",
     price: 199.99,
     categoryName: "Electronics",
-    image: "/accessories.png",
-    images: ["/accessories.png"],
+    image: "/man-1281562.jpg",
+    images: ["/man-1281562.jpg"],
     sizes: ["One Size"],
     colors: [
       { name: "Black", hexCode: "#000000", inStock: true },
@@ -117,34 +117,91 @@ const sampleProducts = [
     shippingInfo: { freeShipping: true, estimatedDays: 1 }
   },
   {
-    name: "Organic Cotton T-Shirt",
-    sku: "TSHIRT-001",
-    description: "Soft and comfortable organic cotton t-shirt. Available in multiple colors with a relaxed fit for everyday wear.",
-    price: 29.99,
-    categoryName: "Apparel",
-    image: "/apparel.webp",
-    images: ["/apparel.webp"],
-    sizes: ["XS", "S", "M", "L", "XL", "XXL"],
+    name: "Casio Vintage A-158WA-1Q Digital Grey Dial Unisex Watch Silver Metal Strap (D011)",
+    sku: "WATCH-001",
+    description: "Dial Color: Grey, Case Shape: Rectangular, Dial Glass material: Mineral Band Color: Silver, Band Material: Stainless Steel Watch Movement Type: Quartz, Watch Display Type: Digital and Stainless Steel Bezel Case Material: Stainless Steel, Case Diameter: 32 millimeters, Size of case: 36.8×33.2×8.2mm Fold Over Clasp Warranty 1e895ufacturer; 2 Years Domestic Warranty",
+    price: 1895,
+    categoryName: "Accessories",
+    image: "/man-815795.jpg",
+    images: ["/man-815795.jpg"],
+    sizes: ["Standard"],
     colors: [
-      { name: "White", hexCode: "#FFFFFF", inStock: true },
-      { name: "Navy", hexCode: "#000080", inStock: true },
-      { name: "Gray", hexCode: "#808080", inStock: true }
+      { name: "Silver", hexCode: "#C0C0C0", inStock: true },
+      { name: "Grey", hexCode: "#808080", inStock: true }
     ],
     variants: [
-      { size: "M", color: "White", price: 29.99, stock: 50, sku: "TSHIRT-001-WHITE-M" },
-      { size: "L", color: "Navy", price: 29.99, stock: 45, sku: "TSHIRT-001-NAVY-L" },
-      { size: "XL", color: "Gray", price: 29.99, stock: 40, sku: "TSHIRT-001-GRAY-XL" }
+      { size: "Standard", color: "Silver", price: 1895, stock: 15, sku: "WATCH-001-SILVER" },
+      { size: "Standard", color: "Grey", price: 1895, stock: 12, sku: "WATCH-001-GREY" }
     ],
     inStock: true,
-    stockQuantity: 135,
+    stockQuantity: 27,
+    featured: true,
+    newArrival: false,
+    trending: false,
+    rating: 4.6,
+    numReviews: 89,
+    tags: ["accessories", "watch", "digital", "casio", "vintage", "unisex"],
+    weight: 0.1,
+    dimensions: { length: 36.8, width: 33.2, height: 8.2 },
+    shippingInfo: { freeShipping: false, estimatedDays: 4 }
+  },
+  {
+    name: "Iphone 16",
+    sku: "PHONE-001",
+    description: "Iphone",
+    price: 99999,
+    categoryName: "Accessories",
+    image: "/space-shuttle-774_1280.jpg",
+    images: ["/space-shuttle-774_1280.jpg"],
+    sizes: ["Standard"],
+    colors: [
+      { name: "White", hexCode: "#FFFFFF", inStock: true },
+      { name: "Black", hexCode: "#000000", inStock: true }
+    ],
+    variants: [
+      { size: "Standard", color: "White", price: 99999, stock: 10, sku: "PHONE-001-WHITE" },
+      { size: "Standard", color: "Black", price: 99999, stock: 8, sku: "PHONE-001-BLACK" }
+    ],
+    inStock: true,
+    stockQuantity: 18,
     featured: false,
     newArrival: true,
-    trending: false,
-    rating: 4.3,
-    numReviews: 89,
-    tags: ["apparel", "t-shirt", "cotton", "organic", "casual"],
+    trending: true,
+    rating: 4.9,
+    numReviews: 156,
+    tags: ["accessories", "phone", "iphone", "smartphone", "premium"],
     weight: 0.2,
-    dimensions: { length: 70, width: 50, height: 2 },
+    dimensions: { length: 15, width: 7.5, height: 0.8 },
+    shippingInfo: { freeShipping: true, estimatedDays: 1 }
+  },
+  {
+    name: "Premium Denim Jeans",
+    sku: "JEANS-001",
+    description: "High-quality denim jeans with perfect stretch and modern fit.",
+    price: 2499,
+    categoryName: "Apparel",
+    image: "/man-1281562.jpg",
+    images: ["/man-1281562.jpg"],
+    sizes: ["28", "30", "32", "34", "36"],
+    colors: [
+      { name: "Blue", hexCode: "#1E90FF", inStock: true },
+      { name: "Black", hexCode: "#000000", inStock: true }
+    ],
+    variants: [
+      { size: "30", color: "Blue", price: 2499, stock: 25, sku: "JEANS-001-BLUE-30" },
+      { size: "32", color: "Blue", price: 2499, stock: 30, sku: "JEANS-001-BLUE-32" },
+      { size: "34", color: "Blue", price: 2499, stock: 28, sku: "JEANS-001-BLUE-34" }
+    ],
+    inStock: true,
+    stockQuantity: 83,
+    featured: true,
+    newArrival: false,
+    trending: true,
+    rating: 4.7,
+    numReviews: 45,
+    tags: ["apparel", "jeans", "denim", "premium", "modern-fit"],
+    weight: 0.8,
+    dimensions: { length: 100, width: 50, height: 5 },
     shippingInfo: { freeShipping: true, estimatedDays: 2 }
   }
 ];

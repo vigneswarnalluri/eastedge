@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
+import api from '../services/api';
 import './RazorpayPayment.css';
 
 const RazorpayPayment = ({ amount, onSuccess, onFailure, orderData }) => {
@@ -40,29 +41,18 @@ const RazorpayPayment = ({ amount, onSuccess, onFailure, orderData }) => {
 
     try {
       // Create Razorpay order
-      const response = await fetch('/api/payments/create-order', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        },
-        body: JSON.stringify({
-          amount: amount,
-          currency: 'INR',
-          receipt: `order_${Date.now()}`,
-          notes: {
-            userId: user?._id,
-            orderType: 'ecommerce',
-            items: orderData?.items?.length || 0
-          }
-        })
+      const response = await api.post('/api/payments/create-order', {
+        amount: amount,
+        currency: 'INR',
+        receipt: `order_${Date.now()}`,
+        notes: {
+          userId: user?._id,
+          orderType: 'ecommerce',
+          items: orderData?.items?.length || 0
+        }
       });
 
-      if (!response.ok) {
-        throw new Error('Failed to create payment order');
-      }
-
-      const { order } = await response.json();
+      const { order } = response.data;
 
       // Initialize Razorpay payment
       const options = {
@@ -75,34 +65,23 @@ const RazorpayPayment = ({ amount, onSuccess, onFailure, orderData }) => {
         handler: async function (response) {
           try {
             // Verify payment
-            const verifyResponse = await fetch('/api/payments/verify-payment', {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${localStorage.getItem('token')}`
-              },
-              body: JSON.stringify({
-                razorpay_order_id: response.razorpay_order_id,
-                razorpay_payment_id: response.razorpay_payment_id,
-                razorpay_signature: response.razorpay_signature
-              })
+            const verifyResponse = await api.post('/api/payments/verify-payment', {
+              razorpay_order_id: response.razorpay_order_id,
+              razorpay_payment_id: response.razorpay_payment_id,
+              razorpay_signature: response.razorpay_signature
             });
 
-            if (verifyResponse.ok) {
-              const verifyData = await verifyResponse.json();
-              
-              // Clear cart on successful payment
-              clearCart();
-              
-              // Call success callback
-              if (onSuccess) {
-                onSuccess({
-                  ...response,
-                  verification: verifyData
-                });
-              }
-            } else {
-              throw new Error('Payment verification failed');
+            const verifyData = verifyResponse.data;
+            
+            // Clear cart on successful payment
+            clearCart();
+            
+            // Call success callback
+            if (onSuccess) {
+              onSuccess({
+                ...response,
+                verification: verifyData
+              });
             }
           } catch (error) {
             console.error('Payment verification error:', error);

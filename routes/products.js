@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const Product = require('../models/Product');
 const Category = require('../models/Category');
+const auth = require('../middleware/auth');
 const sampleProducts = require('../data/sampleProducts');
 
 // Get all products
@@ -127,7 +128,7 @@ router.delete('/:id', async (req, res) => {
 });
 
 // Add product review
-router.post('/:id/reviews', async (req, res) => {
+router.post('/:id/reviews', auth, async (req, res) => {
   try {
     const { rating, comment } = req.body;
     
@@ -141,7 +142,7 @@ router.post('/:id/reviews', async (req, res) => {
     }
     
     const review = {
-      user: req.user.id, // Will be set by auth middleware
+      user: req.user._id, // Use _id instead of id
       name: req.user.name,
       rating: parseInt(rating),
       comment
@@ -187,7 +188,7 @@ router.post('/seed', async (req, res) => {
     const categories = [
       { name: 'Furniture', description: 'Home and office furniture', image: '/homegoods.png' },
       { name: 'Apparel', description: 'Clothing and accessories', image: '/apparel.webp' },
-      { name: 'Electronics', description: 'Electronic devices and accessories', image: '/accessories.png' }
+      { name: 'Electronics', description: 'Electronic devices and accessories', image: '/man-1281562.jpg' }
     ];
 
     const createdCategories = await Category.insertMany(categories);

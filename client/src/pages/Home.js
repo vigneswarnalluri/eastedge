@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import axios from 'axios';
+import api from '../services/api';
 import ProductCard from '../components/ProductCard';
 import './Home.css';
 
@@ -20,9 +20,9 @@ const Home = () => {
       
       const [featured, newArr, trending] = await Promise.race([
         Promise.all([
-          axios.get('/api/products?featured=true&limit=4'),
-          axios.get('/api/products?newArrival=true&limit=3'),
-          axios.get('/api/products?trending=true&limit=5')
+          api.get('/api/products?featured=true&limit=4'),
+          api.get('/api/products?newArrival=true&limit=3'),
+          api.get('/api/products?trending=true&limit=5')
         ]),
         timeout
       ]);
