@@ -12,7 +12,7 @@ const app = express();
 // Production middleware
 app.use(cors({
   origin: process.env.NODE_ENV === 'production' 
-    ? ['https://eastedge.in', 'https://www.eastedge.in'] 
+    ? ['https://eastedge.onrender.com', 'https://eastedge.in', 'https://www.eastedge.in'] 
     : true,
   credentials: true
 }));
