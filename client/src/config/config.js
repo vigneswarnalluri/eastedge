@@ -3,7 +3,7 @@ const config = {
     API_BASE_URL: 'http://localhost:5000'
   },
   production: {
-    API_BASE_URL: 'https://your-app.onrender.com' // Replace with your actual Render URL
+    API_BASE_URL: 'https://eastedge.onrender.com' // Your actual Render backend URL
   }
 };
 
