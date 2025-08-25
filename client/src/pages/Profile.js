@@ -1,0 +1,594 @@
+import React, { useState, useEffect } from 'react';
+import { useAuth } from '../context/AuthContext';
+import { useWishlist } from '../context/WishlistContext';
+import { useCart } from '../context/CartContext';
+import { FiEdit2, FiSave, FiX, FiUser, FiMail, FiPhone, FiMapPin, FiCalendar, FiShield, FiShoppingBag, FiHeart, FiSettings, FiTrash2 } from 'react-icons/fi';
+import WishlistItem from '../components/WishlistItem';
+import './Profile.css';
+
+const Profile = () => {
+  const { user, updateProfile } = useAuth();
+  const { 
+    wishlistItems, 
+    removeFromWishlist, 
+    moveToCart, 
+    clearWishlist,
+    getWishlistCount 
+  } = useWishlist();
+  const { addToCart } = useCart();
+  const [isEditing, setIsEditing] = useState(false);
+  const [activeTab, setActiveTab] = useState('profile');
+  const [formData, setFormData] = useState({
+    name: '',
+    email: '',
+    phone: '',
+    address: '',
+    city: '',
+    state: '',
+    zipCode: '',
+    country: '',
+    dateOfBirth: '',
+    gender: '',
+    bio: ''
+  });
+  const [loading, setLoading] = useState(false);
+  const [message, setMessage] = useState({ type: '', text: '' });
+
+  useEffect(() => {
+    if (user) {
+      setFormData({
+        name: user.name || '',
+        email: user.email || '',
+        phone: user.phone || '',
+        address: user.address || '',
+        city: user.city || '',
+        state: user.state || '',
+        zipCode: user.zipCode || '',
+        country: user.country || '',
+        dateOfBirth: user.dateOfBirth || '',
+        gender: user.gender || '',
+        bio: user.bio || ''
+      });
+    }
+  }, [user]);
+
+  // Debug logging for wishlist items
+  useEffect(() => {
+    console.log('Wishlist items:', wishlistItems);
+    if (wishlistItems.length > 0) {
+      console.log('First item structure:', JSON.stringify(wishlistItems[0], null, 2));
+    }
+  }, [wishlistItems]);
+
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({
+      ...prev,
+      [name]: value
+    }));
+  };
+
+  const handleEdit = () => {
+    setIsEditing(true);
+    setMessage({ type: '', text: '' });
+  };
+
+  const handleCancel = () => {
+    setIsEditing(false);
+    if (user) {
+      setFormData({
+        name: user.name || '',
+        email: user.email || '',
+        phone: user.phone || '',
+        address: user.address || '',
+        city: user.city || '',
+        state: user.state || '',
+        zipCode: user.zipCode || '',
+        country: user.country || '',
+        dateOfBirth: user.dateOfBirth || '',
+        gender: user.gender || '',
+        bio: user.bio || ''
+      });
+    }
+    setMessage({ type: '', text: '' });
+  };
+
+  const handleSave = async () => {
+    setLoading(true);
+    setMessage({ type: '', text: '' });
+
+    try {
+      await updateProfile(formData);
+      setIsEditing(false);
+      setMessage({ 
+        type: 'success', 
+        text: 'Profile updated successfully!' 
+      });
+    } catch (error) {
+      setMessage({ 
+        type: 'error', 
+        text: error.message || 'Failed to update profile' 
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const getInitials = (name) => {
+    if (!name) return 'U';
+    const names = name.split(' ');
+    if (names.length === 1) return names[0].charAt(0).toUpperCase();
+    return (names[0].charAt(0) + names[names.length - 1].charAt(0)).toUpperCase();
+  };
+
+  // Wishlist handlers
+  const handleRemoveFromWishlist = (productId) => {
+    removeFromWishlist(productId);
+    setMessage({ 
+      type: 'success', 
+      text: 'Item removed from wishlist' 
+    });
+  };
+
+  const handleMoveToCart = (productId) => {
+    const item = moveToCart(productId, addToCart);
+    if (item) {
+      setMessage({ 
+        type: 'success', 
+        text: `${item.name || 'Product'} moved to cart` 
+      });
+    }
+  };
+
+  const handleClearWishlist = () => {
+    if (window.confirm('Are you sure you want to clear your entire wishlist?')) {
+      clearWishlist();
+      setMessage({ 
+        type: 'success', 
+        text: 'Wishlist cleared successfully' 
+      });
+    }
+  };
+
+  const handleViewProduct = (product) => {
+    // This will be handled by the Link in WishlistItem component
+    // You can add additional logic here if needed
+  };
+
+  if (!user) {
+    return (
+      <div className="profile-page">
+        <div className="container">
+          <div className="profile-error">
+            <h2>Please log in to view your profile</h2>
+            <p>You need to be authenticated to access your profile information.</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  const tabs = [
+    { id: 'profile', label: 'Profile', icon: <FiUser /> },
+    { id: 'orders', label: 'Orders', icon: <FiShoppingBag /> },
+    { id: 'wishlist', label: 'Wishlist', icon: <FiHeart /> },
+    { id: 'settings', label: 'Settings', icon: <FiSettings /> }
+  ];
+
+  return (
+    <div className="profile-page">
+      <div className="container">
+        {/* Profile Header */}
+        <div className="profile-header">
+          <div className="profile-header-content">
+            <div className="profile-avatar-large">
+              <div className="avatar-placeholder-large">
+                {getInitials(formData.name)}
+              </div>
+            </div>
+            <div className="profile-header-info">
+              <h1>{formData.name || 'User Profile'}</h1>
+              <p className="profile-email">{formData.email}</p>
+              <p className="profile-member-since">
+                Member since {user.createdAt ? new Date(user.createdAt).toLocaleDateString('en-US', { 
+                  year: 'numeric', 
+                  month: 'long' 
+                }) : 'Unknown'}
+              </p>
+            </div>
+          </div>
+          {!isEditing && (
+            <button onClick={handleEdit} className="btn-edit-profile">
+              <FiEdit2 /> Edit Profile
+            </button>
+          )}
+        </div>
+
+        {/* Message Display */}
+        {message.text && (
+          <div className={`message ${message.type}`}>
+            {message.text}
+          </div>
+        )}
+
+        {/* Navigation Tabs */}
+        <div className="profile-tabs">
+          {tabs.map(tab => (
+            <button
+              key={tab.id}
+              className={`tab-button ${activeTab === tab.id ? 'active' : ''}`}
+              onClick={() => setActiveTab(tab.id)}
+            >
+              {tab.icon} {tab.label}
+            </button>
+          ))}
+        </div>
+
+        {/* Tab Content */}
+        <div className="tab-content">
+          {activeTab === 'profile' && (
+            <div className="profile-content">
+              <div className="profile-card">
+                <div className="card-header">
+                  <h3><FiUser /> Personal Information</h3>
+                </div>
+                
+                <div className="profile-form">
+                  {/* Basic Information */}
+                  <div className="form-section">
+                    <h4>Basic Information</h4>
+                    <div className="form-row">
+                      <div className="form-group">
+                        <label className="form-label">
+                          <FiUser /> Full Name
+                        </label>
+                        {isEditing ? (
+                          <input
+                            type="text"
+                            name="name"
+                            value={formData.name}
+                            onChange={handleChange}
+                            className="form-input"
+                            placeholder="Enter your full name"
+                          />
+                        ) : (
+                          <div className="form-value">{formData.name || 'Not provided'}</div>
+                        )}
+                      </div>
+
+                      <div className="form-group">
+                        <label className="form-label">
+                          <FiMail /> Email Address
+                        </label>
+                        {isEditing ? (
+                          <input
+                            type="email"
+                            name="email"
+                            value={formData.email}
+                            onChange={handleChange}
+                            className="form-input"
+                            placeholder="Enter your email"
+                          />
+                        ) : (
+                          <div className="form-value">{formData.email || 'Not provided'}</div>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="form-row">
+                      <div className="form-group">
+                        <label className="form-label">
+                          <FiPhone /> Phone Number
+                        </label>
+                        {isEditing ? (
+                          <input
+                            type="tel"
+                            name="phone"
+                            value={formData.phone}
+                            onChange={handleChange}
+                            className="form-input"
+                            placeholder="Enter your phone number"
+                          />
+                        ) : (
+                          <div className="form-value">{formData.phone || 'Not provided'}</div>
+                        )}
+                      </div>
+
+                      <div className="form-group">
+                        <label className="form-label">
+                          <FiCalendar /> Date of Birth
+                        </label>
+                        {isEditing ? (
+                          <input
+                            type="date"
+                            name="dateOfBirth"
+                            value={formData.dateOfBirth}
+                            onChange={handleChange}
+                            className="form-input"
+                          />
+                        ) : (
+                          <div className="form-value">
+                            {formData.dateOfBirth ? new Date(formData.dateOfBirth).toLocaleDateString() : 'Not provided'}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="form-row">
+                      <div className="form-group">
+                        <label className="form-label">Gender</label>
+                        {isEditing ? (
+                          <select
+                            name="gender"
+                            value={formData.gender}
+                            onChange={handleChange}
+                            className="form-input"
+                          >
+                            <option value="">Select gender</option>
+                            <option value="male">Male</option>
+                            <option value="female">Female</option>
+                            <option value="other">Other</option>
+                            <option value="prefer-not-to-say">Prefer not to say</option>
+                          </select>
+                        ) : (
+                          <div className="form-value">
+                            {formData.gender ? formData.gender.charAt(0).toUpperCase() + formData.gender.slice(1) : 'Not provided'}
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="form-group">
+                        <label className="form-label">Bio</label>
+                        {isEditing ? (
+                          <textarea
+                            name="bio"
+                            value={formData.bio}
+                            onChange={handleChange}
+                            className="form-textarea"
+                            placeholder="Tell us about yourself..."
+                            rows="3"
+                          />
+                        ) : (
+                          <div className="form-value">{formData.bio || 'No bio added yet'}</div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Address Information */}
+                  <div className="form-section">
+                    <h4><FiMapPin /> Address Information</h4>
+                    <div className="form-row">
+                      <div className="form-group full-width">
+                        <label className="form-label">Street Address</label>
+                        {isEditing ? (
+                          <input
+                            type="text"
+                            name="address"
+                            value={formData.address}
+                            onChange={handleChange}
+                            className="form-input"
+                            placeholder="Enter your street address"
+                          />
+                        ) : (
+                          <div className="form-value">{formData.address || 'Not provided'}</div>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="form-row">
+                      <div className="form-group">
+                        <label className="form-label">City</label>
+                        {isEditing ? (
+                          <input
+                            type="text"
+                            name="city"
+                            value={formData.city}
+                            onChange={handleChange}
+                            className="form-input"
+                            placeholder="Enter your city"
+                          />
+                        ) : (
+                          <div className="form-value">{formData.city || 'Not provided'}</div>
+                        )}
+                      </div>
+
+                      <div className="form-group">
+                        <label className="form-label">State/Province</label>
+                        {isEditing ? (
+                          <input
+                            type="text"
+                            name="state"
+                            value={formData.state}
+                            onChange={handleChange}
+                            className="form-input"
+                            placeholder="Enter your state"
+                          />
+                        ) : (
+                          <div className="form-value">{formData.state || 'Not provided'}</div>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="form-row">
+                      <div className="form-group">
+                        <label className="form-label">ZIP/Postal Code</label>
+                        {isEditing ? (
+                          <input
+                            type="text"
+                            name="zipCode"
+                            value={formData.zipCode}
+                            onChange={handleChange}
+                            className="form-input"
+                            placeholder="Enter ZIP code"
+                          />
+                        ) : (
+                          <div className="form-value">{formData.zipCode || 'Not provided'}</div>
+                        )}
+                      </div>
+
+                      <div className="form-group">
+                        <label className="form-label">Country</label>
+                        {isEditing ? (
+                          <input
+                            type="text"
+                            name="country"
+                            value={formData.country}
+                            onChange={handleChange}
+                            className="form-input"
+                            placeholder="Enter your country"
+                          />
+                        ) : (
+                          <div className="form-value">{formData.country || 'Not provided'}</div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Action Buttons */}
+                  {isEditing && (
+                    <div className="form-actions">
+                      <button 
+                        onClick={handleSave} 
+                        className="btn-primary"
+                        disabled={loading}
+                      >
+                        <FiSave /> {loading ? 'Saving...' : 'Save Changes'}
+                      </button>
+                      <button 
+                        onClick={handleCancel} 
+                        className="btn-secondary"
+                        disabled={loading}
+                      >
+                        <FiX /> Cancel
+                      </button>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Profile Sidebar */}
+              <div className="profile-sidebar">
+                <div className="profile-stats">
+                  <h3><FiShield /> Account Information</h3>
+                  <div className="stat-item">
+                    <span className="stat-label">Member Since</span>
+                    <span className="stat-value">
+                      {user.createdAt ? new Date(user.createdAt).toLocaleDateString() : 'Unknown'}
+                    </span>
+                  </div>
+                  <div className="stat-item">
+                    <span className="stat-label">Total Orders</span>
+                    <span className="stat-value">{user.orderCount || 0}</span>
+                  </div>
+                  <div className="stat-item">
+                    <span className="stat-label">Account Status</span>
+                    <span className="stat-value status-active">Active Member</span>
+                  </div>
+                  <div className="stat-item">
+                    <span className="stat-label">Last Login</span>
+                    <span className="stat-value">
+                      {user.lastLogin ? new Date(user.lastLogin).toLocaleDateString() : 'Unknown'}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="profile-quick-actions">
+                  <h3>Quick Actions</h3>
+                  <button className="quick-action-btn">
+                    <FiShoppingBag /> View Orders
+                  </button>
+                  <button 
+                    className="quick-action-btn"
+                    onClick={() => setActiveTab('wishlist')}
+                  >
+                    <FiHeart /> My Wishlist ({getWishlistCount()})
+                  </button>
+                  <button className="quick-action-btn">
+                    <FiSettings /> Account Settings
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {activeTab === 'orders' && (
+            <div className="tab-panel">
+              <h3>Order History</h3>
+              <p>Your order history will appear here.</p>
+            </div>
+          )}
+
+                    {activeTab === 'wishlist' && (
+            <div className="wishlist-tab">
+               <div className="wishlist-header">
+                <h3><FiHeart /> My Wishlist</h3>
+                <div className="wishlist-actions">
+                  <span className="wishlist-count">
+                    {getWishlistCount()} item{getWishlistCount() !== 1 ? 's' : ''}
+                  </span>
+                  {wishlistItems.length > 0 && (
+                    <button 
+                      className="btn-clear-wishlist"
+                      onClick={handleClearWishlist}
+                    >
+                      <FiTrash2 /> Clear All
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              {wishlistItems.length === 0 ? (
+                <div className="empty-wishlist">
+                  <div className="empty-wishlist-icon">
+                    <FiHeart />
+                  </div>
+                  <h4>Your wishlist is empty</h4>
+                  <p>Start adding products you love to your wishlist!</p>
+                  <button 
+                    className="btn-primary"
+                    onClick={() => window.location.href = '/products'}
+                  >
+                    Browse Products
+                  </button>
+                </div>
+              ) : (
+                                 <div className="wishlist-items">
+                   {wishlistItems.map((item) => {
+                     // Safety check - ensure item is valid
+                     if (!item || typeof item !== 'object') {
+                       console.error('Invalid wishlist item:', item);
+                       return null;
+                     }
+                     
+                                           // Debug log for each item being rendered
+                      console.log('Rendering WishlistItem with item:', item);
+                      
+                      return (
+                        <WishlistItem
+                          key={item._id || Math.random()}
+                          item={item}
+                          onRemove={handleRemoveFromWishlist}
+                          onMoveToCart={handleMoveToCart}
+                          onView={handleViewProduct}
+                        />
+                      );
+                   })}
+                 </div>
+              )}
+            </div>
+          )}
+
+          {activeTab === 'settings' && (
+            <div className="tab-panel">
+              <h3>Account Settings</h3>
+              <p>Account settings and preferences will appear here.</p>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default Profile;
