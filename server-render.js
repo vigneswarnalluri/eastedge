@@ -23,6 +23,13 @@ app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 // MongoDB connection with production optimizations
 const connectDB = async () => {
   try {
+    console.log('🔗 Attempting to connect to MongoDB...');
+    console.log('📊 MongoDB URI exists:', !!process.env.MONGO_URI);
+    
+    if (!process.env.MONGO_URI) {
+      throw new Error('MONGO_URI environment variable is not set');
+    }
+    
     await mongoose.connect(process.env.MONGO_URI, {
       useNewUrlParser: true,
       useUnifiedTopology: true,
@@ -34,7 +41,10 @@ const connectDB = async () => {
     console.log('✅ MongoDB Connected Successfully');
   } catch (err) {
     console.error('❌ MongoDB Connection Error:', err.message);
-    process.exit(1);
+    console.error('🔍 Full error details:', err);
+    
+    // Don't exit immediately, let the server start and show the error
+    console.log('⚠️  Server will start but MongoDB operations will fail');
   }
 };
 
@@ -47,7 +57,13 @@ app.get('/api/health', (req, res) => {
     status: 'OK', 
     message: 'Ecommerce Backend is running',
     timestamp: new Date().toISOString(),
-    environment: process.env.NODE_ENV
+    environment: process.env.NODE_ENV,
+    mongodb: mongoose.connection.readyState === 1 ? 'Connected' : 'Disconnected',
+    env_vars: {
+      has_mongo_uri: !!process.env.MONGO_URI,
+      has_jwt_secret: !!process.env.JWT_SECRET,
+      has_razorpay_keys: !!(process.env.RAZORPAY_KEY_ID && process.env.RAZORPAY_KEY_SECRET)
+    }
   });
 });
 
