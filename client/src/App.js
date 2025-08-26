@@ -27,27 +27,34 @@ function App() {
         <CartProvider>
           <WishlistProvider>
             <Router>
-            <div className="App">
-              <Header />
-              <main>
-                <Routes>
-                  <Route path="/" element={<Home />} />
-                  <Route path="/products" element={<Products />} />
-                  <Route path="/products/:id" element={<ProductDetail />} />
-                  <Route path="/cart" element={<Cart />} />
-                  <Route path="/login" element={<Login />} />
-                  <Route path="/register" element={<Register />} />
-                  <Route path="/profile" element={<Profile />} />
-                  <Route path="/checkout" element={<Checkout />} />
-                  <Route path="/new-arrivals" element={<NewArrivals />} />
-                  <Route path="/contact" element={<ContactUs />} />
-                  <Route path="/about" element={<AboutUs />} />
-                  <Route path="/admin" element={<Admin />} />
-                </Routes>
-              </main>
-              <Footer />
-            </div>
-          </Router>
+              <Routes>
+                {/* Admin Panel - No Header/Footer */}
+                <Route path="/admin" element={<Admin />} />
+                
+                {/* Main Website - With Header/Footer */}
+                <Route path="*" element={
+                  <div className="App">
+                    <Header />
+                    <main>
+                      <Routes>
+                        <Route path="/" element={<Home />} />
+                        <Route path="/products" element={<Products />} />
+                        <Route path="/products/:id" element={<ProductDetail />} />
+                        <Route path="/cart" element={<Cart />} />
+                        <Route path="/login" element={<Login />} />
+                        <Route path="/register" element={<Register />} />
+                        <Route path="/profile" element={<Profile />} />
+                        <Route path="/checkout" element={<Checkout />} />
+                        <Route path="/new-arrivals" element={<NewArrivals />} />
+                        <Route path="/contact" element={<ContactUs />} />
+                        <Route path="/about" element={<AboutUs />} />
+                      </Routes>
+                    </main>
+                    <Footer />
+                  </div>
+                } />
+              </Routes>
+            </Router>
           </WishlistProvider>
         </CartProvider>
       </UserPreferencesProvider>

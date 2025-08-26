@@ -65,11 +65,11 @@ const ProductDetail = () => {
         setLoading(true);
         const response = await api.get(`/api/products/${id}`);
         setProduct(response.data);
-        
-        // Set default selections
+          
+          // Set default selections
         if (response.data.sizes && Array.isArray(response.data.sizes) && response.data.sizes.length > 0) {
           setSelectedSize(response.data.sizes[0]);
-        }
+          }
         if (response.data.colors && Array.isArray(response.data.colors) && response.data.colors.length > 0) {
           // Handle different color formats
           const firstColor = response.data.colors[0];
@@ -79,12 +79,12 @@ const ProductDetail = () => {
             setSelectedColor(firstColor.name);
           } else if (firstColor && typeof firstColor === 'object' && firstColor.color) {
             setSelectedColor(firstColor.color);
+            }
           }
-        }
-        
-        // Fetch reviews
+          
+          // Fetch reviews
         fetchReviews(response.data._id);
-        
+          
       } catch (error) {
         console.error('Error fetching product:', error);
         setError('Failed to load product');
@@ -440,7 +440,7 @@ const ProductDetail = () => {
                           }
                           
                           return (
-                            <button
+                          <button
                               key={colorName}
                               className={`color-option ${selectedColor === colorName ? 'selected' : ''}`}
                               onClick={() => {
@@ -457,7 +457,7 @@ const ProductDetail = () => {
                                 cursor: 'pointer'
                               }}
                               title={colorName}
-                            />
+                          />
                           );
                         })}
                       </div>

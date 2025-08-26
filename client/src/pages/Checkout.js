@@ -251,8 +251,8 @@ const Checkout = () => {
       const response = await api.post('/api/orders', orderData);
 
       console.log('COD order successful:', response.data);
-      clearCart();
-      setOrderPlaced(true);
+        clearCart();
+        setOrderPlaced(true);
 
     } catch (error) {
       console.error('Order error:', error);

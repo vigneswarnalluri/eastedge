@@ -47,7 +47,6 @@ router.get('/', async (req, res) => {
     else sortObj.createdAt = -1;
 
     const products = await Product.find(filter)
-      .populate('category', 'name slug')
       .sort(sortObj)
       .skip(skip)
       .limit(pageSize);
@@ -73,7 +72,6 @@ router.get('/', async (req, res) => {
 router.get('/:id', async (req, res) => {
   try {
     const product = await Product.findById(req.params.id)
-      .populate('category', 'name slug')
       .populate('reviews.user', 'name');
     
     if (!product) {

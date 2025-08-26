@@ -92,6 +92,14 @@ const Admin = () => {
     parentCategory: null
   });
   
+  // View product state
+  const [viewingProduct, setViewingProduct] = useState(null);
+  const [showViewProduct, setShowViewProduct] = useState(false);
+  
+  // View order state
+  const [viewingOrder, setViewingOrder] = useState(null);
+  const [showViewOrder, setShowViewOrder] = useState(false);
+  
     // Define fetchData function before using it in useEffect
   const fetchData = async () => {
     try {
@@ -159,108 +167,120 @@ const Admin = () => {
   };
 
      // Product management functions
-   const handleAddProduct = async () => {
-     console.log('Attempting to add product:', productForm);
-     
-           if (!productForm.name || !productForm.sku || !productForm.category || !productForm.price || !productForm.description || !productForm.image) {
-        alert('Please fill in all required fields: Name, SKU, Category, Price, Description, and Image URL');
+   const openAddProductModal = () => {
+    setShowAddProduct(true);
+    document.body.classList.add('form-modal-open');
+  };
+
+  const handleAddProduct = async () => {
+    console.log('Attempting to add product:', productForm);
+    
+    if (!productForm.name || !productForm.sku || !productForm.category || !productForm.price || !productForm.description || !productForm.image) {
+      alert('Please fill in all required fields: Name, SKU, Category, Price, Description, and Image URL');
+      return;
+    }
+    
+    try {
+      // For the new hierarchical category system, we don't need to find category by name
+      // The category field now contains the category name directly
+      if (!productForm.category) {
+        alert('Please select a category.');
         return;
       }
-     
-     try {
-               // Find the category ID from the selected category name
-        const selectedCategory = categories.find(cat => cat.name === productForm.category);
-        if (!selectedCategory) {
-          alert('Selected category not found. Please try again.');
-          return;
-        }
 
-        // Process colors to match schema requirements
-        const processedColors = productForm.colors.length > 0 
-          ? productForm.colors.map(color => typeof color === 'string' ? { name: color, hexCode: '#000000', inStock: true } : color)
-          : [{ name: 'Default', hexCode: '#000000', inStock: true }];
+      // Process colors to match schema requirements
+      const processedColors = productForm.colors.length > 0 
+        ? productForm.colors.map(color => typeof color === 'string' ? { name: color, hexCode: '#000000', inStock: true } : color)
+        : [{ name: 'Default', hexCode: '#000000', inStock: true }];
 
-        // Process variants to ensure proper format
-        const processedVariants = productForm.variants.length > 0 
-          ? productForm.variants.map(variant => ({
-              size: variant.size || '',
-              color: variant.color || '',
-              price: parseFloat(variant.price) || 0,
-              stock: parseInt(variant.stock) || 0,
-              sku: variant.sku || ''
-            }))
-          : [];
+      // Process variants to ensure proper format
+      const processedVariants = productForm.variants.length > 0 
+        ? productForm.variants.map(variant => ({
+            size: variant.size || '',
+            color: variant.color || '',
+            price: parseFloat(variant.price) || 0,
+            stock: parseInt(variant.stock) || 0,
+            sku: variant.sku || ''
+          }))
+        : [];
 
-        const productData = {
-          name: productForm.name,
-          sku: productForm.sku,
-          description: productForm.description,
-          price: parseFloat(productForm.price),
-          salePrice: productForm.salePrice ? parseFloat(productForm.salePrice) : null,
-          category: selectedCategory._id, // Send category ID
-          categoryName: productForm.category, // Send category name
-          subCategory: productForm.subCategory || null,
-          image: productForm.image,
-          images: productForm.images,
-          stockQuantity: parseInt(productForm.stockQuantity) || 0,
-          sizes: productForm.sizes.length > 0 ? productForm.sizes : ['One Size'],
-          colors: processedColors,
-          variants: processedVariants,
-          featured: productForm.featured,
-          newArrival: productForm.newArrival,
-          trending: productForm.trending
-        };
+      const productData = {
+        name: productForm.name,
+        sku: productForm.sku,
+        description: productForm.description,
+        price: parseFloat(productForm.price),
+        salePrice: productForm.salePrice ? parseFloat(productForm.salePrice) : null,
+        category: productForm.category, // Send category name directly
+        categoryName: productForm.category, // Send category name
+        subCategory: productForm.subCategory || null,
+        image: productForm.image,
+        images: productForm.images,
+        stockQuantity: parseInt(productForm.stockQuantity) || 0,
+        sizes: productForm.sizes.length > 0 ? productForm.sizes : ['One Size'],
+        colors: processedColors,
+        variants: processedVariants,
+        featured: productForm.featured,
+        newArrival: productForm.newArrival,
+        trending: productForm.trending
+      };
 
-       console.log('Original colors from form:', productForm.colors);
-       console.log('Processed colors for backend:', processedColors);
-       console.log('Sending product data to backend:', productData);
+      console.log('Original colors from form:', productForm.colors);
+      console.log('Processed colors for backend:', processedColors);
+      console.log('Sending product data to backend:', productData);
 
-       const response = await api.post('/api/products', productData);
-       console.log('Product added successfully:', response.data);
-       
-       setProducts([...products, response.data]);
-       setProductForm({
-         name: '',
-         sku: '',
-         description: '',
-         price: '',
-         salePrice: '',
-         category: '',
-         subCategory: '',
-         stockQuantity: '',
-         image: '',
-         imagePreview: '',
-         images: [],
-         sizes: [],
-         colors: [],
-         variants: [],
-         featured: false,
-         newArrival: false,
-         trending: false
-       });
-       setShowAddProduct(false);
-       
-               // Refresh the products list
-        fetchData();
-        
-        // Also refresh all frontend pages if they're open
-        if (window.refreshProducts) {
-          window.refreshProducts();
-        }
-        if (window.refreshNewArrivals) {
-          window.refreshNewArrivals();
-        }
-        if (window.refreshHomeProducts) {
-          window.refreshHomeProducts();
-        }
-        
-        alert('Product added successfully!');
-     } catch (error) {
-       console.error('Error adding product:', error);
-       console.error('Error response:', error.response?.data);
-       alert(`Error adding product: ${error.response?.data?.message || error.message}`);
-     }
-   };
+      const response = await api.post('/api/products', productData);
+      console.log('Product added successfully:', response.data);
+      
+      setProducts([...products, response.data]);
+      setProductForm({
+        name: '',
+        sku: '',
+        description: '',
+        price: '',
+        salePrice: '',
+        category: '',
+        subCategory: '',
+        stockQuantity: '',
+        image: '',
+        imagePreview: '',
+        images: [],
+        sizes: [],
+        colors: [],
+        variants: [],
+        featured: false,
+        newArrival: false,
+        trending: false
+      });
+      
+      // Close the modal and remove the class
+      handleCloseAddProduct();
+      
+      // Refresh the products list
+      fetchData();
+      
+      // Also refresh all frontend pages if they're open
+      if (window.refreshProducts) {
+        window.refreshProducts();
+      }
+      if (window.refreshNewArrivals) {
+        window.refreshNewArrivals();
+      }
+      if (window.refreshHomeProducts) {
+        window.refreshHomeProducts();
+      }
+      
+      alert('Product added successfully!');
+    } catch (error) {
+      console.error('Error adding product:', error);
+      console.error('Error response:', error.response?.data);
+      alert(`Error adding product: ${error.response?.data?.message || error.message}`);
+    }
+  };
+
+  const handleCloseAddProduct = () => {
+    setShowAddProduct(false);
+    document.body.classList.remove('form-modal-open');
+  };
 
   const handleEditProduct = (product) => {
     setEditingProduct(product);
@@ -289,10 +309,10 @@ const Admin = () => {
   const handleUpdateProduct = async () => {
             if (editingProduct && productForm.name && productForm.sku && productForm.category && productForm.price) {
       try {
-        // Find the category ID from the selected category name
-        const selectedCategory = categories.find(cat => cat.name === productForm.category);
-        if (!selectedCategory) {
-          alert('Selected category not found. Please try again.');
+        // For the new hierarchical category system, we don't need to find category by name
+        // The category field now contains the category name directly
+        if (!productForm.category) {
+          alert('Please select a category.');
           return;
         }
 
@@ -318,7 +338,7 @@ const Admin = () => {
           description: productForm.description,
           price: parseFloat(productForm.price),
           salePrice: productForm.salePrice ? parseFloat(productForm.salePrice) : null,
-          category: selectedCategory._id, // Send category ID
+          category: productForm.category, // Send category name directly
           categoryName: productForm.category, // Send category name
           subCategory: productForm.subCategory || null,
           image: productForm.image,
@@ -399,6 +419,18 @@ const Admin = () => {
       }
     }
   };
+
+  // View product function
+  const handleViewProduct = (product) => {
+    setViewingProduct(product);
+    setShowViewProduct(true);
+  };
+
+  // View order function
+  const handleViewOrder = (order) => {
+    setViewingOrder(order);
+    setShowViewOrder(true);
+  }
 
   const handleOrderStatusChange = (orderId, newStatus) => {
     setOrders(orders.map(order => 
@@ -555,6 +587,73 @@ const Admin = () => {
     // Add category filtering logic here if needed
     return true;
   }) : [];
+
+  // Category structure with main categories and sub-categories
+  const categoryStructure = {
+    "Electronics": [
+      "Smartphones & Accessories",
+      "Laptops & Computers", 
+      "Cameras & Photography",
+      "Wearable Technology",
+      "Gaming Consoles & Accessories",
+      "Smart Home Devices"
+    ],
+    "Fashion and Apparel": [
+      "Women's Clothing",
+      "Men's Clothing", 
+      "Shoes",
+      "Accessories",
+      "Kids & Baby Clothing"
+    ],
+    "Food and Beverages": [
+      "Grocery & Staples",
+      "Organic & Health Foods",
+      "Beverages", 
+      "Snacks & Confectionery",
+      "Gourmet & Specialty Foods"
+    ],
+    "DIY and Hardware": [
+      "Power Tools",
+      "Hand Tools",
+      "Building Materials",
+      "Paint Supplies",
+      "Home Improvement Fixtures"
+    ],
+    "Health, Personal Care, and Beauty": [
+      "Skincare",
+      "Haircare",
+      "Makeup & Cosmetics",
+      "Personal Hygiene",
+      "Health & Wellness Equipment"
+    ],
+    "Furniture and Home Décor": [
+      "Living Room Furniture",
+      "Bedroom Furniture",
+      "Office Furniture",
+      "Lighting Fixtures",
+      "Decorative Accessories"
+    ],
+    "Media": [
+      "Books",
+      "Music",
+      "Movies & TV Shows",
+      "Video Games"
+    ],
+    "Toys and Hobbies": [
+      "Educational Toys",
+      "Outdoor Toys",
+      "Board Games & Puzzles",
+      "Arts & Crafts Supplies"
+    ]
+  };
+
+  // Get main categories (parent categories)
+  const mainCategories = Object.keys(categoryStructure);
+  
+  // Get sub-categories for a selected main category
+  const getSubCategories = (mainCategory) => {
+    return categoryStructure[mainCategory] || [];
+  };
 
   const renderDashboard = () => (
     <div className="admin-dashboard">
@@ -726,11 +825,13 @@ const Admin = () => {
         <div className="header-actions">
           <select className="category-filter">
             <option value="">All Categories</option>
-            <option value="T-Shirts">T-Shirts</option>
-            <option value="Hoodies">Hoodies</option>
-            <option value="Accessories">Accessories</option>
+            
+            {/* Main Categories Only */}
+            {mainCategories.map(category => (
+              <option key={category} value={category}>{category}</option>
+            ))}
           </select>
-          <button className="add-btn" onClick={() => setShowAddProduct(true)}>
+          <button className="add-btn" onClick={openAddProductModal}>
             <FiPlus /> Add Product
           </button>
         </div>
@@ -738,9 +839,18 @@ const Admin = () => {
 
       {/* Add/Edit Product Form */}
       {showAddProduct && (
-        <div className="form-modal">
-          <div className="form-content">
-            <h3>{editingProduct ? 'Edit Product' : 'Add New Product'}</h3>
+        <div className="form-modal" onClick={handleCloseAddProduct}>
+          <div className="form-content" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h3>Add New Product</h3>
+              <div className="modal-hint">Click outside to close</div>
+              <button 
+                className="close-btn" 
+                onClick={handleCloseAddProduct}
+              >
+                ×
+              </button>
+            </div>
             <div className="form-grid">
               <div className="form-group">
                 <label>Product Name *</label>
@@ -777,11 +887,11 @@ const Admin = () => {
                   }}
                 >
                   <option value="">Select Category</option>
-                  {Array.isArray(categories) ? categories
-                    .filter(cat => !cat.parentCategory) // Only show main categories (no parent)
-                    .map(cat => (
-                      <option key={cat._id} value={cat.name}>{cat.name}</option>
-                    )) : null}
+                  
+                  {/* Main Categories Only */}
+                  {mainCategories.map(category => (
+                    <option key={category} value={category}>{category}</option>
+                  ))}
                 </select>
               </div>
               <div className="form-group">
@@ -793,21 +903,14 @@ const Admin = () => {
                   disabled={!productForm.category} // Disable if no main category selected
                 >
                   <option value="">Select Sub-Category (Optional)</option>
-                  {Array.isArray(categories) && productForm.category ? categories
-                    .filter(cat => {
-                      // Find the selected main category
-                      const mainCategory = categories.find(mainCat => mainCat.name === productForm.category);
-                      // Show only sub-categories that belong to the selected main category
-                      return mainCategory && cat.parentCategory && cat.parentCategory.toString() === mainCategory._id.toString();
-                    })
-                    .map(cat => (
-                      <option key={cat._id} value={cat.name}>{cat.name}</option>
-                    )) : null}
+                  {productForm.category && getSubCategories(productForm.category).map(subCategory => (
+                    <option key={subCategory} value={subCategory}>{subCategory}</option>
+                  ))}
                 </select>
                 <small className="form-help">
                   {!productForm.category 
                     ? 'Select a main category first to see available sub-categories' 
-                    : 'Optional: Choose a sub-category for more specific organization'
+                    : `Available sub-categories for ${productForm.category}`
                   }
                 </small>
               </div>
@@ -988,22 +1091,30 @@ const Admin = () => {
                          <div className="form-group">
                <label>Product Variants</label>
                <div className="variants-section">
-                 <div className="variant-inputs">
-                   <input
-                     type="text"
-                     className="form-input"
-                     placeholder="Size (e.g., S, M, L, XL)"
-                     value={productForm.sizes.join(', ')}
-                     onChange={(e) => setProductForm({...productForm, sizes: e.target.value.split(',').map(s => s.trim()).filter(s => s)})}
-                   />
-                   <input
-                     type="text"
-                     className="form-input"
-                     placeholder="Colors (e.g., Red, Blue, Black)"
-                     value={productForm.colors.join(', ')}
-                     onChange={(e) => setProductForm({...productForm, colors: e.target.value.split(',').map(s => s.trim()).filter(s => s)})}
-                   />
+                 <div className="variants-controls">
+                   <div className="variant-input-group">
+                     <label>Sizes:</label>
+                     <input
+                       type="text"
+                       className="form-input"
+                       placeholder="Add sizes (e.g., S, M, L, XL)"
+                       value={productForm.sizes.join(', ')}
+                       onChange={(e) => setProductForm({...productForm, sizes: e.target.value.split(',').map(s => s.trim()).filter(s => s)})}
+                     />
+                   </div>
+                   <div className="variant-input-group">
+                     <label>Colors:</label>
+                     <input
+                       type="text"
+                       className="form-input"
+                       placeholder="Add colors (e.g., Red, Blue, Black)"
+                       value={productForm.colors.join(', ')}
+                       onChange={(e) => setProductForm({...productForm, colors: e.target.value.split(',').map(s => s.trim()).filter(s => s)})}
+                     />
+                   </div>
                  </div>
+                 
+                 {/* Variants Table */}
                  <div className="variants-table">
                    <h4>Variant Combinations</h4>
                    {productForm.sizes.length > 0 && productForm.colors.length > 0 ? (
@@ -1011,69 +1122,183 @@ const Admin = () => {
                        <div className="variant-row header">
                          <span>Size</span>
                          <span>Color</span>
-                         <span>Price</span>
+                         <span>Price (₹)</span>
                          <span>Stock</span>
                          <span>SKU</span>
+                         <span>Actions</span>
                        </div>
                        {productForm.sizes.map(size => 
-                         productForm.colors.map(color => (
-                           <div key={`${size}-${color}`} className="variant-row">
-                             <span>{size}</span>
-                             <span>{color}</span>
-                             <input
-                               type="number"
-                               className="variant-input"
-                               placeholder="Price"
-                               value={productForm.variants.find(v => v.size === size && v.color === color)?.price || ''}
-                               onChange={(e) => {
-                                 const newVariants = [...productForm.variants];
-                                 const existingIndex = newVariants.findIndex(v => v.size === size && v.color === color);
-                                 if (existingIndex >= 0) {
-                                   newVariants[existingIndex].price = e.target.value;
-                                 } else {
-                                   newVariants.push({
-                                     size,
-                                     color,
-                                     price: e.target.value,
-                                     stock: '',
-                                     sku: `${productForm.sku}-${size}-${color}`.toUpperCase()
-                                   });
-                                 }
-                                 setProductForm({...productForm, variants: newVariants});
-                               }}
-                             />
-                             <input
-                               type="number"
-                               className="variant-input"
-                               placeholder="Stock"
-                               value={productForm.variants.find(v => v.size === size && v.color === color)?.stock || ''}
-                               onChange={(e) => {
-                                 const newVariants = [...productForm.variants];
-                                 const existingIndex = newVariants.findIndex(v => v.size === size && v.color === color);
-                                 if (existingIndex >= 0) {
-                                   newVariants[existingIndex].stock = e.target.value;
-                                 } else {
-                                   newVariants.push({
-                                     size,
-                                     color,
-                                     price: productForm.variants.find(v => v.size === size && v.color === color)?.price || '',
-                                     stock: e.target.value,
-                                     sku: `${productForm.sku}-${size}-${color}`.toUpperCase()
-                                   });
-                                 }
-                                 setProductForm({...productForm, variants: newVariants});
-                               }}
-                             />
-                             <span className="variant-sku">
-                               {`${productForm.sku}-${size}-${color}`.toUpperCase()}
-                             </span>
-                           </div>
-                         ))
+                         productForm.colors.map(color => {
+                           const existingVariant = productForm.variants.find(v => v.size === size && v.color === color);
+                           return (
+                             <div key={`${size}-${color}`} className="variant-row">
+                               <span className="variant-size">{size}</span>
+                               <span className="variant-color">{color}</span>
+                               <input
+                                 type="number"
+                                 className="variant-input"
+                                 placeholder="Price"
+                                 value={existingVariant?.price || ''}
+                                 onChange={(e) => {
+                                   const newVariants = [...productForm.variants];
+                                   const existingIndex = newVariants.findIndex(v => v.size === size && v.color === color);
+                                   if (existingIndex >= 0) {
+                                     newVariants[existingIndex].price = e.target.value;
+                                   } else {
+                                     newVariants.push({
+                                       size,
+                                       color,
+                                       price: e.target.value,
+                                       stock: '',
+                                       sku: `${productForm.sku}-${size}-${color}`.toUpperCase()
+                                     });
+                                   }
+                                   setProductForm({...productForm, variants: newVariants});
+                                 }}
+                               />
+                               <input
+                                 type="number"
+                                 className="variant-input"
+                                 placeholder="Stock"
+                                 value={existingVariant?.stock || ''}
+                                 onChange={(e) => {
+                                   const newVariants = [...productForm.variants];
+                                   const existingIndex = newVariants.findIndex(v => v.size === size && v.color === color);
+                                   if (existingIndex >= 0) {
+                                     newVariants[existingIndex].stock = e.target.value;
+                                   } else {
+                                     newVariants.push({
+                                       size,
+                                       color,
+                                       price: existingVariant?.price || '',
+                                       stock: e.target.value,
+                                       sku: `${productForm.sku}-${size}-${color}`.toUpperCase()
+                                     });
+                                   }
+                                   setProductForm({...productForm, variants: newVariants});
+                                 }}
+                               />
+                               <span className="variant-sku">
+                                 {`${productForm.sku}-${size}-${color}`.toUpperCase()}
+                               </span>
+                               <button
+                                 type="button"
+                                 className="variant-remove-btn"
+                                 onClick={() => {
+                                   const newVariants = productForm.variants.filter(v => !(v.size === size && v.color === color));
+                                   setProductForm({...productForm, variants: newVariants});
+                                 }}
+                               >
+                                 ×
+                               </button>
+                             </div>
+                           );
+                         })
                        )}
+                       
+                       {/* Add Custom Variant Button */}
+                       <div className="add-custom-variant">
+                         <button
+                           type="button"
+                           className="add-variant-btn"
+                           onClick={() => {
+                             const newVariant = {
+                               size: '',
+                               color: '',
+                               price: '',
+                               stock: '',
+                               sku: ''
+                             };
+                             setProductForm({
+                               ...productForm, 
+                               variants: [...productForm.variants, newVariant]
+                             });
+                           }}
+                         >
+                           + Add Custom Variant
+                         </button>
+                       </div>
                      </>
                    ) : (
                      <div className="no-variants">
                        <p>Add sizes and colors to see variant combinations</p>
+                       <small>Or use the "Add Custom Variant" button below to create variants manually</small>
+                     </div>
+                   )}
+                   
+                   {/* Custom Variants Section */}
+                   {productForm.variants.length > 0 && (
+                     <div className="custom-variants">
+                       <h4>Custom Variants</h4>
+                       {productForm.variants.map((variant, index) => (
+                         <div key={index} className="custom-variant-row">
+                           <input
+                             type="text"
+                             className="variant-input"
+                             placeholder="Size"
+                             value={variant.size}
+                             onChange={(e) => {
+                               const newVariants = [...productForm.variants];
+                               newVariants[index].size = e.target.value;
+                               setProductForm({...productForm, variants: newVariants});
+                             }}
+                           />
+                           <input
+                             type="text"
+                             className="variant-input"
+                             placeholder="Color"
+                             value={variant.color}
+                             onChange={(e) => {
+                               const newVariants = [...productForm.variants];
+                               newVariants[index].color = e.target.value;
+                               setProductForm({...productForm, variants: newVariants});
+                             }}
+                           />
+                           <input
+                             type="number"
+                             className="variant-input"
+                             placeholder="Price"
+                             value={variant.price}
+                             onChange={(e) => {
+                               const newVariants = [...productForm.variants];
+                               newVariants[index].price = e.target.value;
+                               setProductForm({...productForm, variants: newVariants});
+                             }}
+                           />
+                           <input
+                             type="number"
+                             className="variant-input"
+                             placeholder="Stock"
+                             value={variant.stock}
+                             onChange={(e) => {
+                               const newVariants = [...productForm.variants];
+                               newVariants[index].stock = e.target.value;
+                               setProductForm({...productForm, variants: newVariants});
+                             }}
+                           />
+                           <input
+                             type="text"
+                             className="variant-input"
+                             placeholder="SKU"
+                             value={variant.sku}
+                             onChange={(e) => {
+                               const newVariants = [...productForm.variants];
+                               newVariants[index].sku = e.target.value;
+                               setProductForm({...productForm, variants: newVariants});
+                             }}
+                           />
+                           <button
+                             type="button"
+                             className="variant-remove-btn"
+                             onClick={() => {
+                               const newVariants = productForm.variants.filter((_, i) => i !== index);
+                               setProductForm({...productForm, variants: newVariants});
+                             }}
+                           >
+                             ×
+                           </button>
+                         </div>
+                       ))}
                      </div>
                    )}
                  </div>
@@ -1183,10 +1408,9 @@ const Admin = () => {
                          {product.image ? (
                            <img src={product.image} alt={product.name} />
                          ) : (
-                           <div className="placeholder-image">P</div>
+                           <div className="placeholder-image">No Image</div>
                          )}
                        </div>
-                       <span>{product.name}</span>
                      </div>
                    </td>
                    <td className="sku-cell">{product.sku || 'N/A'}</td>
@@ -1196,14 +1420,10 @@ const Admin = () => {
                    <td>{product.salePrice ? `₹${product.salePrice}` : 'N/A'}</td>
                    <td>{product.stockQuantity}</td>
                    <td>
-                     <div className="status-badges">
-                       {product.featured && <span className="badge featured">Featured</span>}
-                       {product.newArrival && <span className="badge new">New</span>}
-                       {product.trending && <span className="badge trending">Trending</span>}
-                     </div>
+                     {/* Status badges removed */}
                    </td>
                    <td className="actions">
-                     <button className="action-btn view"><FiEye /></button>
+                     <button className="action-btn view" onClick={() => handleViewProduct(product)}><FiEye /></button>
                      <button className="action-btn edit" onClick={() => handleEditProduct(product)}><FiEdit /></button>
                      <button className="action-btn delete" onClick={() => handleDeleteProduct(product._id)}><FiTrash2 /></button>
                    </td>
@@ -1213,6 +1433,174 @@ const Admin = () => {
            </tbody>
         </table>
       </div>
+
+      {/* View Product Modal */}
+      {showViewProduct && viewingProduct && (
+        <div className="form-modal" onClick={() => setShowViewProduct(false)}>
+          <div className="form-content" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h3>Product Details</h3>
+              <div className="modal-hint">Click outside to close</div>
+              <button 
+                className="close-btn" 
+                onClick={() => setShowViewProduct(false)}
+              >
+                ×
+              </button>
+            </div>
+            
+            <div className="product-view-grid">
+              <div className="product-image-section">
+                <div className="product-image-large">
+                  {viewingProduct.image ? (
+                    <img src={viewingProduct.image} alt={viewingProduct.name} />
+                  ) : (
+                    <div className="placeholder-image-large">No Image</div>
+                  )}
+                </div>
+              </div>
+              
+              <div className="product-details-section">
+                <div className="detail-group">
+                  <label>Product Name:</label>
+                  <span className="detail-value">{viewingProduct.name}</span>
+                </div>
+                
+                <div className="detail-group">
+                  <label>SKU:</label>
+                  <span className="detail-value">{viewingProduct.sku || 'N/A'}</span>
+                </div>
+                
+                <div className="detail-group">
+                  <label>Category:</label>
+                  <span className="detail-value">{viewingProduct.categoryName || 'N/A'}</span>
+                </div>
+                
+                <div className="detail-group">
+                  <label>Sub-Category:</label>
+                  <span className="detail-value">{viewingProduct.subCategory || 'N/A'}</span>
+                </div>
+                
+                <div className="detail-group">
+                  <label>Price:</label>
+                  <span className="detail-value">₹{viewingProduct.price}</span>
+                </div>
+                
+                <div className="detail-group">
+                  <label>Sale Price:</label>
+                  <span className="detail-value">
+                    {viewingProduct.salePrice ? `₹${viewingProduct.salePrice}` : 'N/A'}
+                  </span>
+                </div>
+                
+                <div className="detail-group">
+                  <label>Stock Quantity:</label>
+                  <span className="detail-value">{viewingProduct.stockQuantity}</span>
+                </div>
+                
+                <div className="detail-group">
+                  <label>Description:</label>
+                  <span className="detail-value description-text">
+                    {viewingProduct.description || 'No description available'}
+                  </span>
+                </div>
+                
+                <div className="detail-group">
+                  <label>Status:</label>
+                  {/* Status badges removed */}
+                </div>
+              </div>
+            </div>
+            
+            <div className="modal-actions">
+              <button 
+                className="edit-btn" 
+                onClick={() => {
+                  setShowViewProduct(false);
+                  setEditingProduct(viewingProduct);
+                  setShowAddProduct(true);
+                }}
+              >
+                <FiEdit /> Edit Product
+              </button>
+              <button 
+                className="close-btn-secondary" 
+                onClick={() => setShowViewProduct(false)}
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* View Order Modal */}
+      {showViewOrder && viewingOrder && (
+        <div className="form-modal" onClick={() => setShowViewOrder(false)}>
+          <div className="form-content" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h3>Order Details</h3>
+              <div className="modal-hint">Click outside to close</div>
+              <button 
+                className="close-btn" 
+                onClick={() => setShowViewOrder(false)}
+              >
+                ×
+              </button>
+            </div>
+            
+            <div className="order-view-grid">
+              <div className="order-info-section">
+                <div className="detail-group">
+                  <label>Order ID:</label>
+                  <span className="detail-value">#{viewingOrder.id}</span>
+                </div>
+                
+                <div className="detail-group">
+                  <label>Customer:</label>
+                  <span className="detail-value">{viewingOrder.customer || 'N/A'}</span>
+                </div>
+                
+                <div className="detail-group">
+                  <label>Order Date:</label>
+                  <span className="detail-value">{viewingOrder.date || 'N/A'}</span>
+                </div>
+                
+                <div className="detail-group">
+                  <label>Total Amount:</label>
+                  <span className="detail-value">₹{viewingOrder.amount || 'N/A'}</span>
+                </div>
+                
+                <div className="detail-group">
+                  <label>Payment Status:</label>
+                  <span className="detail-value">{viewingOrder.payment || 'N/A'}</span>
+                </div>
+                
+                <div className="detail-group">
+                  <label>Order Status:</label>
+                  <span className={`status-badge ${viewingOrder.status || 'processing'}`}>
+                    {viewingOrder.status || 'Processing'}
+                  </span>
+                </div>
+                
+                <div className="detail-group">
+                  <label>Delivery Status:</label>
+                  <span className="detail-value">{viewingOrder.delivery || 'N/A'}</span>
+                </div>
+              </div>
+            </div>
+            
+            <div className="modal-actions">
+              <button 
+                className="close-btn-secondary" 
+                onClick={() => setShowViewOrder(false)}
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 
@@ -1278,7 +1666,7 @@ const Admin = () => {
                    </select>
                  </td>
                  <td className="actions">
-                   <button className="action-btn view"><FiEye /></button>
+                   <button className="action-btn view" onClick={() => handleViewOrder(order)}><FiEye /></button>
                    <button className="action-btn edit"><FiEdit /></button>
                  </td>
                </tr>
@@ -1411,8 +1799,8 @@ const Admin = () => {
 
       {/* Add Category Form */}
       {showAddCategory && (
-        <div className="form-modal">
-          <div className="form-content">
+        <div className="form-modal" onClick={() => setShowAddCategory(false)}>
+          <div className="form-content" onClick={(e) => e.stopPropagation()}>
             <h3>Add New Category</h3>
             <div className="form-group">
               <label>Category Name *</label>
