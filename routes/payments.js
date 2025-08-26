@@ -12,11 +12,17 @@ router.get('/test', (req, res) => {
   });
 });
 
-// Initialize Razorpay
-const razorpay = new Razorpay({
-  key_id: process.env.RAZORPAY_KEY_ID,
-  key_secret: process.env.RAZORPAY_KEY_SECRET,
-});
+// Initialize Razorpay only if keys are available
+let razorpay = null;
+if (process.env.RAZORPAY_KEY_ID && process.env.RAZORPAY_KEY_SECRET) {
+  razorpay = new Razorpay({
+    key_id: process.env.RAZORPAY_KEY_ID,
+    key_secret: process.env.RAZORPAY_KEY_SECRET,
+  });
+  console.log('✅ Razorpay initialized successfully');
+} else {
+  console.log('⚠️ Razorpay keys not found, payment features will be disabled');
+}
 
 // Create Razorpay Order
 router.post('/create-order', async (req, res) => {
@@ -25,6 +31,14 @@ router.post('/create-order', async (req, res) => {
     console.log('Request body:', req.body);
     console.log('RAZORPAY_KEY_ID:', !!process.env.RAZORPAY_KEY_ID);
     console.log('RAZORPAY_KEY_SECRET:', !!process.env.RAZORPAY_KEY_SECRET);
+    
+    // Check if Razorpay is initialized
+    if (!razorpay) {
+      return res.status(503).json({ 
+        error: 'Payment service temporarily unavailable',
+        message: 'Razorpay is not configured' 
+      });
+    }
     
     const { amount, currency = 'INR', receipt, notes } = req.body;
 
