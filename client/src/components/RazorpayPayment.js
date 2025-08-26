@@ -55,6 +55,11 @@ const RazorpayPayment = ({ amount, onSuccess, onFailure, orderData }) => {
       const { order } = response.data;
 
       // Initialize Razorpay payment
+      console.log('🔑 Razorpay Key Debug:');
+      console.log('REACT_APP_RAZORPAY_KEY_ID:', process.env.REACT_APP_RAZORPAY_KEY_ID);
+      console.log('NODE_ENV:', process.env.NODE_ENV);
+      console.log('Final key being used:', process.env.REACT_APP_RAZORPAY_KEY_ID || 'rzp_test_YOUR_KEY_ID');
+      
       const options = {
         key: process.env.REACT_APP_RAZORPAY_KEY_ID || 'rzp_test_YOUR_KEY_ID', // Replace with your key
         amount: order.amount,
