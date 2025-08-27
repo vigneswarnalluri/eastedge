@@ -1855,6 +1855,9 @@ const Admin = () => {
                      <button className="export-btn" onClick={handleExportOrders}>
              <FiDownload /> Export Orders
            </button>
+          <button className="migrate-btn" onClick={handleMigrateOrders}>
+            <FiUpload /> Migrate Orders
+          </button>
         </div>
       </div>
       
@@ -1972,6 +1975,9 @@ const Admin = () => {
               <option value="no-orders">No Orders</option>
           </select>
           </div>
+          <button className="migrate-btn" onClick={handleMigrateUsers}>
+            <FiUpload /> Migrate Users
+          </button>
         </div>
       </div>
       
@@ -3272,6 +3278,44 @@ const Admin = () => {
     } catch (error) {
       console.error('Error migrating reviews:', error);
       alert('Failed to migrate reviews');
+    }
+  };
+
+  // Migrate orders schema
+  const handleMigrateOrders = async () => {
+    if (!window.confirm('This will migrate existing orders to the new schema with variant support. Continue?')) {
+      return;
+    }
+    
+    try {
+      const response = await api.post('/api/orders/admin/migrate-schema');
+      if (response.data.success) {
+        alert(`Migration completed! ${response.data.migratedCount} orders migrated.`);
+        // Refresh orders list
+        fetchOrders();
+      }
+    } catch (error) {
+      console.error('Error migrating orders:', error);
+      alert('Failed to migrate orders');
+    }
+  };
+
+  // Migrate users schema
+  const handleMigrateUsers = async () => {
+    if (!window.confirm('This will migrate existing users to the new schema with customer management fields. Continue?')) {
+      return;
+    }
+    
+    try {
+      const response = await api.post('/api/users/admin/migrate-schema');
+      if (response.data.success) {
+        alert(`Migration completed! ${response.data.migratedCount} users migrated.`);
+        // Refresh customers list
+        fetchCustomers();
+      }
+    } catch (error) {
+      console.error('Error migrating users:', error);
+      alert('Failed to migrate users');
     }
   };
 

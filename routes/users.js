@@ -499,4 +499,85 @@ router.get('/admin/customers/:id', auth, async (req, res) => {
   }
 });
 
+// Migrate User schema - ADMIN ONLY
+router.post('/admin/migrate-schema', auth, async (req, res) => {
+  try {
+    // Check if user is admin
+    if (!req.user.isAdmin) {
+      return res.status(403).json({ success: false, message: 'Access denied. Admin only.' });
+    }
+
+    console.log('🔄 Starting User schema migration...');
+
+    // Get all users
+    const users = await User.find({});
+    console.log(`Found ${users.length} users to migrate`);
+
+    let migratedCount = 0;
+    let errors = [];
+
+    for (const user of users) {
+      try {
+        let needsUpdate = false;
+        const updates = {};
+
+        // Check and add missing fields
+        if (user.phone === undefined) {
+          updates.phone = '';
+          needsUpdate = true;
+        }
+        if (user.isBlocked === undefined) {
+          updates.isBlocked = false;
+          needsUpdate = true;
+        }
+        if (user.blockReason === undefined) {
+          updates.blockReason = '';
+          needsUpdate = true;
+        }
+        if (user.blockedAt === undefined) {
+          updates.blockedAt = null;
+          needsUpdate = true;
+        }
+        if (user.totalOrders === undefined) {
+          updates.totalOrders = 0;
+          needsUpdate = true;
+        }
+        if (user.totalSpent === undefined) {
+          updates.totalSpent = 0;
+          needsUpdate = true;
+        }
+        if (user.lastOrderDate === undefined) {
+          updates.lastOrderDate = null;
+          needsUpdate = true;
+        }
+
+        if (needsUpdate) {
+          await User.findByIdAndUpdate(user._id, updates);
+          migratedCount++;
+          console.log(`✅ Migrated user ${user._id}`);
+        }
+      } catch (error) {
+        console.error(`❌ Error migrating user ${user._id}:`, error);
+        errors.push({ userId: user._id, error: error.message });
+      }
+    }
+
+    console.log(`🔄 User schema migration completed. Migrated: ${migratedCount}, Errors: ${errors.length}`);
+
+    res.json({
+      success: true,
+      message: 'User schema migration completed successfully',
+      migratedCount,
+      errors
+    });
+  } catch (error) {
+    console.error('❌ User schema migration error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to migrate user schema',
+      error: error.message
+    });
+  }
+});
+
 module.exports = router;
