@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { FiBarChart2, FiPackage, FiShoppingCart, FiUsers, FiStar, FiTag, FiFileText, FiSettings, FiLogOut, FiPlus, FiEye, FiEdit, FiTrash2, FiDownload, FiFilter, FiUpload, FiDollarSign } from 'react-icons/fi';
+import { FiBarChart2, FiPackage, FiShoppingCart, FiUsers, FiStar, FiTag, FiFileText, FiSettings, FiLogOut, FiPlus, FiEye, FiEdit, FiTrash2, FiDownload, FiFilter, FiUpload, FiDollarSign, FiMessageSquare } from 'react-icons/fi';
 import api from '../services/api';
 import './Admin.css';
 
@@ -77,6 +77,18 @@ const Admin = () => {
   const [customerStatusFilter, setCustomerStatusFilter] = useState('all');
   const [showCustomerModal, setShowCustomerModal] = useState(false);
   const [viewingCustomer, setViewingCustomer] = useState(null);
+
+  // Review management state
+  const [reviews, setReviews] = useState([]);
+  const [reviewsLoading, setReviewsLoading] = useState(false);
+  const [reviewStats, setReviewStats] = useState({});
+  const [reviewsPagination, setReviewsPagination] = useState({});
+  const [reviewStatusFilter, setReviewStatusFilter] = useState('all');
+  const [reviewSearch, setReviewSearch] = useState('');
+  const [showReplyModal, setShowReplyModal] = useState(false);
+  const [selectedReview, setSelectedReview] = useState(null);
+  const [replyText, setReplyText] = useState('');
+  const [replyLoading, setReplyLoading] = useState(false);
 
   const [showAddCategory, setShowAddCategory] = useState(false);
   const [categoryForm, setCategoryForm] = useState({ 
@@ -173,6 +185,8 @@ const Admin = () => {
     }
   };
 
+
+
   // Fetch customers
   const fetchCustomers = async (page = 1, status = 'all', search = '') => {
     try {
@@ -262,6 +276,13 @@ const Admin = () => {
   useEffect(() => {
     if (isAuthenticated && isAdmin && activeTab === 'customers') {
       fetchCustomers();
+    }
+  }, [isAuthenticated, isAdmin, activeTab]);
+
+  // Fetch reviews when reviews tab is active
+  useEffect(() => {
+    if (isAuthenticated && isAdmin && activeTab === 'reviews') {
+      fetchReviews();
     }
   }, [isAuthenticated, isAdmin, activeTab]);
   
@@ -2072,40 +2093,218 @@ const Admin = () => {
       <div className="section-header">
         <h1>Review Management</h1>
         <div className="header-actions">
-          <select className="status-filter">
-            <option value="approved">Approved</option>
-            <option value="pending">Pending</option>
-          </select>
+          <div className="search-filter-container">
+            <input
+              type="text"
+              placeholder="Search reviews..."
+              value={reviewSearch}
+              onChange={(e) => handleReviewSearch(e.target.value)}
+              className="search-input"
+            />
+            <select
+              value={reviewStatusFilter}
+              onChange={(e) => handleReviewStatusFilterChange(e.target.value)}
+              className="status-filter"
+            >
+              <option value="all">All Status</option>
+              <option value="pending">Pending</option>
+              <option value="approved">Approved</option>
+              <option value="rejected">Rejected</option>
+            </select>
+          </div>
+          <button className="migrate-btn" onClick={handleMigrateReviews}>
+            <FiUpload /> Migrate Reviews
+          </button>
         </div>
       </div>
-      
-      <div className="table-container">
-        <table className="admin-table">
-          <thead>
-            <tr>
-              <th>Product</th>
-              <th>Customer</th>
-              <th>Rating</th>
-              <th>Review</th>
-              <th>Status</th>
-              <th>Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr>
-              <td>Classic Black Tee</td>
-              <td>Rohan Sharma</td>
-              <td>⭐⭐⭐⭐⭐</td>
-              <td>This T-shirt is amazing! Great quality and fit.</td>
-              <td><span className="status-badge approved">Approved</span></td>
-              <td className="actions">
-                <button className="action-btn view"><FiEye /></button>
-                <button className="action-btn edit"><FiEdit /></button>
-              </td>
-            </tr>
-          </tbody>
-        </table>
+
+      {/* Review Statistics */}
+      <div className="stats-grid">
+        <div className="stat-card">
+          <h3>Total Reviews</h3>
+          <p>{reviewStats.totalReviews || 0}</p>
+        </div>
+        <div className="stat-card">
+          <h3>Pending Reviews</h3>
+          <p>{reviewStats.pendingReviews || 0}</p>
+        </div>
+        <div className="stat-card">
+          <h3>Approved Reviews</h3>
+          <p>{reviewStats.approvedReviews || 0}</p>
+        </div>
+        <div className="stat-card">
+          <h3>Average Rating</h3>
+          <p>{reviewStats.averageRating ? reviewStats.averageRating.toFixed(1) : '0.0'}</p>
+        </div>
       </div>
+
+      {/* Reviews Table */}
+      {reviewsLoading ? (
+        <div className="loading-state">
+          <div className="spinner"></div>
+          <p>Loading reviews...</p>
+        </div>
+      ) : reviews.length === 0 ? (
+        <div className="no-data">
+          <p>No reviews found</p>
+        </div>
+      ) : (
+        <>
+          <div className="table-container">
+            <table className="admin-table">
+              <thead>
+                <tr>
+                  <th>Product</th>
+                  <th>Customer</th>
+                  <th>Rating</th>
+                  <th>Review</th>
+                  <th>Status</th>
+                  <th>Admin Reply</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {reviews.map((review) => (
+                  <tr key={review._id}>
+                    <td>
+                      <div className="product-info">
+                        <img 
+                          src={review.product?.image || '/placeholder.png'} 
+                          alt={review.product?.name || 'Product'} 
+                          className="product-thumbnail"
+                        />
+                        <span>{review.product?.name || 'N/A'}</span>
+                      </div>
+                    </td>
+                    <td>
+                      <div className="customer-info">
+                        <span className="customer-name">{review.name}</span>
+                        <span className="customer-email">{review.user?.email || 'N/A'}</span>
+                      </div>
+                    </td>
+                    <td>
+                      <div className="rating-display">
+                        {[...Array(5)].map((_, i) => (
+                          <span key={i} className={`star ${i < review.rating ? 'filled' : 'empty'}`}>
+                            ★
+                          </span>
+                        ))}
+                        <span className="rating-number">({review.rating})</span>
+                      </div>
+                    </td>
+                    <td>
+                      <div className="review-comment">
+                        {review.comment}
+                      </div>
+                    </td>
+                    <td>
+                      <span className={`status-badge ${review.status}`}>
+                        {review.status.charAt(0).toUpperCase() + review.status.slice(1)}
+                      </span>
+                    </td>
+                    <td>
+                      <div className="admin-reply">
+                        {review.adminReply ? (
+                          <div className="reply-content">
+                            <p>{review.adminReply}</p>
+                            <small>{new Date(review.adminReplyDate).toLocaleDateString()}</small>
+                          </div>
+                        ) : (
+                          <span className="no-reply">No reply yet</span>
+                        )}
+                      </div>
+                    </td>
+                    <td>
+                      <div className="action-buttons">
+                        <button
+                          className="action-btn reply"
+                          onClick={() => openReplyModal(review)}
+                          title="Reply to Review"
+                        >
+                          <FiMessageSquare />
+                        </button>
+                        <button
+                          className="action-btn delete"
+                          onClick={() => handleDeleteReview(review._id)}
+                          title="Delete Review"
+                        >
+                          <FiTrash2 />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          {/* Pagination */}
+          {reviewsPagination.totalPages > 1 && (
+            <div className="pagination">
+              <button
+                className="page-btn"
+                onClick={() => fetchReviews(reviewsPagination.currentPage - 1, reviewStatusFilter, reviewSearch)}
+                disabled={!reviewsPagination.hasPrevPage}
+              >
+                ‹ Prev
+              </button>
+              <div className="page-info">
+                Page {reviewsPagination.currentPage} of {reviewsPagination.totalPages}
+              </div>
+              <button
+                className="page-btn"
+                onClick={() => fetchReviews(reviewsPagination.currentPage + 1, reviewStatusFilter, reviewSearch)}
+                disabled={!reviewsPagination.hasNextPage}
+              >
+                Next ›
+              </button>
+            </div>
+          )}
+        </>
+      )}
+
+      {/* Reply Modal */}
+      {showReplyModal && (
+        <div className="modal-overlay" onClick={() => setShowReplyModal(false)}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h3>Reply to Review</h3>
+              <button className="modal-close" onClick={() => setShowReplyModal(false)}>
+                ×
+              </button>
+            </div>
+            <div className="modal-body">
+              <div className="review-summary">
+                <h4>Review by {selectedReview?.name}</h4>
+                <p><strong>Rating:</strong> {selectedReview?.rating}/5</p>
+                <p><strong>Comment:</strong> {selectedReview?.comment}</p>
+              </div>
+              <div className="form-group">
+                <label>Your Reply:</label>
+                <textarea
+                  className="form-input"
+                  value={replyText}
+                  onChange={(e) => setReplyText(e.target.value)}
+                  placeholder="Enter your reply to this review..."
+                  rows="4"
+                />
+              </div>
+            </div>
+            <div className="modal-footer">
+              <button 
+                className="btn-primary" 
+                onClick={handleReply}
+                disabled={replyLoading || !replyText.trim()}
+              >
+                {replyLoading ? 'Sending...' : 'Send Reply'}
+              </button>
+              <button className="btn-secondary" onClick={() => setShowReplyModal(false)}>
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 
@@ -2967,6 +3166,113 @@ const Admin = () => {
         </div>
       </div>
     );
+  };
+
+  // Fetch reviews
+  const fetchReviews = async (page = 1, status = 'all', search = '') => {
+    try {
+      setReviewsLoading(true);
+      const params = new URLSearchParams({
+        page: page.toString(),
+        limit: '10',
+        status: status,
+        search: search
+      });
+      
+      const response = await api.get(`/api/reviews/admin?${params}`);
+      if (response.data.success) {
+        setReviews(response.data.reviews);
+        setReviewStats(response.data.analytics);
+        setReviewsPagination(response.data.pagination);
+      }
+    } catch (error) {
+      console.error('Error fetching reviews:', error);
+    } finally {
+      setReviewsLoading(false);
+    }
+  };
+
+  // Reply to a review
+  const handleReply = async () => {
+    if (!selectedReview || !replyText.trim()) return;
+    
+    try {
+      setReplyLoading(true);
+      const response = await api.post(`/api/reviews/admin/${selectedReview._id}/reply`, {
+        reply: replyText.trim()
+      });
+      
+      if (response.data.success) {
+        alert('Reply added successfully!');
+        setShowReplyModal(false);
+        setReplyText('');
+        setSelectedReview(null);
+        // Refresh reviews list
+        fetchReviews(reviewsPagination.currentPage, reviewStatusFilter, reviewSearch);
+      }
+    } catch (error) {
+      console.error('Error adding reply:', error);
+      alert('Failed to add reply');
+    } finally {
+      setReplyLoading(false);
+    }
+  };
+
+  // Delete a review
+  const handleDeleteReview = async (reviewId) => {
+    if (!window.confirm('Are you sure you want to delete this review? This action cannot be undone.')) {
+      return;
+    }
+    
+    try {
+      const response = await api.delete(`/api/reviews/admin/${reviewId}`);
+      if (response.data.success) {
+        alert('Review deleted successfully!');
+        // Refresh reviews list
+        fetchReviews(reviewsPagination.currentPage, reviewStatusFilter, reviewSearch);
+      }
+    } catch (error) {
+      console.error('Error deleting review:', error);
+      alert('Failed to delete review');
+    }
+  };
+
+  // Handle review search
+  const handleReviewSearch = (searchTerm) => {
+    setReviewSearch(searchTerm);
+    fetchReviews(1, reviewStatusFilter, searchTerm);
+  };
+
+  // Handle review status filter change
+  const handleReviewStatusFilterChange = (newStatus) => {
+    setReviewStatusFilter(newStatus);
+    fetchReviews(1, newStatus, reviewSearch);
+  };
+
+  // Open reply modal
+  const openReplyModal = (review) => {
+    setSelectedReview(review);
+    setReplyText(review.adminReply || '');
+    setShowReplyModal(true);
+  };
+
+  // Migrate existing reviews
+  const handleMigrateReviews = async () => {
+    if (!window.confirm('This will migrate existing reviews from products to the new review system. Continue?')) {
+      return;
+    }
+    
+    try {
+      const response = await api.post('/api/reviews/admin/migrate');
+      if (response.data.success) {
+        alert(`Migration completed! ${response.data.migratedCount} reviews migrated.`);
+        // Refresh reviews list
+        fetchReviews();
+      }
+    } catch (error) {
+      console.error('Error migrating reviews:', error);
+      alert('Failed to migrate reviews');
+    }
   };
 
   return (
