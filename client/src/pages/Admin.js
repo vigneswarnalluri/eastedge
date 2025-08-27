@@ -230,8 +230,10 @@ const Admin = () => {
     }
   }, [loading, isAuthenticated, isAdmin, navigate]);
 
+  // Fetch orders and stats when component mounts
   useEffect(() => {
     if (isAuthenticated && isAdmin) {
+      fetchData();
       fetchOrders();
       fetchOrderStats();
     }
