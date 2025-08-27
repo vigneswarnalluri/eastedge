@@ -15,6 +15,18 @@ const cartReducer = (state, action) => {
   console.log('Cart reducer called with action:', action.type, 'payload:', action.payload);
   console.log('Current state:', state);
   
+  // Validate and sanitize state to prevent negative prices
+  const sanitizeState = (state) => {
+    if (state.total < 0 || state.itemCount < 0 || !Array.isArray(state.items)) {
+      console.warn('Cart state corrupted, resetting to initial state');
+      return initialState;
+    }
+    return state;
+  };
+  
+  // Sanitize current state before processing
+  const sanitizedState = sanitizeState(state);
+  
   // Create a unique key that includes product ID, size, and color
   const createItemKey = (item) => {
     const size = (item.selectedSize || '').toString().trim();
@@ -34,9 +46,9 @@ const cartReducer = (state, action) => {
       console.log('Payload selectedSize:', action.payload.selectedSize);
       console.log('Payload selectedColor:', action.payload.selectedColor);
       console.log('Payload quantity:', action.payload.quantity);
-      console.log('Current cart items before adding:', state.items);
+      console.log('Current cart items before adding:', sanitizedState.items);
       
-      const existingItem = state.items.find(item => {
+      const existingItem = sanitizedState.items.find(item => {
         const itemKey = createItemKey(item);
         console.log('Comparing with existing item:', itemKey, 'vs', payloadKey);
         return itemKey === payloadKey;
@@ -47,24 +59,31 @@ const cartReducer = (state, action) => {
       if (existingItem) {
         console.log('Updating existing item quantity from', existingItem.quantity, 'to', existingItem.quantity + action.payload.quantity);
         newState = {
-          ...state,
-          items: state.items.map(item =>
+          ...sanitizedState,
+          items: sanitizedState.items.map(item =>
             createItemKey(item) === payloadKey
               ? { ...item, quantity: item.quantity + action.payload.quantity }
               : item
           ),
-          total: state.total + (action.payload.price * action.payload.quantity),
-          itemCount: state.itemCount + action.payload.quantity
+          total: sanitizedState.total + ((action.payload.variantPrice || action.payload.price) * action.payload.quantity),
+          itemCount: sanitizedState.itemCount + action.payload.quantity
         };
       } else {
         console.log('Adding new item to cart');
         newState = {
-          ...state,
-          items: [...state.items, action.payload],
-          total: state.total + (action.payload.price * action.payload.quantity),
-          itemCount: state.itemCount + action.payload.quantity
+          ...sanitizedState,
+          items: [...sanitizedState.items, action.payload],
+          total: sanitizedState.total + ((action.payload.variantPrice || action.payload.price) * action.payload.quantity),
+          itemCount: sanitizedState.itemCount + action.payload.quantity
         };
       }
+      
+      // Validate new state
+      if (newState.total < 0) {
+        console.error('Negative total detected, recalculating from items');
+        newState.total = newState.items.reduce((sum, item) => sum + ((item.variantPrice || item.price) * item.quantity), 0);
+      }
+      
       console.log('New state after ADD_ITEM:', newState);
       console.log('New cart items:', newState.items);
       console.log('=== END ADD_ITEM DEBUG ===');
@@ -72,33 +91,47 @@ const cartReducer = (state, action) => {
 
     case 'REMOVE_ITEM':
       // createItemKey function should be available here
-      const itemToRemove = state.items.find(item => createItemKey(item) === action.payload);
+      const itemToRemove = sanitizedState.items.find(item => createItemKey(item) === action.payload);
       newState = {
-        ...state,
-        items: state.items.filter(item => createItemKey(item) !== action.payload),
-        total: state.total - (itemToRemove.price * itemToRemove.quantity),
-        itemCount: state.itemCount - itemToRemove.quantity
+        ...sanitizedState,
+        items: sanitizedState.items.filter(item => createItemKey(item) !== action.payload),
+        total: sanitizedState.total - ((itemToRemove?.variantPrice || itemToRemove?.price || 0) * (itemToRemove?.quantity || 0)),
+        itemCount: sanitizedState.itemCount - (itemToRemove?.quantity || 0)
       };
+      
+      // Validate new state
+      if (newState.total < 0) {
+        console.error('Negative total detected after removal, recalculating from items');
+        newState.total = newState.items.reduce((sum, item) => sum + ((item.variantPrice || item.price) * item.quantity), 0);
+      }
+      
       console.log('New state after REMOVE_ITEM:', newState);
       return newState;
 
     case 'UPDATE_QUANTITY':
-      const updatedItems = state.items.map(item => {
+      const updatedItems = sanitizedState.items.map(item => {
         if (createItemKey(item) === action.payload.id) {
           return { ...item, quantity: action.payload.quantity };
         }
         return item;
       });
       
-      const newTotal = updatedItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+      const newTotal = updatedItems.reduce((sum, item) => sum + ((item.variantPrice || item.price) * item.quantity), 0);
       const newItemCount = updatedItems.reduce((sum, item) => sum + item.quantity, 0);
       
       newState = {
-        ...state,
+        ...sanitizedState,
         items: updatedItems,
         total: newTotal,
         itemCount: newItemCount
       };
+      
+      // Validate new state
+      if (newState.total < 0) {
+        console.error('Negative total detected after quantity update, recalculating from items');
+        newState.total = newState.items.reduce((sum, item) => sum + ((item.variantPrice || item.price) * item.quantity), 0);
+      }
+      
       console.log('New state after UPDATE_QUANTITY:', newState);
       return newState;
 
@@ -114,16 +147,27 @@ const cartReducer = (state, action) => {
 
     case 'LOAD_CART':
       console.log('LOAD_CART reducer case - payload:', action.payload);
-      console.log('LOAD_CART reducer case - current state:', state);
+      console.log('LOAD_CART reducer case - current state:', sanitizedState);
       console.log('Payload items:', action.payload.items);
       console.log('Payload total:', action.payload.total);
       console.log('Payload itemCount:', action.payload.itemCount);
+      
+      // Validate loaded data
+      const loadedItems = Array.isArray(action.payload.items) ? action.payload.items : [];
+      const loadedTotal = typeof action.payload.total === 'number' && action.payload.total >= 0 ? action.payload.total : 0;
+      const loadedItemCount = typeof action.payload.itemCount === 'number' && action.payload.itemCount >= 0 ? action.payload.itemCount : 0;
+      
+      // Recalculate total from items if loaded total is invalid
+      const calculatedTotal = loadedItems.reduce((sum, item) => sum + ((item.variantPrice || item.price || 0) * (item.quantity || 0)), 0);
+      const calculatedItemCount = loadedItems.reduce((sum, item) => sum + (item.quantity || 0), 0);
+      
       newState = {
-        ...state,
-        items: action.payload.items || [],
-        total: action.payload.total || 0,
-        itemCount: action.payload.itemCount || 0
+        ...sanitizedState,
+        items: loadedItems,
+        total: loadedTotal > 0 ? loadedTotal : calculatedTotal,
+        itemCount: loadedItemCount > 0 ? loadedItemCount : calculatedItemCount
       };
+      
       console.log('New state after LOAD_CART:', newState);
       console.log('New state items length:', newState.items.length);
       console.log('New state total:', newState.total);
@@ -156,90 +200,48 @@ export const CartProvider = ({ children }) => {
     console.log('Cart state itemCount:', state.itemCount);
   }, [state]);
 
-  // Load cart from localStorage on mount
+  // Reset corrupted cart data
+  const resetCorruptedCart = () => {
+    console.warn('Resetting corrupted cart data');
+    localStorage.removeItem(getCartKey());
+    dispatch({ type: 'CLEAR_CART' });
+  };
+
+  // Load cart from localStorage
   useEffect(() => {
-    console.log('CartContext: useEffect for loading cart triggered');
-    console.log('Current user state - isAuthenticated:', isAuthenticated, 'user ID:', user?._id);
-    const cartKey = getCartKey();
-    console.log('Loading cart with key:', cartKey);
-    
-    // Check all localStorage keys to debug
-    console.log('All localStorage keys:', Object.keys(localStorage));
-    
-    const savedCart = localStorage.getItem(cartKey);
-    console.log('Loading cart from localStorage:', savedCart);
-    
-    if (savedCart) {
+    const loadCartFromStorage = () => {
       try {
-        const parsedCart = JSON.parse(savedCart);
-        console.log('Parsed cart data:', parsedCart);
-        // Validate the parsed data before loading
-        if (parsedCart && Array.isArray(parsedCart.items)) {
-          console.log('Dispatching LOAD_CART action with payload:', parsedCart);
-          dispatch({ type: 'LOAD_CART', payload: parsedCart });
-          setIsInitialized(true);
-        } else {
-          console.warn('Invalid cart data structure, resetting cart');
-          console.log('Parsed cart structure:', parsedCart);
-          console.log('Items array check:', Array.isArray(parsedCart?.items));
-          localStorage.removeItem(cartKey);
-          setIsInitialized(true);
+        const cartKey = getCartKey();
+        const savedCart = localStorage.getItem(cartKey);
+        
+        if (savedCart) {
+          const parsedCart = JSON.parse(savedCart);
+          console.log('Loading cart from storage:', parsedCart);
+          
+          // Validate loaded data
+          if (parsedCart && 
+              Array.isArray(parsedCart.items) && 
+              typeof parsedCart.total === 'number' && 
+              typeof parsedCart.itemCount === 'number' &&
+              parsedCart.total >= 0 &&
+              parsedCart.itemCount >= 0) {
+            
+            dispatch({ type: 'LOAD_CART', payload: parsedCart });
+          } else {
+            console.error('Corrupted cart data detected, resetting');
+            resetCorruptedCart();
+          }
         }
       } catch (error) {
-        console.error('Error loading cart from localStorage:', error);
-        localStorage.removeItem(cartKey);
+        console.error('Error loading cart from storage:', error);
+        resetCorruptedCart();
       }
-    } else {
-      console.log('No saved cart found in localStorage');
-      // SMART FIX: Auto-detect and load any cart with items
-      const allKeys = Object.keys(localStorage);
-      const cartKeys = allKeys.filter(key => key.startsWith('cart_'));
-      console.log('Found cart keys in localStorage:', cartKeys);
-      
-      if (cartKeys.length > 0) {
-        // Find the first cart that has items
-        let cartWithItems = null;
-        let cartWithItemsKey = null;
-        
-        for (const key of cartKeys) {
-          try {
-            const data = localStorage.getItem(key);
-            const parsedData = JSON.parse(data);
-            console.log(`Cart key ${key} contains:`, parsedData);
-            
-            if (parsedData && Array.isArray(parsedData.items) && parsedData.items.length > 0) {
-              cartWithItems = parsedData;
-              cartWithItemsKey = key;
-              console.log('Found cart with items:', key, parsedData);
-              break;
-            }
-          } catch (error) {
-            console.error(`Error parsing cart data from ${key}:`, error);
-          }
-        }
-        
-        // If we found a cart with items, load it and copy to current user's cart
-        if (cartWithItems && cartWithItemsKey) {
-          console.log('Auto-loading cart with items from:', cartWithItemsKey);
-          dispatch({ type: 'LOAD_CART', payload: cartWithItems });
-          
-          // Copy the cart data to current user's cart key for future use
-          const currentCartKey = getCartKey();
-          if (currentCartKey !== cartWithItemsKey) {
-            localStorage.setItem(currentCartKey, JSON.stringify(cartWithItems));
-            console.log('Copied cart data to current user key:', currentCartKey);
-          }
-          
-          setIsInitialized(true);
-        } else {
-          console.log('No cart with items found, initializing empty cart');
-          setIsInitialized(true);
-        }
-      } else {
-        setIsInitialized(true);
-      }
+    };
+
+    if (isInitialized) {
+      loadCartFromStorage();
     }
-  }, [isAuthenticated, user?._id]);
+  }, [isInitialized, getCartKey]);
 
   // Save cart to localStorage whenever it changes
   useEffect(() => {
@@ -282,16 +284,71 @@ export const CartProvider = ({ children }) => {
 
   const addToCart = (product, quantity = 1) => {
     console.log('Adding to cart:', product, 'quantity:', quantity);
-    dispatch({
-      type: 'ADD_ITEM',
-      payload: {
-        _id: product._id,
-        name: product.name,
-        price: product.price,
-        image: product.image || product.images?.[0],
-        quantity
-      }
-    });
+    
+    // Check if this is a variant-based product with size/color selection
+    if (product.selectedSize || product.selectedColor) {
+      // This is a variant product, preserve all variant information
+      dispatch({
+        type: 'ADD_ITEM',
+        payload: {
+          _id: product._id,
+          name: product.name,
+          price: product.price,
+          image: product.image || product.images?.[0],
+          quantity: product.quantity || quantity,
+          selectedSize: product.selectedSize,
+          selectedColor: product.selectedColor,
+          sku: product.sku,
+          category: product.category,
+          categoryName: product.categoryName,
+          // Add variant-specific information
+          variantPrice: product.variantPrice || product.price,
+          variantStock: product.variantStock,
+          // Preserve any other variant details
+          ...product
+        }
+      });
+    } else if (product.variants && Array.isArray(product.variants) && product.variants.length > 0) {
+      // This product has variants but no selection - set default variants
+      const defaultVariant = product.variants[0]; // Use first variant as default
+      console.log('Product has variants but no selection, using default variant:', defaultVariant);
+      
+      dispatch({
+        type: 'ADD_ITEM',
+        payload: {
+          _id: product._id,
+          name: product.name,
+          price: defaultVariant.price || product.price,
+          image: product.image || product.images?.[0],
+          quantity: product.quantity || quantity,
+          selectedSize: defaultVariant.size,
+          selectedColor: defaultVariant.color,
+          sku: defaultVariant.sku || product.sku,
+          category: product.category,
+          categoryName: product.categoryName,
+          // Add variant-specific information
+          variantPrice: defaultVariant.price || product.price,
+          variantStock: defaultVariant.stock || 0,
+          // Preserve any other variant details
+          ...product
+        }
+      });
+    } else {
+      // This is a simple product without variants
+      dispatch({
+        type: 'ADD_ITEM',
+        payload: {
+          _id: product._id,
+          name: product.name,
+          price: product.price,
+          image: product.image || product.images?.[0],
+          quantity: product.quantity || quantity,
+          sku: product.sku,
+          category: product.category,
+          categoryName: product.categoryName
+        }
+      });
+    }
   };
 
   const removeFromCart = (productId) => {

@@ -1,12 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { FiBarChart2, FiPackage, FiShoppingCart, FiUsers, FiStar, FiTag, FiFileText, FiSettings, FiLogOut, FiPlus, FiEye, FiEdit, FiTrash2, FiDownload, FiFilter, FiUpload } from 'react-icons/fi';
+import { FiBarChart2, FiPackage, FiShoppingCart, FiUsers, FiStar, FiTag, FiFileText, FiSettings, FiLogOut, FiPlus, FiEye, FiEdit, FiTrash2, FiDownload, FiFilter, FiUpload, FiDollarSign } from 'react-icons/fi';
 import api from '../services/api';
 import './Admin.css';
 
 const Admin = () => {
-  const { logout, isAuthenticated, isAdmin, loading } = useAuth();
+  const { logout, isAuthenticated, isAdmin, loading, user } = useAuth();
   const navigate = useNavigate();
   
      // All hooks must be called before any conditional returns
@@ -42,27 +42,42 @@ const Admin = () => {
     trending: false
   });
   
-  // Orders state
-  const [orders, setOrders] = useState([
-    {
-      id: 'ORD1024',
-      customer: 'John Doe',
-      date: '2025-06-24',
-      amount: 700,
-      payment: 'Prepaid',
-      status: 'processing',
-      delivery: 'processing'
-    },
-    {
-      id: 'ORD1023',
-      customer: 'Rohan Sharma',
-      date: '2025-06-23',
-      amount: 2499,
-      payment: 'Prepaid',
-      status: 'shipping',
-      delivery: 'shipping'
+  // Sync sizes and colors with variants whenever variants change
+  useEffect(() => {
+    if (productForm.variants.length > 0) {
+      const uniqueSizes = [...new Set(productForm.variants.map(v => v.size).filter(s => s))];
+      const uniqueColors = [...new Set(productForm.variants.map(v => v.color).filter(c => c))];
+      
+      // Only update if the arrays are different to avoid infinite loops
+      if (JSON.stringify(uniqueSizes.sort()) !== JSON.stringify(productForm.sizes.sort()) ||
+          JSON.stringify(uniqueColors.sort()) !== JSON.stringify(productForm.colors.sort())) {
+        setProductForm(prev => ({
+          ...prev,
+          sizes: uniqueSizes,
+          colors: uniqueColors
+        }));
+      }
     }
-  ]);
+  }, [productForm.variants]);
+  
+  // Orders state
+  const [orders, setOrders] = useState([]);
+  const [ordersLoading, setOrdersLoading] = useState(false);
+  const [orderStats, setOrderStats] = useState({
+    totalOrders: 0,
+    totalRevenue: 0,
+    pendingOrders: 0,
+    processingOrders: 0,
+    shippedOrders: 0,
+    deliveredOrders: 0
+  });
+  const [ordersPagination, setOrdersPagination] = useState({
+    currentPage: 1,
+    totalPages: 1,
+    totalOrders: 0,
+    hasNext: false,
+    hasPrev: false
+  });
   
   // Customers state
   const [customers, setCustomers] = useState([
@@ -134,16 +149,48 @@ const Admin = () => {
     }
   };
 
+  // Fetch orders from backend
+  const fetchOrders = async (page = 1, status = 'all') => {
+    try {
+      setOrdersLoading(true);
+      const response = await api.get(`/api/orders/admin/all?page=${page}&status=${status}`);
+      
+      if (response.data.success) {
+        setOrders(response.data.orders);
+        setOrdersPagination(response.data.pagination);
+      }
+    } catch (error) {
+      console.error('Error fetching orders:', error);
+      setOrders([]);
+    } finally {
+      setOrdersLoading(false);
+    }
+  };
+
+  // Fetch order statistics
+  const fetchOrderStats = async () => {
+    try {
+      const response = await api.get('/api/orders/admin/stats');
+      if (response.data.success) {
+        setOrderStats(response.data.stats);
+      }
+    } catch (error) {
+      console.error('Error fetching order stats:', error);
+    }
+  };
+
   // All useEffect hooks must be called before any conditional returns
   useEffect(() => {
     if (!loading && (!isAuthenticated || !isAdmin)) {
       navigate('/login');
     }
-  }, [isAuthenticated, isAdmin, loading, navigate]);
+  }, [loading, isAuthenticated, isAdmin, navigate]);
 
   useEffect(() => {
     if (isAuthenticated && isAdmin) {
       fetchData();
+      fetchOrders();
+      fetchOrderStats();
     }
   }, [isAuthenticated, isAdmin]);
   
@@ -204,6 +251,10 @@ const Admin = () => {
           }))
         : [];
 
+      // Only include sizes and colors that have variants
+      const sizesWithVariants = [...new Set(processedVariants.map(v => v.size).filter(s => s))];
+      const colorsWithVariants = [...new Set(processedVariants.map(v => v.color).filter(c => c))];
+
       const productData = {
         name: productForm.name,
         sku: productForm.sku,
@@ -216,8 +267,15 @@ const Admin = () => {
         image: productForm.image,
         images: productForm.images,
         stockQuantity: parseInt(productForm.stockQuantity) || 0,
-        sizes: productForm.sizes.length > 0 ? productForm.sizes : ['One Size'],
-        colors: processedColors,
+        sizes: sizesWithVariants.length > 0 ? sizesWithVariants : ['One Size'],
+        colors: processedColors.filter(color => {
+          // Only include colors that have variants
+          if (typeof color === 'string') {
+            return colorsWithVariants.includes(color);
+          } else {
+            return colorsWithVariants.includes(color.name);
+          }
+        }),
         variants: processedVariants,
         featured: productForm.featured,
         newArrival: productForm.newArrival,
@@ -332,6 +390,10 @@ const Admin = () => {
             }))
           : [];
 
+        // Only include sizes and colors that have variants
+        const sizesWithVariants = [...new Set(processedVariants.map(v => v.size).filter(s => s))];
+        const colorsWithVariants = [...new Set(processedVariants.map(v => v.color).filter(c => c))];
+
         const productData = {
           name: productForm.name,
           sku: productForm.sku,
@@ -344,8 +406,15 @@ const Admin = () => {
           image: productForm.image,
           images: productForm.images,
           stockQuantity: parseInt(productForm.stockQuantity) || 0,
-          sizes: productForm.sizes.length > 0 ? productForm.sizes : ['One Size'],
-          colors: processedColors,
+          sizes: sizesWithVariants.length > 0 ? sizesWithVariants : ['One Size'],
+          colors: processedColors.filter(color => {
+            // Only include colors that have variants
+            if (typeof color === 'string') {
+              return colorsWithVariants.includes(color);
+            } else {
+              return colorsWithVariants.includes(color.name);
+            }
+          }),
           variants: processedVariants,
           featured: productForm.featured,
           newArrival: productForm.newArrival,
@@ -428,16 +497,33 @@ const Admin = () => {
 
   // View order function
   const handleViewOrder = (order) => {
+    console.log('handleViewOrder called with order:', order); // Debug log
     setViewingOrder(order);
     setShowViewOrder(true);
-  }
+  };
 
-  const handleOrderStatusChange = (orderId, newStatus) => {
-    setOrders(orders.map(order => 
-      order.id === orderId 
-        ? { ...order, delivery: newStatus }
-        : order
-    ));
+  const handleOrderStatusChange = async (orderId, newStatus) => {
+    try {
+      const response = await api.put(`/api/orders/admin/${orderId}/status`, {
+        status: newStatus
+      });
+      
+      if (response.data.success) {
+        // Update local state
+        setOrders(orders.map(order =>
+          order._id === orderId ? { ...order, status: newStatus } : order
+        ));
+        
+        // Refresh order stats
+        fetchOrderStats();
+        
+        // Show success message
+        alert('Order status updated successfully!');
+      }
+    } catch (error) {
+      console.error('Error updating order status:', error);
+      alert('Failed to update order status. Please try again.');
+    }
   };
 
   const handleCustomerBlock = (customerId) => {
@@ -579,8 +665,8 @@ const Admin = () => {
   const handleExportCustomers = () => exportToCSV(customers, 'customers');
 
   // Filter functions
-  const filteredOrders = selectedStatus === 'all' 
-    ? orders 
+  const filteredOrders = selectedStatus === 'all'
+    ? orders
     : orders.filter(order => order.status === selectedStatus);
 
   const filteredProducts = Array.isArray(products) ? products.filter(product => {
@@ -662,20 +748,40 @@ const Admin = () => {
              {/* Stats Cards */}
        <div className="stats-grid">
          <div className="stat-card">
-           <div className="stat-value">₹{orders.reduce((sum, order) => sum + order.amount, 0).toLocaleString()}</div>
-           <div className="stat-label">Total Revenue</div>
-         </div>
-                   <div className="stat-card">
-            <div className="stat-value">{Array.isArray(products) ? products.length : 0}</div>
-            <div className="stat-label">Total Products</div>
-          </div>
-         <div className="stat-card">
-           <div className="stat-value">{orders.length}</div>
-           <div className="stat-label">Total Orders</div>
+           <div className="stat-icon">
+             <FiDollarSign />
+           </div>
+           <div className="stat-content">
+             <div className="stat-value">₹{orderStats.totalRevenue?.toLocaleString() || 0}</div>
+             <div className="stat-label">Total Revenue</div>
+           </div>
          </div>
          <div className="stat-card">
-           <div className="stat-value">{customers.length}</div>
-           <div className="stat-label">Total Customers</div>
+           <div className="stat-icon">
+             <FiShoppingCart />
+           </div>
+           <div className="stat-content">
+             <div className="stat-value">{orderStats.totalOrders || 0}</div>
+             <div className="stat-label">Total Orders</div>
+           </div>
+         </div>
+         <div className="stat-card">
+           <div className="stat-icon">
+             <FiPackage />
+           </div>
+           <div className="stat-content">
+             <div className="stat-value">{products.length}</div>
+             <div className="stat-label">Total Products</div>
+           </div>
+         </div>
+         <div className="stat-card">
+           <div className="stat-icon">
+             <FiUsers />
+           </div>
+           <div className="stat-content">
+             <div className="stat-value">{customers.length}</div>
+             <div className="stat-label">Total Customers</div>
+           </div>
          </div>
        </div>
 
@@ -700,29 +806,41 @@ const Admin = () => {
         <div className="section-header">
           <h3>Recent Orders</h3>
           <button className="export-btn" onClick={handleExportOrders}>
-            <FiDownload /> Export Data
+            <FiDownload /> Export Orders
           </button>
         </div>
+        
         <div className="table-container">
           <table className="admin-table">
             <thead>
               <tr>
                 <th>Order ID</th>
                 <th>Customer</th>
+                <th>Date</th>
                 <th>Amount</th>
                 <th>Status</th>
+                <th>Actions</th>
               </tr>
             </thead>
-                       <tbody>
-             {orders.slice(0, 5).map(order => (
-               <tr key={order.id}>
-                 <td>#{order.id}</td>
-                 <td>{order.customer}</td>
-                 <td>₹{order.amount}</td>
-                 <td><span className={`status-badge ${order.status}`}>{order.status}</span></td>
-               </tr>
-             ))}
-           </tbody>
+            <tbody>
+              {orders.slice(0, 5).map(order => (
+                <tr key={order._id}>
+                  <td>#{order._id.slice(-6)}</td>
+                  <td>{order.user?.name || 'N/A'}</td>
+                  <td>{new Date(order.createdAt).toLocaleDateString()}</td>
+                  <td>₹{order.totalPrice?.toLocaleString() || 0}</td>
+                  <td><span className={`status-badge ${order.status?.toLowerCase()}`}>{order.status}</span></td>
+                  <td className="actions">
+                    <button className="action-btn view" onClick={() => handleViewOrder(order)} title="View Order Details">
+                      <FiEye />
+                    </button>
+                    <button className="action-btn delete" onClick={() => handleDeleteOrder(order._id)} title="Delete Order">
+                      <FiTrash2 />
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
           </table>
         </div>
       </div>
@@ -934,16 +1052,7 @@ const Admin = () => {
                   placeholder="Enter sale price (optional)"
                 />
               </div>
-              <div className="form-group">
-                <label>Stock Quantity</label>
-                <input
-                  type="number"
-                  className="form-input"
-                  value={productForm.stockQuantity}
-                  onChange={(e) => setProductForm({...productForm, stockQuantity: e.target.value})}
-                  placeholder="Enter stock quantity"
-                />
-              </div>
+
               <div className="form-group">
                 <label>Product Image *</label>
                 <input
@@ -1094,29 +1203,118 @@ const Admin = () => {
                  <div className="variants-controls">
                    <div className="variant-input-group">
                      <label>Sizes:</label>
-                     <input
-                       type="text"
-                       className="form-input"
-                       placeholder="Add sizes (e.g., S, M, L, XL)"
-                       value={productForm.sizes.join(', ')}
-                       onChange={(e) => setProductForm({...productForm, sizes: e.target.value.split(',').map(s => s.trim()).filter(s => s)})}
-                     />
+                     <div className="input-with-button">
+                       <input
+                         type="text"
+                         className="form-input"
+                         placeholder="Add sizes (e.g., S, M, L, XL)"
+                         value={productForm.sizes.join(', ')}
+                         onChange={(e) => {
+                           const newSizes = e.target.value.split(',').map(s => s.trim()).filter(s => s);
+                           console.log('Sizes input changed:', e.target.value);
+                           console.log('Processed sizes:', newSizes);
+                           
+                           // Remove variants that no longer have valid sizes
+                           const newVariants = productForm.variants.filter(variant => 
+                             newSizes.includes(variant.size) || !variant.size
+                           );
+                           
+                           setProductForm({
+                             ...productForm, 
+                             sizes: newSizes,
+                             variants: newVariants
+                           });
+                         }}
+                       />
+                       <button
+                         type="button"
+                         className="add-variant-plus-btn"
+                         onClick={() => {
+                           const newSize = prompt('Enter new size:');
+                           if (newSize && newSize.trim()) {
+                             const updatedSizes = [...productForm.sizes, newSize.trim()];
+                             console.log('Adding new size:', newSize.trim());
+                             console.log('Updated sizes array:', updatedSizes);
+                             setProductForm({
+                               ...productForm, 
+                               sizes: updatedSizes
+                             });
+                           }
+                         }}
+                       >
+                         +
+                       </button>
+                     </div>
                    </div>
                    <div className="variant-input-group">
                      <label>Colors:</label>
-                     <input
-                       type="text"
-                       className="form-input"
-                       placeholder="Add colors (e.g., Red, Blue, Black)"
-                       value={productForm.colors.join(', ')}
-                       onChange={(e) => setProductForm({...productForm, colors: e.target.value.split(',').map(s => s.trim()).filter(s => s)})}
-                     />
+                     <div className="input-with-button">
+                       <input
+                         type="text"
+                         className="form-input"
+                         placeholder="Add colors (e.g., Red, Blue, Black)"
+                         value={productForm.colors.join(', ')}
+                         onChange={(e) => {
+                           const newColors = e.target.value.split(',').map(s => s.trim()).filter(s => s);
+                           
+                           // Remove variants that no longer have valid colors
+                           const newVariants = productForm.variants.filter(variant => 
+                             newColors.includes(variant.color) || !variant.color
+                           );
+                           
+                           setProductForm({
+                             ...productForm, 
+                             colors: newColors,
+                             variants: newVariants
+                           });
+                         }}
+                       />
+                       <button
+                         type="button"
+                         className="add-variant-plus-btn"
+                         onClick={() => {
+                           const newColor = prompt('Enter new color:');
+                           if (newColor && newColor.trim()) {
+                             setProductForm({
+                               ...productForm, 
+                               colors: [...productForm.colors, newColor.trim()]
+                             });
+                           }
+                         }}
+                       >
+                         +
+                       </button>
+                     </div>
                    </div>
                  </div>
                  
                  {/* Variants Table */}
                  <div className="variants-table">
                    <h4>Variant Combinations</h4>
+                   
+                   {/* Add Custom Variant Button - Always Visible */}
+                   <div className="add-custom-variant-top">
+                     <button
+                       type="button"
+                       className="add-variant-btn"
+                       onClick={() => {
+                         const newVariant = {
+                           size: '',
+                           color: '',
+                           price: '',
+                           stock: '',
+                           sku: ''
+                         };
+                         setProductForm({
+                           ...productForm, 
+                           variants: [...productForm.variants, newVariant]
+                         });
+                       }}
+                     >
+                       + Add Custom Variant
+                     </button>
+                   </div>
+                   
                    {productForm.sizes.length > 0 && productForm.colors.length > 0 ? (
                      <>
                        <div className="variant-row header">
@@ -1127,7 +1325,7 @@ const Admin = () => {
                          <span>SKU</span>
                          <span>Actions</span>
                        </div>
-                       {productForm.sizes.map(size => 
+                       {productForm.sizes.flatMap(size => 
                          productForm.colors.map(color => {
                            const existingVariant = productForm.variants.find(v => v.size === size && v.color === color);
                            return (
@@ -1187,6 +1385,7 @@ const Admin = () => {
                                  onClick={() => {
                                    const newVariants = productForm.variants.filter(v => !(v.size === size && v.color === color));
                                    setProductForm({...productForm, variants: newVariants});
+                                   // The useEffect hook will automatically sync sizes and colors
                                  }}
                                >
                                  ×
@@ -1222,7 +1421,7 @@ const Admin = () => {
                    ) : (
                      <div className="no-variants">
                        <p>Add sizes and colors to see variant combinations</p>
-                       <small>Or use the "Add Custom Variant" button below to create variants manually</small>
+                       <small>Or use the "Add Custom Variant" button above to create variants manually</small>
                      </div>
                    )}
                    
@@ -1612,73 +1811,104 @@ const Admin = () => {
           <select 
             className="status-filter"
             value={selectedStatus}
-            onChange={(e) => setSelectedStatus(e.target.value)}
+            onChange={(e) => handleStatusFilterChange(e.target.value)}
           >
             <option value="all">All Status</option>
-            <option value="processing">Processing</option>
-            <option value="shipped">Shipped</option>
-            <option value="delivered">Delivered</option>
-            <option value="returned">Returned</option>
-            <option value="cancelled">Cancelled</option>
+            <option value="Pending">Pending</option>
+            <option value="Processing">Processing</option>
+            <option value="Shipped">Shipped</option>
+            <option value="Delivered">Delivered</option>
+            <option value="Cancelled">Cancelled</option>
           </select>
-                     <button className="export-btn" onClick={handleExportOrders}>
-             <FiDownload /> Export Orders
-           </button>
+          <button className="export-btn" onClick={handleExportOrders}>
+            <FiDownload /> Export Orders
+          </button>
         </div>
       </div>
       
       <div className="table-container">
-        <table className="admin-table">
-          <thead>
-            <tr>
-              <th>Order ID</th>
-              <th>Customer</th>
-              <th>Date</th>
-              <th>Amount</th>
-              <th>Payment</th>
-              <th>Status</th>
-              <th>Delivery</th>
-              <th>Actions</th>
-            </tr>
-          </thead>
-                     <tbody>
-             {filteredOrders.map(order => (
-               <tr key={order.id}>
-                 <td>#{order.id}</td>
-                 <td>{order.customer}</td>
-                 <td>{order.date}</td>
-                 <td>₹{order.amount}</td>
-                 <td>{order.payment}</td>
-                 <td><span className={`status-badge ${order.status}`}>{order.status}</span></td>
-                 <td>
-                   <select 
-                     className="status-select"
-                     value={order.delivery}
-                     onChange={(e) => handleOrderStatusChange(order.id, e.target.value)}
-                   >
-                     <option value="new">New Order</option>
-                     <option value="processing">Processing</option>
-                     <option value="shipping">Shipping</option>
-                     <option value="delivered">Delivered</option>
-                     <option value="completed">Completed</option>
-                     <option value="returned">Returned</option>
-                     <option value="cancelled">Cancelled</option>
-                   </select>
-                 </td>
-                 <td className="actions">
-                   <button className="action-btn view" onClick={() => handleViewOrder(order)}><FiEye /></button>
-                   <button className="action-btn edit"><FiEdit /></button>
-                 </td>
-               </tr>
-             ))}
-           </tbody>
-        </table>
+        {ordersLoading ? (
+          <div className="loading-state">
+            <div className="spinner"></div>
+            <p>Loading orders...</p>
+          </div>
+        ) : (
+          <table className="admin-table">
+            <thead>
+              <tr>
+                <th>Order ID</th>
+                <th>Customer</th>
+                <th>Date</th>
+                <th>Amount</th>
+                <th>Payment</th>
+                <th>Status</th>
+                <th>Delivery</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filteredOrders.length === 0 ? (
+                <tr>
+                  <td colSpan="8" className="no-data">
+                    No orders found
+                  </td>
+                </tr>
+              ) : (
+                filteredOrders.map(order => (
+                  <tr key={order._id}>
+                    <td>#{order._id.slice(-6)}</td>
+                    <td>{order.user?.name || 'N/A'}</td>
+                    <td>{new Date(order.createdAt).toLocaleDateString()}</td>
+                    <td>₹{order.totalPrice?.toLocaleString() || 0}</td>
+                    <td>{order.paymentMethod}</td>
+                    <td><span className={`status-badge ${order.status?.toLowerCase()}`}>{order.status}</span></td>
+                    <td>
+                      <select 
+                        className="status-select"
+                        value={order.status || 'Pending'}
+                        onChange={(e) => handleOrderStatusChange(order._id, e.target.value)}
+                      >
+                        <option value="Pending">Pending</option>
+                        <option value="Processing">Processing</option>
+                        <option value="Shipped">Shipped</option>
+                        <option value="Delivered">Delivered</option>
+                        <option value="Cancelled">Cancelled</option>
+                      </select>
+                    </td>
+                    <td className="actions">
+                      <button className="action-btn view" onClick={() => handleViewOrder(order)} title="View Order Details">
+                        <FiEye />
+                      </button>
+                      <button className="action-btn delete" onClick={() => handleDeleteOrder(order._id)} title="Delete Order">
+                        <FiTrash2 />
+                      </button>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        )}
       </div>
       
       <div className="pagination">
-        <button className="page-btn">‹ Prev</button>
-        <span className="page-info">1 2</span>
-        <button className="page-btn">Next ›</button>
+        <button 
+          className="page-btn" 
+          disabled={!ordersPagination.hasPrev}
+          onClick={() => fetchOrders(ordersPagination.currentPage - 1, selectedStatus)}
+        >
+          ‹ Prev
+        </button>
+        <span className="page-info">
+          Page {ordersPagination.currentPage} of {ordersPagination.totalPages}
+        </span>
+        <button 
+          className="page-btn" 
+          disabled={!ordersPagination.hasNext}
+          onClick={() => fetchOrders(ordersPagination.currentPage + 1, selectedStatus)}
+        >
+          Next ›
+        </button>
       </div>
     </div>
   );
@@ -2285,6 +2515,288 @@ const Admin = () => {
     }
   };
 
+  const handleStatusFilterChange = (newStatus) => {
+    setSelectedStatus(newStatus);
+    fetchOrders(1, newStatus); // Reset to first page when filter changes
+  };
+
+
+
+  // Check admin status
+  const checkAdminStatus = async () => {
+    try {
+      const response = await api.get('/api/users/check-admin');
+      if (response.data.success) {
+        console.log('🔍 Admin status check:', response.data);
+        if (!response.data.isAdmin) {
+          alert('You are not an admin. You need admin privileges to access this page.');
+        }
+      }
+    } catch (error) {
+      console.error('Error checking admin status:', error);
+    }
+  };
+
+  // Make current user admin (for testing)
+  const makeCurrentUserAdmin = async () => {
+    try {
+      const response = await api.put(`/api/users/make-admin/${user._id}`);
+      if (response.data.success) {
+        alert('You are now an admin! Please refresh the page.');
+        window.location.reload();
+      }
+    } catch (error) {
+      console.error('Error making user admin:', error);
+      alert('Failed to make user admin. Please try again.');
+    }
+  };
+
+  // Delete order
+  const handleDeleteOrder = async (orderId) => {
+    if (window.confirm('Are you sure you want to delete this order? This action cannot be undone.')) {
+      try {
+        const response = await api.delete(`/api/orders/admin/${orderId}`);
+        if (response.data.success) {
+          alert('Order deleted successfully!');
+          // Refresh orders and stats
+          fetchOrders();
+          fetchOrderStats();
+        }
+      } catch (error) {
+        console.error('Error deleting order:', error);
+        alert('Failed to delete order. Please try again.');
+      }
+    }
+  };
+
+  // View order modal
+  const renderViewOrderModal = () => {
+    if (!viewingOrder) return null;
+
+    console.log('Rendering modal with order:', viewingOrder); // Debug log
+    console.log('Order user data:', viewingOrder.user); // Debug user data
+    console.log('Order shipping data:', viewingOrder.shippingAddress); // Debug shipping data
+
+    // Fallback data in case the order structure is incomplete
+    const orderData = {
+      id: viewingOrder._id || 'N/A',
+      customerName: viewingOrder.user?.name || viewingOrder.customerName || 'N/A',
+      customerEmail: viewingOrder.user?.email || viewingOrder.customerEmail || 'N/A',
+      orderDate: viewingOrder.createdAt || viewingOrder.orderDate || 'N/A',
+      street: viewingOrder.shippingAddress?.street || viewingOrder.street || 'N/A',
+      city: viewingOrder.shippingAddress?.city || viewingOrder.city || 'N/A',
+      state: viewingOrder.shippingAddress?.state || viewingOrder.state || 'N/A',
+      zipCode: viewingOrder.shippingAddress?.zipCode || viewingOrder.zipCode || 'N/A',
+      country: viewingOrder.shippingAddress?.country || viewingOrder.country || 'N/A',
+      paymentMethod: viewingOrder.paymentMethod || 'N/A',
+      status: viewingOrder.status || 'Pending',
+      isPaid: viewingOrder.isPaid || false,
+      paidAt: viewingOrder.paidAt || null,
+      totalPrice: viewingOrder.totalPrice || 0,
+      shippingPrice: viewingOrder.shippingPrice || 0,
+      orderItems: viewingOrder.orderItems || []
+    };
+
+    console.log('Processed order data:', orderData); // Debug processed data
+
+    return (
+      <div className="modal-overlay" onClick={() => setShowViewOrder(false)}>
+        <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+          <div className="modal-header">
+            <h2>Order Details - #{orderData.id.slice(-6)}</h2>
+            <button className="modal-close" onClick={() => setShowViewOrder(false)}>×</button>
+          </div>
+          
+          <div className="modal-body">
+            <div className="order-details-grid">
+              {/* Customer Information */}
+              <div className="order-section">
+                <h3>Customer Information</h3>
+                <div className="info-grid">
+                  <div className="info-item">
+                    <strong>Name:</strong> 
+                    <span className="order-value">{orderData.customerName}</span>
+                  </div>
+                  <div className="info-item">
+                    <strong>Email:</strong> 
+                    <span className="order-value">{orderData.customerEmail}</span>
+                  </div>
+                  <div className="info-item">
+                    <strong>Order Date:</strong> 
+                    <span className="order-value">
+                      {orderData.orderDate !== 'N/A' ? new Date(orderData.orderDate).toLocaleString() : 'N/A'}
+                    </span>
+                  </div>
+                  <div className="info-item">
+                    <strong>Order ID:</strong> 
+                    <span className="order-value">{orderData.id}</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Shipping Information */}
+              <div className="order-section">
+                <h3>Shipping Information</h3>
+                <div className="info-grid">
+                  <div className="info-item">
+                    <strong>Street:</strong> 
+                    <span className="order-value">{orderData.street}</span>
+                  </div>
+                  <div className="info-item">
+                    <strong>City:</strong> 
+                    <span className="order-value">{orderData.city}</span>
+                  </div>
+                  <div className="info-item">
+                    <strong>State:</strong> 
+                    <span className="order-value">{orderData.state}</span>
+                  </div>
+                  <div className="info-item">
+                    <strong>ZIP Code:</strong> 
+                    <span className="order-value">{orderData.zipCode}</span>
+                  </div>
+                  <div className="info-item">
+                    <strong>Country:</strong> 
+                    <span className="order-value">{orderData.country}</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Payment Information */}
+              <div className="order-section">
+                <h3>Payment Information</h3>
+                <div className="info-grid">
+                  <div className="info-item">
+                    <strong>Method:</strong> 
+                    <span className="order-value">{orderData.paymentMethod}</span>
+                  </div>
+                  <div className="info-item">
+                    <strong>Status:</strong> 
+                    <span className={`status-badge ${orderData.status.toLowerCase()}`}>
+                      {orderData.status}
+                    </span>
+                  </div>
+                  <div className="info-item">
+                    <strong>Paid:</strong> 
+                    <span className="order-value">{orderData.isPaid ? 'Yes' : 'No'}</span>
+                  </div>
+                  {orderData.paidAt && (
+                    <div className="info-item">
+                      <strong>Paid At:</strong> 
+                      <span className="order-value">{new Date(orderData.paidAt).toLocaleString()}</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Order Items */}
+              <div className="order-section full-width">
+                <h3>Order Items ({orderData.orderItems.length})</h3>
+                
+                {/* Debug Information */}
+                <div style={{background: '#f8f9fa', padding: '10px', marginBottom: '15px', borderRadius: '4px', fontSize: '12px'}}>
+                  <strong>Debug Info:</strong> {orderData.orderItems.length} items found
+                  {orderData.orderItems.length > 0 && (
+                    <div style={{marginTop: '5px'}}>
+                      <strong>First item data:</strong> {JSON.stringify(orderData.orderItems[0], null, 2)}
+                    </div>
+                  )}
+                </div>
+                
+                <div className="order-items-table">
+                  <table>
+                    <thead>
+                      <tr>
+                        <th>Product</th>
+                        <th>Name</th>
+                        <th>Variant</th>
+                        <th>Quantity</th>
+                        <th>Price</th>
+                        <th>Total</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {orderData.orderItems.length > 0 ? (
+                        orderData.orderItems.map((item, index) => (
+                          <tr key={index}>
+                            <td>
+                              <img 
+                                src={item.image} 
+                                alt={item.name} 
+                                className="product-thumbnail"
+                                onError={(e) => {
+                                  e.target.src = 'https://via.placeholder.com/50x50?text=No+Image';
+                                }}
+                              />
+                            </td>
+                            <td className="product-name-cell">
+                              <div className="product-name">{item.name || 'N/A'}</div>
+                              {item.sku && <div className="product-sku">SKU: {item.sku}</div>}
+                            </td>
+                            <td className="variant-cell">
+                              {item.selectedSize && (
+                                <span className="variant-tag size-tag">{item.selectedSize}</span>
+                              )}
+                              {item.selectedColor && (
+                                <span className="variant-tag color-tag">{item.selectedColor}</span>
+                              )}
+                              {!item.selectedSize && !item.selectedColor && (
+                                <span className="no-variant">No variant</span>
+                              )}
+                            </td>
+                            <td>{item.quantity || 0}</td>
+                            <td>₹{item.price?.toLocaleString() || '0'}</td>
+                            <td>₹{((item.price || 0) * (item.quantity || 0))?.toLocaleString() || '0'}</td>
+                          </tr>
+                        ))
+                      ) : (
+                        <tr>
+                          <td colSpan="6" style={{textAlign: 'center', padding: '20px'}}>
+                            No order items found
+                          </td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              {/* Order Summary */}
+              <div className="order-section full-width">
+                <h3>Order Summary</h3>
+                <div className="order-summary">
+                  <div className="summary-row">
+                    <span>Subtotal:</span>
+                    <span>₹{orderData.totalPrice?.toLocaleString() || '0'}</span>
+                  </div>
+                  <div className="summary-row">
+                    <span>Shipping:</span>
+                    <span>₹{orderData.shippingPrice?.toLocaleString() || '0'}</span>
+                  </div>
+                  <div className="summary-row total">
+                    <span>Total:</span>
+                    <span>₹{orderData.totalPrice?.toLocaleString() || '0'}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          <div className="modal-footer">
+            <button className="btn-secondary" onClick={() => setShowViewOrder(false)}>
+              Close
+            </button>
+            <button className="btn-primary" onClick={() => {
+              setShowViewOrder(false);
+              // You can add edit functionality here later
+            }}>
+              Edit Order
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   return (
     <div className="admin-layout">
       {/* Sidebar */}
@@ -2356,17 +2868,21 @@ const Admin = () => {
       <main className="admin-main">
         {/* Top Bar */}
                  <header className="admin-header">
-           <div className="header-left">
-             <h1>{activeTab === 'dashboard' ? 'Dashboard' : activeTab.charAt(0).toUpperCase() + activeTab.slice(1)}</h1>
-           </div>
-          <div className="header-right">
-            <div className="admin-info">
-              <span className="admin-name">Admin</span>
-              <span className="admin-role">Super Admin</span>
+          <div className="header-content">
+            <h1>Admin Panel</h1>
+            <div className="header-actions">
+              <button className="admin-btn" onClick={checkAdminStatus}>
+                Check Admin Status
+              </button>
+              {!isAdmin && (
+                <button className="make-admin-btn" onClick={makeCurrentUserAdmin}>
+                  Make Me Admin
+                </button>
+              )}
+              <button className="logout-btn" onClick={handleLogout}>
+                <FiLogOut /> Logout
+              </button>
             </div>
-            <button className="logout-btn" onClick={handleLogout}>
-              <FiLogOut /> Logout
-            </button>
           </div>
         </header>
 
@@ -2374,6 +2890,9 @@ const Admin = () => {
         <div className="admin-content-area">
           {renderContent()}
         </div>
+        
+        {/* View Order Modal */}
+        {showViewOrder && renderViewOrderModal()}
       </main>
     </div>
   );

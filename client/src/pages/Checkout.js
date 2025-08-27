@@ -247,6 +247,28 @@ const Checkout = () => {
       console.log('Order data being sent:', orderData);
       console.log('Cart total:', getTotalPrice());
       console.log('COD total:', formData.paymentMethod === 'cod' ? getTotalPrice() + 50 : getTotalPrice());
+      
+      // Debug cart items structure
+      console.log('=== CART ITEMS DEBUG ===');
+      if (cartItems && Array.isArray(cartItems)) {
+        cartItems.forEach((item, index) => {
+          console.log(`Cart Item ${index + 1}:`, {
+            _id: item._id,
+            name: item.name,
+            selectedSize: item.selectedSize,
+            selectedColor: item.selectedColor,
+            sku: item.sku,
+            variantPrice: item.variantPrice,
+            category: item.category,
+            categoryName: item.categoryName,
+            hasVariants: !!(item.selectedSize || item.selectedColor),
+            fullItem: item
+          });
+        });
+      } else {
+        console.log('Cart items is not an array:', cartItems);
+      }
+      console.log('=== END CART ITEMS DEBUG ===');
 
       const response = await api.post('/api/orders', orderData);
 

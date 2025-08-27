@@ -64,12 +64,27 @@ const ProductDetail = () => {
       try {
         setLoading(true);
         const response = await api.get(`/api/products/${id}`);
+        console.log('Product data received:', response.data);
+        console.log('Product sizes:', response.data.sizes);
+        console.log('Product colors:', response.data.colors);
+        console.log('Product images:', response.data.images);
+        console.log('Product variants:', response.data.variants);
         setProduct(response.data);
           
           // Set default selections
         if (response.data.sizes && Array.isArray(response.data.sizes) && response.data.sizes.length > 0) {
+          console.log('Setting default size to:', response.data.sizes[0]);
           setSelectedSize(response.data.sizes[0]);
+        } else if (response.data.sizes && typeof response.data.sizes === 'string') {
+          // Handle case where sizes might be a string
+          const sizeArray = response.data.sizes.split(',').map(s => s.trim()).filter(s => s);
+          console.log('Sizes is a string, converted to array:', sizeArray);
+          if (sizeArray.length > 0) {
+            setSelectedSize(sizeArray[0]);
           }
+        } else {
+          console.log('No valid sizes found in response');
+        }
         if (response.data.colors && Array.isArray(response.data.colors) && response.data.colors.length > 0) {
           // Handle different color formats
           const firstColor = response.data.colors[0];
@@ -114,25 +129,7 @@ const ProductDetail = () => {
     }
   };
 
-  // Test function to isolate the issue
-  const testAddToCart = () => {
-    console.log('=== TEST ADD TO CART ===');
-    console.log('Current quantity state:', quantity);
-    
-    if (product && selectedSize && selectedColor) {
-      const testItem = {
-        ...product,
-        selectedSize,
-        selectedColor,
-        quantity: 5 // Hardcoded test quantity
-      };
-      console.log('Test item with hardcoded quantity 5:', testItem);
-      addToCart(testItem);
-      console.log('Test addToCart called with quantity 5');
-    } else {
-      console.log('Missing size or color for test');
-    }
-  };
+
 
   const handleAddToCart = useCallback(() => {
     console.log('🚨 handleAddToCart FUNCTION CALLED! 🚨');
@@ -148,14 +145,29 @@ const ProductDetail = () => {
     console.log('Direct quantity check (from ref):', currentQuantity);
     
     if (product && selectedSize && selectedColor) {
+      // Find the specific variant to get detailed information
+      let variantInfo = null;
+      if (product.variants && Array.isArray(product.variants)) {
+        variantInfo = product.variants.find(v => 
+          v.size === selectedSize && v.color === selectedColor
+        );
+      }
+      
       const cartItem = {
         ...product,
         selectedSize,
         selectedColor,
-        quantity: currentQuantity // Use the ref value
+        quantity: currentQuantity, // Use the ref value
+        // Add variant-specific information
+        variantPrice: variantInfo?.price || product.price,
+        variantStock: variantInfo?.stock || 0,
+        // Add category information
+        category: product.category || product.categoryName,
+        categoryName: product.categoryName || product.category
       };
       console.log('Cart item being created:', cartItem);
       console.log('Final quantity being sent to cart:', cartItem.quantity);
+      console.log('Variant info found:', variantInfo);
       addToCart(cartItem);
     } else {
       let missingOptions = [];
@@ -168,11 +180,25 @@ const ProductDetail = () => {
 
   const handleBuyNow = useCallback(() => {
     if (product && selectedSize && selectedColor) {
+      // Find the specific variant to get detailed information
+      let variantInfo = null;
+      if (product.variants && Array.isArray(product.variants)) {
+        variantInfo = product.variants.find(v => 
+          v.size === selectedSize && v.color === selectedColor
+        );
+      }
+      
       addToCart({
         ...product,
         selectedSize,
         selectedColor,
-        quantity
+        quantity,
+        // Add variant-specific information
+        variantPrice: variantInfo?.price || product.price,
+        variantStock: variantInfo?.stock || 0,
+        // Add category information
+        category: product.category || product.categoryName,
+        categoryName: product.categoryName || product.category
       });
       navigate('/checkout');
     } else {
@@ -211,12 +237,25 @@ const ProductDetail = () => {
   };
 
   const getStockStatus = () => {
+    // Check if we have variants with stock
+    if (product.variants && Array.isArray(product.variants) && product.variants.length > 0) {
+      const totalStock = product.variants.reduce((sum, variant) => sum + (variant.stock || 0), 0);
+      if (totalStock <= 0) {
+        return { status: 'out-of-stock', text: 'Out of Stock' };
+      } else if (totalStock <= 10) {
+        return { status: 'low-stock', text: `Low Stock (${totalStock} available)` };
+      } else {
+        return { status: 'in-stock', text: `In Stock (${totalStock} available)` };
+      }
+    }
+    
+    // Fallback to old stockQuantity if no variants
     if (!product.stockQuantity || product.stockQuantity <= 0) {
       return { status: 'out-of-stock', text: 'Out of Stock' };
     } else if (product.stockQuantity <= 10) {
-      return { status: 'low-stock', text: 'Low Stock' };
+      return { status: 'low-stock', text: `Low Stock (${product.stockQuantity} available)` };
     } else {
-      return { status: 'in-stock', text: 'In Stock' };
+      return { status: 'in-stock', text: `In Stock (${product.stockQuantity} available)` };
     }
   };
 
@@ -257,7 +296,18 @@ const ProductDetail = () => {
   }
 
   const stockStatus = getStockStatus();
-  const images = product.images && Array.isArray(product.images) && product.images.length > 0 ? product.images : [product.image];
+  const images = (() => {
+    // First check if we have multiple images
+    if (product.images && Array.isArray(product.images) && product.images.length > 0) {
+      return product.images;
+    }
+    // If no images array, check if we have a main image
+    if (product.image) {
+      return [product.image];
+    }
+    // Fallback to empty array
+    return [];
+  })();
   const hasMultipleImages = images.length > 1;
 
   // Safety check to ensure product is properly loaded
@@ -353,9 +403,6 @@ const ProductDetail = () => {
                 <div className="stock-status-inline">
                   <span className="stock-indicator"></span>
                   {stockStatus.text}
-                  {product.stockQuantity && product.stockQuantity > 0 && (
-                    <span> ({product.stockQuantity} available)</span>
-                  )}
                 </div>
               </div>
               
@@ -400,76 +447,194 @@ const ProductDetail = () => {
                 {/* Left Side - Product Options */}
                 <div className="hero-options">
                   {/* Size Selection */}
-                  {product.sizes && product.sizes.length > 0 && (
-                    <div className="option-group">
-                      <label className="option-label">Size:</label>
-                      <div className="option-selection">
-                        {selectedSize ? `Selected: ${selectedSize}` : 'Select a size'}
-                      </div>
-                      <div className="size-options">
-                        {product.sizes.map(size => (
-                          <button
-                            key={size}
-                            className={`size-option ${selectedSize === size ? 'selected' : ''}`}
-                            onClick={() => setSelectedSize(size)}
-                          >
-                            {size}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                  )}
+                  {(() => {
+                    console.log('Rendering sizes section. Product sizes:', product.sizes);
+                    console.log('Product variants:', product.variants);
+                    
+                    // Only show sizes that have variants with stock
+                    let sizesToRender = [];
+                    if (product.variants && Array.isArray(product.variants) && product.variants.length > 0) {
+                      // Get unique sizes from variants that have stock
+                      const sizesWithStock = [...new Set(
+                        product.variants
+                          .filter(variant => variant.stock > 0 && variant.size)
+                          .map(variant => variant.size)
+                      )];
+                      sizesToRender = sizesWithStock;
+                    } else if (product.sizes && Array.isArray(product.sizes)) {
+                      // Fallback to sizes array if no variants
+                      sizesToRender = product.sizes.filter(size => size && size.trim() !== '');
+                    } else if (product.sizes && typeof product.sizes === 'string') {
+                      // If sizes is a string, split by comma
+                      sizesToRender = product.sizes.split(',').map(s => s.trim()).filter(s => s);
+                    }
+                    
+                    console.log('Sizes to render (with stock):', sizesToRender);
+                    
+                    if (sizesToRender.length > 0) {
+                      return (
+                        <div className="option-group">
+                          <label className="option-label">Size:</label>
+                          <div className="option-selection">
+                            {selectedSize ? `Selected: ${selectedSize}` : 'Select a size'}
+                          </div>
+                          <div className="size-options">
+                            {sizesToRender.map(size => (
+                              <button
+                                key={size}
+                                className={`size-option ${selectedSize === size ? 'selected' : ''}`}
+                                onClick={() => {
+                                  console.log('Size selected:', size);
+                                  setSelectedSize(size);
+                                }}
+                                style={{
+                                  padding: '12px 20px',
+                                  fontSize: '16px',
+                                  fontWeight: '600',
+                                  border: selectedSize === size ? '2px solid #059669' : '2px solid #ddd',
+                                  backgroundColor: selectedSize === size ? '#059669' : 'white',
+                                  color: selectedSize === size ? 'white' : '#333',
+                                  borderRadius: '8px',
+                                  cursor: 'pointer',
+                                  transition: 'all 0.3s ease',
+                                  minWidth: '50px',
+                                  textAlign: 'center'
+                                }}
+                              >
+                                {size}
+                              </button>
+                            ))}
+                          </div>
+                          {/* Debug info */}
+                          <div style={{ fontSize: '12px', color: '#666', marginTop: '5px' }}>
+                            Available sizes with stock: {sizesToRender.join(', ')}
+                          </div>
+                        </div>
+                      );
+                    } else {
+                      return (
+                        <div className="option-group">
+                          <label className="option-label">Size:</label>
+                          <div className="option-selection">
+                            No sizes available
+                          </div>
+                          <div style={{ fontSize: '12px', color: '#666', marginTop: '5px' }}>
+                            Debug: product.sizes = {JSON.stringify(product.sizes)}, variants = {JSON.stringify(product.variants)}
+                          </div>
+                        </div>
+                      );
+                    }
+                  })()}
 
                   {/* Color Selection */}
-                  {product.colors && Array.isArray(product.colors) && product.colors.length > 0 && (
-                    <div className="option-group">
-                      <label className="option-label">Colour:</label>
-                      <div className="option-selection">
-                        {selectedColor ? `Selected: ${selectedColor}` : 'Make a Colour selection'}
-                      </div>
-                      <div className="color-options">
-                        {product.colors.filter(color => color).map(color => {
-                          // Handle different color formats
-                          let colorName, colorValue;
-                          if (typeof color === 'string') {
-                            colorName = color;
-                            colorValue = color.toLowerCase();
-                          } else if (color && typeof color === 'object') {
-                            colorName = color.name || color.color || color.value || 'Unknown';
-                            colorValue = color.hex || color.code || color.name || 'gray';
-                          }
-                          
-                          return (
-                          <button
-                              key={colorName}
-                              className={`color-option ${selectedColor === colorName ? 'selected' : ''}`}
-                              onClick={() => {
-                                console.log('Color selected:', colorName, 'Original color data:', color);
-                                setSelectedColor(colorName);
-                              }}
-                              style={{ 
-                                backgroundColor: colorValue,
-                                border: selectedColor === colorName ? '2px solid #000' : '1px solid #ddd',
-                                width: '30px',
-                                height: '30px',
-                                borderRadius: '50%',
-                                margin: '5px',
-                                cursor: 'pointer'
-                              }}
-                              title={colorName}
-                          />
-                          );
-                        })}
-                      </div>
-                      {/* Debug info */}
-                      <div style={{ fontSize: '12px', color: '#666', marginTop: '5px' }}>
-                        Available colors: {product.colors.filter(c => c).map(color => {
-                          if (typeof color === 'string') return color;
-                          return color.name || color.color || color.value || 'Unknown';
-                        }).join(', ')}
-                      </div>
-                    </div>
-                  )}
+                  {(() => {
+                    console.log('Rendering colors section. Product colors:', product.colors);
+                    console.log('Product variants:', product.variants);
+                    
+                    // Only show colors that have variants with stock
+                    let colorsToRender = [];
+                    if (product.variants && Array.isArray(product.variants) && product.variants.length > 0) {
+                      // Get unique colors from variants that have stock
+                      const colorsWithStock = [...new Set(
+                        product.variants
+                          .filter(variant => variant.stock > 0 && variant.color)
+                          .map(variant => variant.color)
+                      )];
+                      colorsToRender = colorsWithStock;
+                    } else if (product.colors && Array.isArray(product.colors)) {
+                      // Fallback to colors array if no variants
+                      colorsToRender = product.colors.filter(color => color && color !== '');
+                    } else if (product.colors && typeof product.colors === 'string') {
+                      // If colors is a string, split by comma
+                      colorsToRender = product.colors.split(',').map(c => c.trim()).filter(c => c);
+                    }
+                    
+                    console.log('Colors to render (with stock):', colorsToRender);
+                    
+                    if (colorsToRender.length > 0) {
+                      return (
+                        <div className="option-group">
+                          <label className="option-label">Colour:</label>
+                          <div className="option-selection">
+                            {selectedColor ? `Selected: ${selectedColor}` : 'Make a Colour selection'}
+                          </div>
+                          <div className="color-options">
+                            {colorsToRender.map(color => {
+                              // Handle different color formats
+                              let colorName, colorValue;
+                              if (typeof color === 'string') {
+                                colorName = color;
+                                colorValue = color.toLowerCase();
+                              } else if (color && typeof color === 'object') {
+                                colorName = color.name || color.color || color.value || 'Unknown';
+                                colorValue = color.hex || color.code || color.name || 'gray';
+                              }
+                              
+                              // Ensure colorValue is a valid CSS color
+                              if (!colorValue || colorValue === 'gray') {
+                                colorValue = '#808080'; // Default gray
+                              }
+                              
+                              return (
+                              <button
+                                  key={colorName}
+                                  className={`color-option ${selectedColor === colorName ? 'selected' : ''}`}
+                                  onClick={() => {
+                                    console.log('Color selected:', colorName, 'Original color data:', color);
+                                    setSelectedColor(colorName);
+                                  }}
+                                  style={{ 
+                                    backgroundColor: colorValue,
+                                    border: selectedColor === colorName ? '3px solid #059669' : '2px solid #ddd',
+                                    width: '35px',
+                                    height: '35px',
+                                    borderRadius: '50%',
+                                    margin: '5px',
+                                    cursor: 'pointer',
+                                    position: 'relative'
+                                  }}
+                                  title={colorName}
+                              >
+                                {selectedColor === colorName && (
+                                  <FiCheck 
+                                    style={{ 
+                                      position: 'absolute', 
+                                      top: '50%', 
+                                      left: '50%', 
+                                      transform: 'translate(-50%, -50%)',
+                                      color: 'white',
+                                      fontSize: '16px',
+                                      filter: 'drop-shadow(1px 1px 1px rgba(0,0,0,0.8))'
+                                    }} 
+                                  />
+                                )}
+                              </button>
+                              );
+                            })}
+                          </div>
+                          {/* Debug info */}
+                          <div style={{ fontSize: '12px', color: '#666', marginTop: '5px' }}>
+                            Available colors with stock: {colorsToRender.map(color => {
+                              if (typeof color === 'string') return color;
+                              return color.name || color.color || color.value || 'Unknown';
+                            }).join(', ')}
+                          </div>
+                        </div>
+                      );
+                    } else {
+                      return (
+                        <div className="option-group">
+                          <label className="option-label">Colour:</label>
+                          <div className="option-selection">
+                            No colors available
+                          </div>
+                          <div style={{ fontSize: '12px', color: '#666', marginTop: '5px' }}>
+                            Debug: product.colors = {JSON.stringify(product.colors)}, variants = {JSON.stringify(product.variants)}
+                          </div>
+                        </div>
+                      );
+                    }
+                  })()}
                   
                   {/* Quantity Selector */}
                   <div className="option-group">
@@ -496,7 +661,13 @@ const ProductDetail = () => {
                         }}
                         className="quantity-input"
                         min="1"
-                        max={product.stockQuantity || 99}
+                        max={(() => {
+                          if (product.variants && Array.isArray(product.variants) && product.variants.length > 0) {
+                            const totalStock = product.variants.reduce((sum, variant) => sum + (variant.stock || 0), 0);
+                            return totalStock || 99;
+                          }
+                          return product.stockQuantity || 99;
+                        })()}
                       />
                       <button 
                         onClick={() => {
@@ -505,75 +676,33 @@ const ProductDetail = () => {
                           setQuantity(newQuantity);
                         }}
                         className="quantity-btn"
-                        disabled={product.stockQuantity && quantity >= product.stockQuantity}
+                        disabled={(() => {
+                          if (product.variants && Array.isArray(product.variants) && product.variants.length > 0) {
+                            const totalStock = product.variants.reduce((sum, variant) => sum + (variant.stock || 0), 0);
+                            return totalStock && quantity >= totalStock;
+                          }
+                          return product.stockQuantity && quantity >= product.stockQuantity;
+                        })()}
                       >
                         +
                       </button>
                     </div>
-                    <div style={{ fontSize: '12px', color: '#666', marginTop: '5px' }}>
-                      Current quantity state: {quantity}
-                      <button 
-                        onClick={() => {
-                          console.log('Test button clicked! Current quantity:', quantity);
-                          setQuantity(quantity + 1);
-                          console.log('Quantity set to:', quantity + 1);
-                        }}
-                        style={{ 
-                          marginLeft: '10px', 
-                          padding: '2px 8px', 
-                          fontSize: '10px',
-                          background: '#007bff',
-                          color: 'white',
-                          border: 'none',
-                          borderRadius: '3px',
-                          cursor: 'pointer'
-                        }}
-                      >
-                        Test +1
-                      </button>
-                      <button 
-                        onClick={() => {
-                          console.log('Force update clicked! Setting quantity to 5');
-                          setQuantity(5);
-                        }}
-                        style={{ 
-                          marginLeft: '10px', 
-                          padding: '2px 8px', 
-                          fontSize: '10px',
-                          background: '#28a745',
-                          color: 'white',
-                          border: 'none',
-                          borderRadius: '3px',
-                          cursor: 'pointer'
-                        }}
-                      >
-                        Force Set to 5
-                      </button>
-                      <button 
-                        onClick={() => {
-                          console.log('Direct set test clicked!');
-                          setQuantity(10);
-                          console.log('setQuantity(10) called');
-                        }}
-                        style={{ 
-                          marginLeft: '10px', 
-                          padding: '2px 8px', 
-                          fontSize: '10px',
-                          background: '#ffc107',
-                          color: 'black',
-                          border: 'none',
-                          borderRadius: '3px',
-                          cursor: 'pointer'
-                        }}
-                      >
-                        Direct Set 10
-                      </button>
-                    </div>
-                    {product.stockQuantity && (
-                      <div className="max-quantity">
-                        Max: {product.stockQuantity}
-                      </div>
-                    )}
+
+                    {(() => {
+                      if (product.variants && Array.isArray(product.variants) && product.variants.length > 0) {
+                        const totalStock = product.variants.reduce((sum, variant) => sum + (variant.stock || 0), 0);
+                        return totalStock > 0 ? (
+                          <div className="max-quantity">
+                            Max: {totalStock}
+                          </div>
+                        ) : null;
+                      }
+                      return product.stockQuantity ? (
+                        <div className="max-quantity">
+                          Max: {product.stockQuantity}
+                        </div>
+                      ) : null;
+                    })()}
                   </div>
                 </div>
 
@@ -596,38 +725,9 @@ const ProductDetail = () => {
                       Buy Now
                     </button>
                     
-                    <button 
-                      onClick={testAddToCart}
-                      style={{ 
-                        background: '#dc3545', 
-                        color: 'white', 
-                        border: 'none', 
-                        padding: '10px 20px', 
-                        borderRadius: '5px', 
-                        cursor: 'pointer',
-                        marginTop: '10px'
-                      }}
-                    >
-                      Test Add (Qty 5)
-                    </button>
+
                     
-                    <button 
-                      onClick={() => {
-                        console.log('🚨 Direct call test button clicked! 🚨');
-                        handleAddToCart();
-                      }}
-                      style={{ 
-                        background: '#6f42c1', 
-                        color: 'white', 
-                        border: 'none', 
-                        padding: '10px 20px', 
-                        borderRadius: '5px', 
-                        cursor: 'pointer',
-                        marginTop: '10px'
-                      }}
-                    >
-                      Direct Call handleAddToCart
-                    </button>
+
                   </div>
                   
                   <button 
