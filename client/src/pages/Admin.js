@@ -176,7 +176,6 @@ const Admin = () => {
   // Fetch customers
   const fetchCustomers = async (page = 1, status = 'all', search = '') => {
     try {
-      console.log('🔄 Fetching customers...', { page, status, search });
       setCustomersLoading(true);
       const params = new URLSearchParams({
         page: page.toString(),
@@ -185,20 +184,14 @@ const Admin = () => {
         search: search
       });
       
-      console.log('📡 API call to:', `/api/customers/admin/customers?${params}`);
-      const response = await api.get(`/api/customers/admin/customers?${params}`);
-      console.log('✅ Customers response:', response.data);
-      
+      const response = await api.get(`/api/users/admin/customers?${params}`);
       if (response.data.success) {
         setCustomers(response.data.customers);
         setCustomerStats(response.data.analytics);
         setCustomersPagination(response.data.pagination);
-        console.log('📊 Customers set:', response.data.customers.length);
-        console.log('📈 Analytics set:', response.data.analytics);
       }
     } catch (error) {
-      console.error('❌ Error fetching customers:', error);
-      console.error('❌ Error details:', error.response?.data || error.message);
+      console.error('Error fetching customers:', error);
     } finally {
       setCustomersLoading(false);
     }
@@ -207,7 +200,7 @@ const Admin = () => {
   // Fetch customer details
   const fetchCustomerDetails = async (customerId) => {
     try {
-      const response = await api.get(`/api/customers/admin/customers/${customerId}`);
+      const response = await api.get(`/api/users/admin/customers/${customerId}`);
       if (response.data.success) {
         setViewingCustomer(response.data);
         setShowCustomerModal(true);
@@ -221,7 +214,7 @@ const Admin = () => {
   // Update customer status (block/unblock)
   const handleCustomerStatusChange = async (customerId, isBlocked, reason = '') => {
     try {
-      const response = await api.put(`/api/customers/admin/customers/${customerId}/status`, {
+      const response = await api.put(`/api/users/admin/customers/${customerId}/status`, {
         isBlocked,
         reason
       });
@@ -267,17 +260,8 @@ const Admin = () => {
 
   // Fetch customers when customers tab is active
   useEffect(() => {
-    console.log('🔄 Customers tab useEffect triggered:', { isAuthenticated, isAdmin, activeTab });
     if (isAuthenticated && isAdmin && activeTab === 'customers') {
-      console.log('✅ Fetching customers - conditions met');
       fetchCustomers();
-    } else {
-      console.log('❌ Not fetching customers:', { 
-        isAuthenticated, 
-        isAdmin, 
-        activeTab, 
-        shouldFetch: isAuthenticated && isAdmin && activeTab === 'customers' 
-      });
     }
   }, [isAuthenticated, isAdmin, activeTab]);
   
@@ -597,7 +581,7 @@ const Admin = () => {
       
       if (response.data.success) {
         // Update local state
-        setOrders(orders.map(order =>
+    setOrders(orders.map(order => 
           order._id === orderId ? { ...order, status: newStatus } : order
         ));
         
@@ -752,8 +736,8 @@ const Admin = () => {
   const handleExportCustomers = () => exportToCSV(customers, 'customers');
 
   // Filter functions
-  const filteredOrders = selectedStatus === 'all'
-    ? orders
+  const filteredOrders = selectedStatus === 'all' 
+    ? orders 
     : orders.filter(order => order.status === selectedStatus);
 
   const filteredProducts = Array.isArray(products) ? products.filter(product => {
@@ -832,27 +816,27 @@ const Admin = () => {
     <div className="admin-dashboard">
       <h1>Dashboard</h1>
       
-      {/* Stats Cards */}
-      <div className="stats-grid">
-        <div className="stat-card">
+             {/* Stats Cards */}
+       <div className="stats-grid">
+         <div className="stat-card">
           <div className="stat-icon">
             <FiDollarSign />
           </div>
           <div className="stat-content">
             <div className="stat-value">₹{orderStats.totalRevenue?.toLocaleString() || 0}</div>
-            <div className="stat-label">Total Revenue</div>
+           <div className="stat-label">Total Revenue</div>
+         </div>
           </div>
-        </div>
-        <div className="stat-card">
+         <div className="stat-card">
           <div className="stat-icon">
             <FiShoppingCart />
           </div>
           <div className="stat-content">
             <div className="stat-value">{orderStats.totalOrders || 0}</div>
-            <div className="stat-label">Total Orders</div>
+           <div className="stat-label">Total Orders</div>
           </div>
-        </div>
-        <div className="stat-card">
+         </div>
+         <div className="stat-card">
           <div className="stat-icon">
             <FiPackage />
           </div>
@@ -866,11 +850,11 @@ const Admin = () => {
             <FiUsers />
           </div>
           <div className="stat-content">
-            <div className="stat-value">{customers.length}</div>
-            <div className="stat-label">Total Customers</div>
+           <div className="stat-value">{customers.length}</div>
+           <div className="stat-label">Total Customers</div>
           </div>
-        </div>
-      </div>
+         </div>
+       </div>
 
       {/* Charts Placeholder */}
       <div className="charts-section">
@@ -909,8 +893,8 @@ const Admin = () => {
                 <th>Actions</th>
               </tr>
             </thead>
-            <tbody>
-              {orders.slice(0, 5).map(order => (
+                       <tbody>
+             {orders.slice(0, 5).map(order => (
                 <tr key={order._id}>
                   <td>#{order._id.slice(-6)}</td>
                   <td>{order.user?.name || 'N/A'}</td>
@@ -925,9 +909,9 @@ const Admin = () => {
                       <FiTrash2 />
                     </button>
                   </td>
-                </tr>
-              ))}
-            </tbody>
+               </tr>
+             ))}
+           </tbody>
           </table>
         </div>
       </div>
@@ -936,24 +920,24 @@ const Admin = () => {
       <div className="revenue-details">
         <div className="section-header">
           <h3>Revenue Details</h3>
-          <button className="export-btn" onClick={handleExportOrders}>
+            <button className="export-btn" onClick={handleExportOrders}>
             <FiDownload /> Export Revenue
-          </button>
-        </div>
+            </button>
+          </div>
         
         <div className="revenue-stats">
           <div className="revenue-stat">
             <span className="stat-label">Pending Orders:</span>
             <span className="stat-value">{orderStats.pendingOrders || 0}</span>
-          </div>
+        </div>
           <div className="revenue-stat">
             <span className="stat-label">Processing Orders:</span>
             <span className="stat-value">{orderStats.processingOrders || 0}</span>
-          </div>
+        </div>
           <div className="revenue-stat">
             <span className="stat-label">Shipped Orders:</span>
             <span className="stat-value">{orderStats.shippedOrders || 0}</span>
-          </div>
+      </div>
           <div className="revenue-stat">
             <span className="stat-label">Delivered Orders:</span>
             <span className="stat-value">{orderStats.deliveredOrders || 0}</span>
@@ -1847,9 +1831,9 @@ const Admin = () => {
             <option value="Delivered">Delivered</option>
             <option value="Cancelled">Cancelled</option>
           </select>
-          <button className="export-btn" onClick={handleExportOrders}>
-            <FiDownload /> Export Orders
-          </button>
+                     <button className="export-btn" onClick={handleExportOrders}>
+             <FiDownload /> Export Orders
+           </button>
         </div>
       </div>
       
@@ -1860,20 +1844,20 @@ const Admin = () => {
             <p>Loading orders...</p>
           </div>
         ) : (
-          <table className="admin-table">
-            <thead>
-              <tr>
-                <th>Order ID</th>
-                <th>Customer</th>
-                <th>Date</th>
-                <th>Amount</th>
-                <th>Payment</th>
-                <th>Status</th>
-                <th>Delivery</th>
-                <th>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
+        <table className="admin-table">
+          <thead>
+            <tr>
+              <th>Order ID</th>
+              <th>Customer</th>
+              <th>Date</th>
+              <th>Amount</th>
+              <th>Payment</th>
+              <th>Status</th>
+              <th>Delivery</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+                     <tbody>
               {filteredOrders.length === 0 ? (
                 <tr>
                   <td colSpan="8" className="no-data">
@@ -1889,9 +1873,9 @@ const Admin = () => {
                     <td>₹{order.totalPrice?.toLocaleString() || 0}</td>
                     <td>{order.paymentMethod}</td>
                     <td><span className={`status-badge ${order.status?.toLowerCase()}`}>{order.status}</span></td>
-                    <td>
-                      <select 
-                        className="status-select"
+                 <td>
+                   <select 
+                     className="status-select"
                         value={order.status || 'Pending'}
                         onChange={(e) => handleOrderStatusChange(order._id, e.target.value)}
                       >
@@ -1900,21 +1884,21 @@ const Admin = () => {
                         <option value="Shipped">Shipped</option>
                         <option value="Delivered">Delivered</option>
                         <option value="Cancelled">Cancelled</option>
-                      </select>
-                    </td>
-                    <td className="actions">
+                   </select>
+                 </td>
+                 <td className="actions">
                       <button className="action-btn view" onClick={() => handleViewOrder(order)} title="View Order Details">
                         <FiEye />
                       </button>
                       <button className="action-btn delete" onClick={() => handleDeleteOrder(order._id)} title="Delete Order">
                         <FiTrash2 />
                       </button>
-                    </td>
-                  </tr>
+                 </td>
+               </tr>
                 ))
               )}
-            </tbody>
-          </table>
+           </tbody>
+        </table>
         )}
       </div>
       
@@ -1965,18 +1949,11 @@ const Admin = () => {
               <option value="delivered">Delivered</option>
               <option value="cancelled">Cancelled</option>
               <option value="no-orders">No Orders</option>
-            </select>
+          </select>
           </div>
-          <button 
-            className="migrate-btn" 
-            onClick={migrateUsersToCustomers}
-            title="Convert existing users to customers"
-          >
-            <FiUsers /> Migrate Users
-          </button>
         </div>
       </div>
-
+      
       {/* Customer Statistics */}
       <div className="stats-grid">
         <div className="stat-card">
@@ -2009,63 +1986,63 @@ const Admin = () => {
         </div>
       ) : (
         <>
-          <div className="table-container">
-            <table className="admin-table">
-              <thead>
-                <tr>
-                  <th>Customer ID</th>
-                  <th>Name</th>
-                  <th>Email</th>
-                  <th>Phone</th>
-                  <th>Joined</th>
+      <div className="table-container">
+        <table className="admin-table">
+          <thead>
+            <tr>
+              <th>Customer ID</th>
+              <th>Name</th>
+              <th>Email</th>
+              <th>Phone</th>
+              <th>Joined</th>
                   <th>Status</th>
-                  <th>Actions</th>
-                </tr>
-              </thead>
-              <tbody>
+              <th>Actions</th>
+            </tr>
+          </thead>
+                     <tbody>
                 {customers.map((customer) => (
                   <tr key={customer._id}>
                     <td>#{customer._id.slice(-6)}</td>
-                    <td>{customer.name}</td>
-                    <td>{customer.email}</td>
+                 <td>{customer.name}</td>
+                 <td>{customer.email}</td>
                     <td>{customer.phone || 'N/A'}</td>
                     <td>{new Date(customer.createdAt).toLocaleDateString()}</td>
                     <td>
-                      <span className={`status-badge ${getStatusClass(customer.orderStats?.lastOrderStatus || 'No Orders')}`}>
-                        {customer.orderStats?.lastOrderStatus || 'No Orders'}
+                      <span className={`status-badge ${getStatusClass(customer.lastOrderStatus || 'No Orders')}`}>
+                        {customer.lastOrderStatus || 'No Orders'}
                       </span>
                     </td>
                     <td>
                       <div className="action-buttons">
-                        <button
+                   <button 
                           className="action-btn view"
                           onClick={() => fetchCustomerDetails(customer._id)}
                           title="View Details"
-                        >
+                   >
                           <FiEye />
-                        </button>
+                   </button>
                         <button
-                          className={`action-btn ${customer.status?.isBlocked ? 'unblock' : 'block'}`}
+                          className={`action-btn ${getStatusClass(customer.lastOrderStatus || 'No Orders')}`}
                           onClick={() => {
-                            const action = customer.status?.isBlocked ? 'unblock' : 'block';
-                            const reason = customer.status?.isBlocked ? '' : prompt('Reason for blocking:');
-                            handleCustomerStatusChange(customer._id, !customer.status?.isBlocked, reason);
+                            const action = getStatusClass(customer.lastOrderStatus || 'No Orders') === 'blocked' ? 'unblock' : 'block';
+                            const reason = getStatusClass(customer.lastOrderStatus || 'No Orders') === 'blocked' ? '' : prompt('Reason for blocking:');
+                            handleCustomerStatusChange(customer._id, getStatusClass(customer.lastOrderStatus || 'No Orders') === 'blocked', reason);
                           }}
-                          title={customer.status?.isBlocked ? 'Unblock Customer' : 'Block Customer'}
+                          title={getStatusClass(customer.lastOrderStatus || 'No Orders') === 'blocked' ? 'Unblock Customer' : 'Block Customer'}
                         >
-                          {customer.status?.isBlocked ? 'Unblock' : 'Block'}
+                          {getStatusClass(customer.lastOrderStatus || 'No Orders') === 'blocked' ? 'Unblock' : 'Block'}
                         </button>
                       </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-
+                 </td>
+               </tr>
+             ))}
+           </tbody>
+        </table>
+      </div>
+      
           {/* Pagination */}
           {customersPagination.totalPages > 1 && (
-            <div className="pagination">
+      <div className="pagination">
               <button
                 className="page-btn"
                 onClick={() => fetchCustomers(customersPagination.currentPage - 1, customerStatusFilter, customerSearch)}
@@ -2075,7 +2052,7 @@ const Admin = () => {
               </button>
               <div className="page-info">
                 Page {customersPagination.currentPage} of {customersPagination.totalPages}
-              </div>
+      </div>
               <button
                 className="page-btn"
                 onClick={() => fetchCustomers(customersPagination.currentPage + 1, customerStatusFilter, customerSearch)}
@@ -2865,7 +2842,7 @@ const Admin = () => {
   const renderCustomerModal = () => {
     if (!viewingCustomer) return null;
 
-    const { customer, recentOrders, supportTickets, communications } = viewingCustomer;
+    const { customer, orders, stats } = viewingCustomer;
 
     return (
       <div className="modal-overlay" onClick={() => setShowCustomerModal(false)}>
@@ -2899,30 +2876,14 @@ const Admin = () => {
                   </div>
                   <div className="info-item">
                     <strong>Status:</strong> 
-                    <span className={`order-value status-badge ${customer.status?.isBlocked ? 'blocked' : 'active'}`}>
-                      {customer.status?.isBlocked ? 'Blocked' : 'Active'}
+                    <span className={`order-value status-badge ${customer.isBlocked ? 'blocked' : 'active'}`}>
+                      {customer.isBlocked ? 'Blocked' : 'Active'}
                     </span>
                   </div>
-                  {customer.status?.isBlocked && customer.status?.blockReason && (
+                  {customer.isBlocked && customer.blockReason && (
                     <div className="info-item">
                       <strong>Block Reason:</strong> 
-                      <span className="order-value">{customer.status.blockReason}</span>
-                    </div>
-                  )}
-                  <div className="info-item">
-                    <strong>Loyalty Tier:</strong> 
-                    <span className={`order-value status-badge ${customer.loyalty?.tier || 'bronze'}`}>
-                      {customer.loyalty?.tier?.toUpperCase() || 'BRONZE'}
-                    </span>
-                  </div>
-                  {customer.status?.tags && customer.status.tags.length > 0 && (
-                    <div className="info-item">
-                      <strong>Tags:</strong> 
-                      <span className="order-value">
-                        {customer.status.tags.map(tag => (
-                          <span key={tag} className="tag-badge">{tag}</span>
-                        ))}
-                      </span>
+                      <span className="order-value">{customer.blockReason}</span>
                     </div>
                   )}
                 </div>
@@ -2930,29 +2891,25 @@ const Admin = () => {
 
               {/* Customer Statistics */}
               <div className="order-section">
-                <h3>Order Statistics</h3>
+                <h3>Customer Statistics</h3>
                 <div className="info-grid">
                   <div className="info-item">
                     <strong>Total Orders:</strong> 
-                    <span className="order-value">{customer.orderStats?.totalOrders || 0}</span>
+                    <span className="order-value">{stats.totalOrders}</span>
                   </div>
                   <div className="info-item">
                     <strong>Total Spent:</strong> 
-                    <span className="order-value">₹{customer.orderStats?.totalSpent?.toFixed(2) || '0.00'}</span>
+                    <span className="order-value">₹{stats.totalSpent?.toFixed(2) || '0.00'}</span>
                   </div>
                   <div className="info-item">
                     <strong>Average Order:</strong> 
-                    <span className="order-value">₹{customer.orderStats?.averageOrderValue?.toFixed(2) || '0.00'}</span>
+                    <span className="order-value">₹{stats.averageOrderValue?.toFixed(2) || '0.00'}</span>
                   </div>
                   <div className="info-item">
                     <strong>Last Order:</strong> 
                     <span className="order-value">
-                      {customer.orderStats?.lastOrderDate ? new Date(customer.orderStats.lastOrderDate).toLocaleDateString() : 'No orders'}
+                      {stats.lastOrderDate ? new Date(stats.lastOrderDate).toLocaleDateString() : 'No orders'}
                     </span>
-                  </div>
-                  <div className="info-item">
-                    <strong>Loyalty Points:</strong> 
-                    <span className="order-value">{customer.loyalty?.points || 0}</span>
                   </div>
                 </div>
               </div>
@@ -2960,7 +2917,9 @@ const Admin = () => {
               {/* Recent Orders */}
               <div className="order-section full-width">
                 <h3>Recent Orders</h3>
-                {recentOrders && recentOrders.length > 0 ? (
+                {orders.length === 0 ? (
+                  <p>No orders found</p>
+                ) : (
                   <table className="order-items-table">
                     <thead>
                       <tr>
@@ -2971,85 +2930,35 @@ const Admin = () => {
                       </tr>
                     </thead>
                     <tbody>
-                      {recentOrders.map((order) => (
+                      {orders.map((order) => (
                         <tr key={order._id}>
                           <td>#{order._id.slice(-6)}</td>
                           <td>{new Date(order.createdAt).toLocaleDateString()}</td>
                           <td>
-                            <span className={`status-badge ${order.status?.toLowerCase()}`}>
+                            <span className={`status-badge ${order.status}`}>
                               {order.status}
                             </span>
                           </td>
-                          <td>₹{order.totalPrice?.toFixed(2) || '0.00'}</td>
+                          <td>₹{order.totalPrice}</td>
                         </tr>
                       ))}
                     </tbody>
                   </table>
-                ) : (
-                  <p>No orders found</p>
                 )}
               </div>
-
-              {/* Support Tickets */}
-              {supportTickets && supportTickets.length > 0 && (
-                <div className="order-section full-width">
-                  <h3>Support Tickets</h3>
-                  <table className="order-items-table">
-                    <thead>
-                      <tr>
-                        <th>Ticket ID</th>
-                        <th>Subject</th>
-                        <th>Status</th>
-                        <th>Priority</th>
-                        <th>Created</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {supportTickets.map((ticket) => (
-                        <tr key={ticket.ticketId}>
-                          <td>{ticket.ticketId}</td>
-                          <td>{ticket.subject}</td>
-                          <td>
-                            <span className={`status-badge ${ticket.status}`}>
-                              {ticket.status}
-                            </span>
-                          </td>
-                          <td>
-                            <span className={`priority-badge ${ticket.priority}`}>
-                              {ticket.priority}
-                            </span>
-                          </td>
-                          <td>{new Date(ticket.createdAt).toLocaleDateString()}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              )}
-
-              {/* Customer Notes */}
-              {customer.status?.notes && (
-                <div className="order-section">
-                  <h3>Admin Notes</h3>
-                  <div className="info-item">
-                    <strong>Notes:</strong> 
-                    <span className="order-value">{customer.status.notes}</span>
-                  </div>
-                </div>
-              )}
             </div>
           </div>
           
           <div className="modal-footer">
             <button 
-              className={`btn-primary ${customer.status?.isBlocked ? 'unblock' : 'block'}`}
+              className={`btn-primary ${getStatusClass(customer.lastOrderStatus || 'No Orders')}`}
               onClick={() => {
-                const reason = customer.status?.isBlocked ? '' : prompt('Reason for blocking:');
-                handleCustomerStatusChange(customer._id, !customer.status?.isBlocked, reason);
+                const reason = getStatusClass(customer.lastOrderStatus || 'No Orders') === 'blocked' ? '' : prompt('Reason for blocking:');
+                handleCustomerStatusChange(customer._id, getStatusClass(customer.lastOrderStatus || 'No Orders') === 'blocked', reason);
                 setShowCustomerModal(false);
               }}
             >
-              {customer.status?.isBlocked ? 'Unblock Customer' : 'Block Customer'}
+              {getStatusClass(customer.lastOrderStatus || 'No Orders') === 'blocked' ? 'Unblock Customer' : 'Block Customer'}
             </button>
             <button className="btn-secondary" onClick={() => setShowCustomerModal(false)}>
               Close
@@ -3058,21 +2967,6 @@ const Admin = () => {
         </div>
       </div>
     );
-  };
-
-  // Migrate existing users to customers
-  const migrateUsersToCustomers = async () => {
-    try {
-      const response = await api.post('/api/customers/admin/migrate-users');
-      if (response.data.success) {
-        alert(response.data.message);
-        // Refresh customers list
-        fetchCustomers();
-      }
-    } catch (error) {
-      console.error('Error migrating users:', error);
-      alert('Failed to migrate users to customers');
-    }
   };
 
   return (
@@ -3152,7 +3046,7 @@ const Admin = () => {
               <button className="admin-btn" onClick={handleLogout}>
                 <FiLogOut />
                 Logout
-              </button>
+            </button>
             </div>
           </div>
         </header>
