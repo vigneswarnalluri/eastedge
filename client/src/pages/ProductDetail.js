@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useCart } from '../context/CartContext';
 import { useWishlist } from '../context/WishlistContext';
+import { useAuth } from '../context/AuthContext';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   FiHeart, 
@@ -26,6 +27,7 @@ const ProductDetail = () => {
   const navigate = useNavigate();
   const { addToCart } = useCart();
   const { addToWishlist, removeFromWishlist, isInWishlist } = useWishlist();
+  const { isAuthenticated } = useAuth();
   
   const [product, setProduct] = useState(null);
   const [quantity, setQuantity] = useState(1);
@@ -38,6 +40,12 @@ const ProductDetail = () => {
   const [showImageModal, setShowImageModal] = useState(false);
 
   const [reviews, setReviews] = useState([]);
+  const [reviewForm, setReviewForm] = useState({
+    rating: 5,
+    comment: ''
+  });
+  const [showReviewForm, setShowReviewForm] = useState(false);
+  const [submittingReview, setSubmittingReview] = useState(false);
   const [activeTab, setActiveTab] = useState('description');
 
   // Use ref to track current quantity (bypasses React Strict Mode issues)
@@ -59,55 +67,55 @@ const ProductDetail = () => {
     console.log('ProductDetail component rendered with quantity:', quantity);
   });
 
-  useEffect(() => {
-    const fetchProduct = async () => {
-      try {
-        setLoading(true);
-        const response = await api.get(`/api/products/${id}`);
-        console.log('Product data received:', response.data);
-        console.log('Product sizes:', response.data.sizes);
-        console.log('Product colors:', response.data.colors);
-        console.log('Product images:', response.data.images);
-        console.log('Product variants:', response.data.variants);
-        setProduct(response.data);
-          
-          // Set default selections
-        if (response.data.sizes && Array.isArray(response.data.sizes) && response.data.sizes.length > 0) {
-          console.log('Setting default size to:', response.data.sizes[0]);
-          setSelectedSize(response.data.sizes[0]);
-        } else if (response.data.sizes && typeof response.data.sizes === 'string') {
-          // Handle case where sizes might be a string
-          const sizeArray = response.data.sizes.split(',').map(s => s.trim()).filter(s => s);
-          console.log('Sizes is a string, converted to array:', sizeArray);
-          if (sizeArray.length > 0) {
-            setSelectedSize(sizeArray[0]);
-          }
-        } else {
-          console.log('No valid sizes found in response');
+  const fetchProduct = async () => {
+    try {
+      setLoading(true);
+      const response = await api.get(`/api/products/${id}`);
+      console.log('Product data received:', response.data);
+      console.log('Product sizes:', response.data.sizes);
+      console.log('Product colors:', response.data.colors);
+      console.log('Product images:', response.data.images);
+      console.log('Product variants:', response.data.variants);
+      setProduct(response.data);
+        
+        // Set default selections
+      if (response.data.sizes && Array.isArray(response.data.sizes) && response.data.sizes.length > 0) {
+        console.log('Setting default size to:', response.data.sizes[0]);
+        setSelectedSize(response.data.sizes[0]);
+      } else if (response.data.sizes && typeof response.data.sizes === 'string') {
+        // Handle case where sizes might be a string
+        const sizeArray = response.data.sizes.split(',').map(s => s.trim()).filter(s => s);
+        console.log('Sizes is a string, converted to array:', sizeArray);
+        if (sizeArray.length > 0) {
+          setSelectedSize(sizeArray[0]);
         }
-        if (response.data.colors && Array.isArray(response.data.colors) && response.data.colors.length > 0) {
-          // Handle different color formats
-          const firstColor = response.data.colors[0];
-          if (typeof firstColor === 'string') {
-            setSelectedColor(firstColor);
-          } else if (firstColor && typeof firstColor === 'object' && firstColor.name) {
-            setSelectedColor(firstColor.name);
-          } else if (firstColor && typeof firstColor === 'object' && firstColor.color) {
-            setSelectedColor(firstColor.color);
-            }
-          }
-          
-          // Fetch reviews
-        fetchReviews(response.data._id);
-          
-      } catch (error) {
-        console.error('Error fetching product:', error);
-        setError('Failed to load product');
-      } finally {
-        setLoading(false);
+      } else {
+        console.log('No valid sizes found in response');
       }
-    };
+      if (response.data.colors && Array.isArray(response.data.colors) && response.data.colors.length > 0) {
+        // Handle different color formats
+        const firstColor = response.data.colors[0];
+        if (typeof firstColor === 'string') {
+          setSelectedColor(firstColor);
+        } else if (firstColor && typeof firstColor === 'object' && firstColor.name) {
+          setSelectedColor(firstColor.name);
+        } else if (firstColor && typeof firstColor === 'object' && firstColor.color) {
+          setSelectedColor(firstColor.color);
+          }
+        }
+        
+        // Fetch reviews
+      fetchReviews(response.data._id);
+        
+    } catch (error) {
+      console.error('Error fetching product:', error);
+      setError('Failed to load product');
+    } finally {
+      setLoading(false);
+    }
+  };
 
+  useEffect(() => {
     fetchProduct();
     // Don't reset quantity here - let it persist
   }, [id]);
@@ -122,13 +130,51 @@ const ProductDetail = () => {
 
   const fetchReviews = async (productId) => {
     try {
-      const response = await api.get(`/api/products/${productId}/reviews`);
-      setReviews(response.data.reviews || []);
+      const response = await api.get(`/api/products/${productId}`);
+      if (response.data && response.data.reviews) {
+        setReviews(response.data.reviews);
+      }
     } catch (error) {
       console.error('Error fetching reviews:', error);
     }
   };
 
+  // Submit review
+  const handleSubmitReview = async (e) => {
+    e.preventDefault();
+    
+    if (!isAuthenticated) {
+      alert('Please login to submit a review');
+      return;
+    }
+    
+    if (!reviewForm.comment.trim()) {
+      alert('Please enter a review comment');
+      return;
+    }
+    
+    try {
+      setSubmittingReview(true);
+      const response = await api.post(`/api/products/${product._id}/reviews`, {
+        rating: reviewForm.rating,
+        comment: reviewForm.comment.trim()
+      });
+      
+      if (response.data.message === 'Review added successfully') {
+        alert('Review submitted successfully!');
+        setReviewForm({ rating: 5, comment: '' });
+        setShowReviewForm(false);
+        // Refresh reviews and product data
+        fetchReviews(product._id);
+        fetchProduct();
+      }
+    } catch (error) {
+      console.error('Error submitting review:', error);
+      alert('Failed to submit review. Please try again.');
+    } finally {
+      setSubmittingReview(false);
+    }
+  };
 
 
   const handleAddToCart = useCallback(() => {
@@ -877,31 +923,117 @@ const ProductDetail = () => {
                   className="tab-panel"
                   id="reviews"
                 >
-                  <h3>Customer Reviews</h3>
-                  {reviews.length > 0 ? (
-                    <div className="reviews-list">
-                      {reviews.map((review, index) => (
-                        <div key={index} className="review-item">
-                          <div className="review-header">
-                            <div className="review-rating">
-                              {[1, 2, 3, 4, 5].map((star) => (
-                                <FiStar 
-                                  key={star} 
-                                  className={star <= review.rating ? 'filled' : ''} 
-                                  style={{ color: star <= review.rating ? '#ffa41c' : '#ddd' }}
-                                />
-                              ))}
-                            </div>
-                            <span className="review-author">{review.author}</span>
-                            <span className="review-date">{new Date(review.date).toLocaleDateString()}</span>
-                          </div>
-                          <p className="review-text">{review.text}</p>
-                        </div>
-                      ))}
+                  <div className="reviews-section">
+                    <div className="reviews-header">
+                      <h3>Customer Reviews</h3>
+                      {isAuthenticated && (
+                        <button 
+                          className="write-review-btn"
+                          onClick={() => setShowReviewForm(!showReviewForm)}
+                        >
+                          {showReviewForm ? 'Cancel' : 'Write a Review'}
+                        </button>
+                      )}
                     </div>
-                  ) : (
-                    <p>No reviews yet. Be the first to review this product!</p>
-                  )}
+
+                    {/* Review Submission Form */}
+                    {showReviewForm && isAuthenticated && (
+                      <motion.div 
+                        className="review-form-container"
+                        initial={{ opacity: 0, height: 0 }}
+                        animate={{ opacity: 1, height: 'auto' }}
+                        exit={{ opacity: 0, height: 0 }}
+                        transition={{ duration: 0.3 }}
+                      >
+                        <form onSubmit={handleSubmitReview} className="review-form">
+                          <div className="form-group">
+                            <label>Rating:</label>
+                            <div className="rating-input">
+                              {[1, 2, 3, 4, 5].map((star) => (
+                                <button
+                                  key={star}
+                                  type="button"
+                                  className={`star-btn ${star <= reviewForm.rating ? 'filled' : ''}`}
+                                  onClick={() => setReviewForm({ ...reviewForm, rating: star })}
+                                >
+                                  ★
+                                </button>
+                              ))}
+                              <span className="rating-text">({reviewForm.rating} stars)</span>
+                            </div>
+                          </div>
+                          
+                          <div className="form-group">
+                            <label htmlFor="review-comment">Your Review:</label>
+                            <textarea
+                              id="review-comment"
+                              value={reviewForm.comment}
+                              onChange={(e) => setReviewForm({ ...reviewForm, comment: e.target.value })}
+                              placeholder="Share your thoughts about this product..."
+                              rows="4"
+                              required
+                            />
+                          </div>
+                          
+                          <button 
+                            type="submit" 
+                            className="submit-review-btn"
+                            disabled={submittingReview}
+                          >
+                            {submittingReview ? 'Submitting...' : 'Submit Review'}
+                          </button>
+                        </form>
+                      </motion.div>
+                    )}
+
+                    {/* Reviews List */}
+                    {reviews.length > 0 ? (
+                      <div className="reviews-list">
+                        {reviews.map((review, index) => (
+                          <div key={index} className="review-item">
+                            <div className="review-header">
+                              <div className="review-rating">
+                                {[1, 2, 3, 4, 5].map((star) => (
+                                  <FiStar 
+                                    key={star} 
+                                    className={star <= review.rating ? 'filled' : ''} 
+                                    style={{ color: star <= review.rating ? '#ffa41c' : '#ddd' }}
+                                  />
+                                ))}
+                              </div>
+                              <span className="review-author">{review.name}</span>
+                              <span className="review-date">
+                                {new Date(review.createdAt || review.date).toLocaleDateString()}
+                              </span>
+                            </div>
+                            <p className="review-text">{review.comment}</p>
+                            
+                            {/* Admin Reply */}
+                            {review.adminReply && (
+                              <div className="admin-reply">
+                                <div className="admin-reply-header">
+                                  <strong>Admin Response:</strong>
+                                  <span className="reply-date">
+                                    {new Date(review.adminReplyDate).toLocaleDateString()}
+                                  </span>
+                                </div>
+                                <p>{review.adminReply}</p>
+                              </div>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="no-reviews">
+                        <p>No reviews yet. Be the first to review this product!</p>
+                        {!isAuthenticated && (
+                          <p className="login-prompt">
+                            <Link to="/login">Login</Link> to write a review
+                          </p>
+                        )}
+                      </div>
+                    )}
+                  </div>
                 </motion.div>
               )}
 
