@@ -795,45 +795,45 @@ const Admin = () => {
     <div className="admin-dashboard">
       <h1>Dashboard</h1>
       
-             {/* Stats Cards */}
-       <div className="stats-grid">
-         <div className="stat-card">
-           <div className="stat-icon">
-             <FiDollarSign />
-           </div>
-           <div className="stat-content">
-             <div className="stat-value">₹{orderStats.totalRevenue?.toLocaleString() || 0}</div>
-             <div className="stat-label">Total Revenue</div>
-           </div>
-         </div>
-         <div className="stat-card">
-           <div className="stat-icon">
-             <FiShoppingCart />
-           </div>
-           <div className="stat-content">
-             <div className="stat-value">{orderStats.totalOrders || 0}</div>
-             <div className="stat-label">Total Orders</div>
-           </div>
-         </div>
-         <div className="stat-card">
-           <div className="stat-icon">
-             <FiPackage />
-           </div>
-           <div className="stat-content">
-             <div className="stat-value">{products.length}</div>
-             <div className="stat-label">Total Products</div>
-           </div>
-         </div>
-         <div className="stat-card">
-           <div className="stat-icon">
-             <FiUsers />
-           </div>
-           <div className="stat-content">
-             <div className="stat-value">{customers.length}</div>
-             <div className="stat-label">Total Customers</div>
-           </div>
-         </div>
-       </div>
+      {/* Stats Cards */}
+      <div className="stats-grid">
+        <div className="stat-card">
+          <div className="stat-icon">
+            <FiDollarSign />
+          </div>
+          <div className="stat-content">
+            <div className="stat-value">₹{orderStats.totalRevenue?.toLocaleString() || 0}</div>
+            <div className="stat-label">Total Revenue</div>
+          </div>
+        </div>
+        <div className="stat-card">
+          <div className="stat-icon">
+            <FiShoppingCart />
+          </div>
+          <div className="stat-content">
+            <div className="stat-value">{orderStats.totalOrders || 0}</div>
+            <div className="stat-label">Total Orders</div>
+          </div>
+        </div>
+        <div className="stat-card">
+          <div className="stat-icon">
+            <FiPackage />
+          </div>
+          <div className="stat-content">
+            <div className="stat-value">{products.length}</div>
+            <div className="stat-label">Total Products</div>
+          </div>
+        </div>
+        <div className="stat-card">
+          <div className="stat-icon">
+            <FiUsers />
+          </div>
+          <div className="stat-content">
+            <div className="stat-value">{customers.length}</div>
+            <div className="stat-label">Total Customers</div>
+          </div>
+        </div>
+      </div>
 
       {/* Charts Placeholder */}
       <div className="charts-section">
@@ -899,88 +899,28 @@ const Admin = () => {
       <div className="revenue-details">
         <div className="section-header">
           <h3>Revenue Details</h3>
-          <div className="date-filter">
-            <input type="date" className="date-input" />
-            <input type="date" className="date-input" />
-            <button className="filter-btn">
-              <FiFilter /> Filter
-            </button>
-            <button className="export-btn" onClick={handleExportOrders}>
-              <FiDownload /> Export Data
-            </button>
+          <button className="export-btn" onClick={handleExportOrders}>
+            <FiDownload /> Export Revenue
+          </button>
+        </div>
+        
+        <div className="revenue-stats">
+          <div className="revenue-stat">
+            <span className="stat-label">Pending Orders:</span>
+            <span className="stat-value">{orderStats.pendingOrders || 0}</span>
           </div>
-        </div>
-        <div className="table-container">
-          <table className="admin-table">
-            <thead>
-              <tr>
-                <th>Date</th>
-                <th>Orders</th>
-                <th>Gross Revenue</th>
-                <th>Discounts</th>
-                <th>Net Revenue</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr>
-                <td>2025-06-24</td>
-                <td>1</td>
-                <td>₹700</td>
-                <td>₹0</td>
-                <td>₹700</td>
-              </tr>
-              <tr>
-                <td>2025-06-23</td>
-                <td>1</td>
-                <td>₹2,999</td>
-                <td>₹500</td>
-                <td>₹2,499</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      {/* Top Selling Products */}
-      <div className="top-products">
-        <div className="section-header">
-          <h3>Top Selling Products</h3>
-          <div className="date-filter">
-            <input type="date" className="date-input" />
-            <input type="date" className="date-input" />
-            <button className="filter-btn">
-              <FiFilter /> Filter
-            </button>
-            <button className="export-btn" onClick={handleExportProducts}>
-              <FiDownload /> Export Data
-            </button>
+          <div className="revenue-stat">
+            <span className="stat-label">Processing Orders:</span>
+            <span className="stat-value">{orderStats.processingOrders || 0}</span>
           </div>
-        </div>
-        <div className="table-container">
-          <table className="admin-table">
-            <thead>
-              <tr>
-                <th>Product</th>
-                <th>SKU</th>
-                <th>Units Sold</th>
-                <th>Total Revenue</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr>
-                <td>Classic Black Tee</td>
-                <td>EE-TEE-001</td>
-                <td>45</td>
-                <td>₹35,955</td>
-              </tr>
-              <tr>
-                <td>Minimal White Tee</td>
-                <td>EE-TEE-002</td>
-                <td>30</td>
-                <td>₹23,970</td>
-              </tr>
-            </tbody>
-          </table>
+          <div className="revenue-stat">
+            <span className="stat-label">Shipped Orders:</span>
+            <span className="stat-value">{orderStats.shippedOrders || 0}</span>
+          </div>
+          <div className="revenue-stat">
+            <span className="stat-label">Delivered Orders:</span>
+            <span className="stat-value">{orderStats.deliveredOrders || 0}</span>
+          </div>
         </div>
       </div>
     </div>

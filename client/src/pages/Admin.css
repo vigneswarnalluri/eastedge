@@ -254,6 +254,35 @@
   font-size: 20px;
 }
 
+.revenue-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 20px;
+}
+
+.revenue-stat {
+  background-color: #222222;
+  padding: 20px;
+  border-radius: 8px;
+  border: 1px solid #444444;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.revenue-stat .stat-label {
+  color: #cccccc;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.revenue-stat .stat-value {
+  color: #ffffff;
+  font-size: 18px;
+  font-weight: 700;
+  margin: 0;
+}
+
 /* Top Products */
 .top-products {
   background-color: #111111;
