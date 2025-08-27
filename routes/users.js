@@ -4,6 +4,7 @@ const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
 const User = require('../models/User');
 const auth = require('../middleware/auth'); // Added auth middleware
+const Order = require('../models/Order'); // Added Order model
 
 // Register user
 router.post('/register', async (req, res) => {
@@ -199,6 +200,183 @@ router.get('/check-admin', auth, async (req, res) => {
   } catch (error) {
     console.error('❌ Error checking admin status:', error);
     res.status(500).json({ message: error.message });
+  }
+});
+
+// Get all customers (ADMIN ONLY)
+router.get('/admin/customers', auth, async (req, res) => {
+  try {
+    // Check if user is admin
+    if (!req.user.isAdmin) {
+      return res.status(403).json({ success: false, message: 'Access denied. Admin only.' });
+    }
+
+    const { page = 1, limit = 10, search = '', status = '' } = req.query;
+    const skip = (page - 1) * limit;
+
+    // Build search query
+    let searchQuery = {};
+    if (search) {
+      searchQuery = {
+        $or: [
+          { name: { $regex: search, $options: 'i' } },
+          { email: { $regex: search, $options: 'i' } },
+          { phone: { $regex: search, $options: 'i' } }
+        ]
+      };
+    }
+
+    // Add status filter if provided
+    if (status && status !== 'all') {
+      searchQuery.isBlocked = status === 'blocked';
+    }
+
+    // Get customers with pagination
+    const customers = await User.find(searchQuery)
+      .select('-password')
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(parseInt(limit));
+
+    // Get total count for pagination
+    const totalCustomers = await User.countDocuments(searchQuery);
+
+    // Get customer analytics
+    const analytics = await User.aggregate([
+      { $match: searchQuery },
+      {
+        $group: {
+          _id: null,
+          totalCustomers: { $sum: 1 },
+          activeCustomers: { $sum: { $cond: [{ $eq: ['$isBlocked', false] }, 1, 0] } },
+          blockedCustomers: { $sum: { $cond: [{ $eq: ['$isBlocked', true] }, 1, 0] } },
+          newCustomersThisMonth: {
+            $sum: {
+              $cond: [
+                { $gte: ['$createdAt', new Date(new Date().getFullYear(), new Date().getMonth(), 1)] },
+                1,
+                0
+              ]
+            }
+          }
+        }
+      }
+    ]);
+
+    res.json({
+      success: true,
+      customers,
+      pagination: {
+        currentPage: parseInt(page),
+        totalPages: Math.ceil(totalCustomers / limit),
+        totalCustomers,
+        hasNextPage: page * limit < totalCustomers,
+        hasPrevPage: page > 1
+      },
+      analytics: analytics[0] || {
+        totalCustomers: 0,
+        activeCustomers: 0,
+        blockedCustomers: 0,
+        newCustomersThisMonth: 0
+      }
+    });
+  } catch (error) {
+    console.error('Error fetching customers:', error);
+    res.status(500).json({ success: false, message: 'Failed to fetch customers' });
+  }
+});
+
+// Update customer status (block/unblock) - ADMIN ONLY
+router.put('/admin/customers/:id/status', auth, async (req, res) => {
+  try {
+    // Check if user is admin
+    if (!req.user.isAdmin) {
+      return res.status(403).json({ success: false, message: 'Access denied. Admin only.' });
+    }
+
+    const { id } = req.params;
+    const { isBlocked, reason } = req.body;
+
+    const customer = await User.findById(id);
+    if (!customer) {
+      return res.status(404).json({ success: false, message: 'Customer not found' });
+    }
+
+    // Update customer status
+    customer.isBlocked = isBlocked;
+    if (reason) {
+      customer.blockReason = reason;
+    }
+    customer.blockedAt = isBlocked ? new Date() : null;
+
+    await customer.save();
+
+    res.json({
+      success: true,
+      message: `Customer ${isBlocked ? 'blocked' : 'unblocked'} successfully`,
+      customer: {
+        _id: customer._id,
+        name: customer.name,
+        email: customer.email,
+        isBlocked: customer.isBlocked,
+        blockReason: customer.blockReason,
+        blockedAt: customer.blockedAt
+      }
+    });
+  } catch (error) {
+    console.error('Error updating customer status:', error);
+    res.status(500).json({ success: false, message: 'Failed to update customer status' });
+  }
+});
+
+// Get customer details with orders - ADMIN ONLY
+router.get('/admin/customers/:id', auth, async (req, res) => {
+  try {
+    // Check if user is admin
+    if (!req.user.isAdmin) {
+      return res.status(403).json({ success: false, message: 'Access denied. Admin only.' });
+    }
+
+    const { id } = req.params;
+
+    const customer = await User.findById(id).select('-password');
+    if (!customer) {
+      return res.status(404).json({ success: false, message: 'Customer not found' });
+    }
+
+    // Get customer's orders
+    const orders = await Order.find({ user: id })
+      .sort({ createdAt: -1 })
+      .limit(10);
+
+    // Get customer statistics
+    const orderStats = await Order.aggregate([
+      { $match: { user: customer._id } },
+      {
+        $group: {
+          _id: null,
+          totalOrders: { $sum: 1 },
+          totalSpent: { $sum: '$totalPrice' },
+          averageOrderValue: { $avg: '$totalPrice' },
+          lastOrderDate: { $max: '$createdAt' }
+        }
+      }
+    ]);
+
+    res.json({
+      success: true,
+      customer,
+      orders,
+      stats: orderStats[0] || {
+        totalOrders: 0,
+        totalSpent: 0,
+        averageOrderValue: 0,
+        lastOrderDate: null
+      }
+    });
+  } catch (error) {
+    console.error('Error fetching customer details:', error);
+    res.status(500).json({ success: false, message: 'Failed to fetch customer details' });
   }
 });
 

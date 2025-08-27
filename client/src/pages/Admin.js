@@ -63,41 +63,20 @@ const Admin = () => {
   // Orders state
   const [orders, setOrders] = useState([]);
   const [ordersLoading, setOrdersLoading] = useState(false);
-  const [orderStats, setOrderStats] = useState({
-    totalOrders: 0,
-    totalRevenue: 0,
-    pendingOrders: 0,
-    processingOrders: 0,
-    shippedOrders: 0,
-    deliveredOrders: 0
-  });
-  const [ordersPagination, setOrdersPagination] = useState({
-    currentPage: 1,
-    totalPages: 1,
-    totalOrders: 0,
-    hasNext: false,
-    hasPrev: false
-  });
+  const [orderStats, setOrderStats] = useState({});
+  const [ordersPagination, setOrdersPagination] = useState({});
+  const [showViewOrder, setShowViewOrder] = useState(false);
+  const [viewingOrder, setViewingOrder] = useState(null);
   
   // Customers state
-  const [customers, setCustomers] = useState([
-    {
-      id: 'CUST001',
-      name: 'Rohan Sharma',
-      email: 'rohan.sharma@example.com',
-      phone: '+91 98765 43210',
-      joined: '2025-06-01',
-      status: 'shipping'
-    },
-    {
-      id: 'CUST004',
-      name: 'John Doe',
-      email: 'john.doe@example.com',
-      phone: '+91 98765 00000',
-      joined: '2025-06-24',
-      status: 'processing'
-    }
-  ]);
+  const [customers, setCustomers] = useState([]);
+  const [customersLoading, setCustomersLoading] = useState(false);
+  const [customerStats, setCustomerStats] = useState({});
+  const [customersPagination, setCustomersPagination] = useState({});
+  const [customerSearch, setCustomerSearch] = useState('');
+  const [customerStatusFilter, setCustomerStatusFilter] = useState('all');
+  const [showCustomerModal, setShowCustomerModal] = useState(false);
+  const [viewingCustomer, setViewingCustomer] = useState(null);
 
   const [showAddCategory, setShowAddCategory] = useState(false);
   const [categoryForm, setCategoryForm] = useState({ 
@@ -110,10 +89,6 @@ const Admin = () => {
   // View product state
   const [viewingProduct, setViewingProduct] = useState(null);
   const [showViewProduct, setShowViewProduct] = useState(false);
-  
-  // View order state
-  const [viewingOrder, setViewingOrder] = useState(null);
-  const [showViewOrder, setShowViewOrder] = useState(false);
   
     // Define fetchData function before using it in useEffect
   const fetchData = async () => {
@@ -179,6 +154,75 @@ const Admin = () => {
     }
   };
 
+  // Fetch customers
+  const fetchCustomers = async (page = 1, status = 'all', search = '') => {
+    try {
+      setCustomersLoading(true);
+      const params = new URLSearchParams({
+        page: page.toString(),
+        limit: '10',
+        status: status,
+        search: search
+      });
+      
+      const response = await api.get(`/api/users/admin/customers?${params}`);
+      if (response.data.success) {
+        setCustomers(response.data.customers);
+        setCustomerStats(response.data.analytics);
+        setCustomersPagination(response.data.pagination);
+      }
+    } catch (error) {
+      console.error('Error fetching customers:', error);
+    } finally {
+      setCustomersLoading(false);
+    }
+  };
+
+  // Fetch customer details
+  const fetchCustomerDetails = async (customerId) => {
+    try {
+      const response = await api.get(`/api/users/admin/customers/${customerId}`);
+      if (response.data.success) {
+        setViewingCustomer(response.data);
+        setShowCustomerModal(true);
+      }
+    } catch (error) {
+      console.error('Error fetching customer details:', error);
+      alert('Failed to fetch customer details');
+    }
+  };
+
+  // Update customer status (block/unblock)
+  const handleCustomerStatusChange = async (customerId, isBlocked, reason = '') => {
+    try {
+      const response = await api.put(`/api/users/admin/customers/${customerId}/status`, {
+        isBlocked,
+        reason
+      });
+      
+      if (response.data.success) {
+        alert(response.data.message);
+        // Refresh customers list
+        fetchCustomers(customersPagination.currentPage, customerStatusFilter, customerSearch);
+      }
+    } catch (error) {
+      console.error('Error updating customer status:', error);
+      alert('Failed to update customer status');
+    }
+  };
+
+  // Handle customer search
+  const handleCustomerSearch = (searchTerm) => {
+    setCustomerSearch(searchTerm);
+    fetchCustomers(1, customerStatusFilter, searchTerm);
+  };
+
+  // Handle customer status filter change
+  const handleCustomerStatusFilterChange = (newStatus) => {
+    setCustomerStatusFilter(newStatus);
+    fetchCustomers(1, newStatus, customerSearch);
+  };
+
   // All useEffect hooks must be called before any conditional returns
   useEffect(() => {
     if (!loading && (!isAuthenticated || !isAdmin)) {
@@ -188,11 +232,17 @@ const Admin = () => {
 
   useEffect(() => {
     if (isAuthenticated && isAdmin) {
-      fetchData();
       fetchOrders();
       fetchOrderStats();
     }
   }, [isAuthenticated, isAdmin]);
+
+  // Fetch customers when customers tab is active
+  useEffect(() => {
+    if (isAuthenticated && isAdmin && activeTab === 'customers') {
+      fetchCustomers();
+    }
+  }, [isAuthenticated, isAdmin, activeTab]);
   
   // Show loading while checking auth
   if (loading) {
@@ -1914,60 +1964,141 @@ const Admin = () => {
   );
 
   const renderCustomers = () => (
-    <div className="admin-customers">
+    <div className="admin-section">
       <div className="section-header">
         <h1>Customer Management</h1>
         <div className="header-actions">
-          <select className="status-filter">
-            <option value="active">Active</option>
-            <option value="blocked">Blocked</option>
-          </select>
+          <div className="search-filter-container">
+            <input
+              type="text"
+              placeholder="Search customers..."
+              value={customerSearch}
+              onChange={(e) => handleCustomerSearch(e.target.value)}
+              className="search-input"
+            />
+            <select
+              value={customerStatusFilter}
+              onChange={(e) => handleCustomerStatusFilterChange(e.target.value)}
+              className="status-filter"
+            >
+              <option value="all">All Status</option>
+              <option value="active">Active</option>
+              <option value="blocked">Blocked</option>
+            </select>
+          </div>
         </div>
       </div>
-      
-      <div className="table-container">
-        <table className="admin-table">
-          <thead>
-            <tr>
-              <th>Customer ID</th>
-              <th>Name</th>
-              <th>Email</th>
-              <th>Phone</th>
-              <th>Joined</th>
-              <th>Last Delivery Status</th>
-              <th>Actions</th>
-            </tr>
-          </thead>
-                     <tbody>
-             {customers.map(customer => (
-               <tr key={customer.id}>
-                 <td>#{customer.id}</td>
-                 <td>{customer.name}</td>
-                 <td>{customer.email}</td>
-                 <td>{customer.phone}</td>
-                 <td>{customer.joined}</td>
-                 <td><span className={`status-badge ${customer.status}`}>{customer.status}</span></td>
-                 <td className="actions">
-                   <button className="action-btn view"><FiEye /></button>
-                   <button className="action-btn edit"><FiEdit /></button>
-                   <button 
-                     className="action-btn block" 
-                     onClick={() => handleCustomerBlock(customer.id)}
-                   >
-                     {customer.status === 'blocked' ? 'Unblock' : 'Block'}
-                   </button>
-                 </td>
-               </tr>
-             ))}
-           </tbody>
-        </table>
+
+      {/* Customer Statistics */}
+      <div className="stats-grid">
+        <div className="stat-card">
+          <h3>Total Customers</h3>
+          <p>{customerStats.totalCustomers || 0}</p>
+        </div>
+        <div className="stat-card">
+          <h3>Active Customers</h3>
+          <p>{customerStats.activeCustomers || 0}</p>
+        </div>
+        <div className="stat-card">
+          <h3>Blocked Customers</h3>
+          <p>{customerStats.blockedCustomers || 0}</p>
+        </div>
+        <div className="stat-card">
+          <h3>New This Month</h3>
+          <p>{customerStats.newCustomersThisMonth || 0}</p>
+        </div>
       </div>
-      
-      <div className="pagination">
-        <button className="page-btn">‹ Prev</button>
-        <span className="page-info">1 2</span>
-        <button className="page-btn">Next ›</button>
-      </div>
+
+      {/* Customers Table */}
+      {customersLoading ? (
+        <div className="loading-state">
+          <div className="spinner"></div>
+          <p>Loading customers...</p>
+        </div>
+      ) : customers.length === 0 ? (
+        <div className="no-data">
+          <p>No customers found</p>
+        </div>
+      ) : (
+        <>
+          <div className="table-container">
+            <table className="admin-table">
+              <thead>
+                <tr>
+                  <th>Customer ID</th>
+                  <th>Name</th>
+                  <th>Email</th>
+                  <th>Phone</th>
+                  <th>Joined</th>
+                  <th>Status</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {customers.map((customer) => (
+                  <tr key={customer._id}>
+                    <td>#{customer._id.slice(-6)}</td>
+                    <td>{customer.name}</td>
+                    <td>{customer.email}</td>
+                    <td>{customer.phone || 'N/A'}</td>
+                    <td>{new Date(customer.createdAt).toLocaleDateString()}</td>
+                    <td>
+                      <span className={`status-badge ${customer.isBlocked ? 'blocked' : 'active'}`}>
+                        {customer.isBlocked ? 'Blocked' : 'Active'}
+                      </span>
+                    </td>
+                    <td>
+                      <div className="action-buttons">
+                        <button
+                          className="action-btn view"
+                          onClick={() => fetchCustomerDetails(customer._id)}
+                          title="View Details"
+                        >
+                          <FiEye />
+                        </button>
+                        <button
+                          className={`action-btn ${customer.isBlocked ? 'unblock' : 'block'}`}
+                          onClick={() => {
+                            const action = customer.isBlocked ? 'unblock' : 'block';
+                            const reason = customer.isBlocked ? '' : prompt('Reason for blocking:');
+                            handleCustomerStatusChange(customer._id, !customer.isBlocked, reason);
+                          }}
+                          title={customer.isBlocked ? 'Unblock Customer' : 'Block Customer'}
+                        >
+                          {customer.isBlocked ? 'Unblock' : 'Block'}
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          {/* Pagination */}
+          {customersPagination.totalPages > 1 && (
+            <div className="pagination">
+              <button
+                className="page-btn"
+                onClick={() => fetchCustomers(customersPagination.currentPage - 1, customerStatusFilter, customerSearch)}
+                disabled={!customersPagination.hasPrevPage}
+              >
+                ‹ Prev
+              </button>
+              <div className="page-info">
+                Page {customersPagination.currentPage} of {customersPagination.totalPages}
+              </div>
+              <button
+                className="page-btn"
+                onClick={() => fetchCustomers(customersPagination.currentPage + 1, customerStatusFilter, customerSearch)}
+                disabled={!customersPagination.hasNextPage}
+              >
+                Next ›
+              </button>
+            </div>
+          )}
+        </>
+      )}
     </div>
   );
 
@@ -2617,16 +2748,6 @@ const Admin = () => {
                     <strong>Email:</strong> 
                     <span className="order-value">{orderData.customerEmail}</span>
                   </div>
-                  <div className="info-item">
-                    <strong>Order Date:</strong> 
-                    <span className="order-value">
-                      {orderData.orderDate !== 'N/A' ? new Date(orderData.orderDate).toLocaleString() : 'N/A'}
-                    </span>
-                  </div>
-                  <div className="info-item">
-                    <strong>Order ID:</strong> 
-                    <span className="order-value">{orderData.id}</span>
-                  </div>
                 </div>
               </div>
 
@@ -2667,15 +2788,13 @@ const Admin = () => {
                   </div>
                   <div className="info-item">
                     <strong>Status:</strong> 
-                    <span className={`status-badge ${orderData.status.toLowerCase()}`}>
-                      {orderData.status}
-                    </span>
+                    <span className="order-value">{orderData.status}</span>
                   </div>
                   <div className="info-item">
                     <strong>Paid:</strong> 
                     <span className="order-value">{orderData.isPaid ? 'Yes' : 'No'}</span>
                   </div>
-                  {orderData.paidAt && (
+                  {orderData.isPaid && (
                     <div className="info-item">
                       <strong>Paid At:</strong> 
                       <span className="order-value">{new Date(orderData.paidAt).toLocaleString()}</span>
@@ -2686,74 +2805,41 @@ const Admin = () => {
 
               {/* Order Items */}
               <div className="order-section full-width">
-                <h3>Order Items ({orderData.orderItems.length})</h3>
-                
-                {/* Debug Information */}
-                <div style={{background: '#f8f9fa', padding: '10px', marginBottom: '15px', borderRadius: '4px', fontSize: '12px'}}>
-                  <strong>Debug Info:</strong> {orderData.orderItems.length} items found
-                  {orderData.orderItems.length > 0 && (
-                    <div style={{marginTop: '5px'}}>
-                      <strong>First item data:</strong> {JSON.stringify(orderData.orderItems[0], null, 2)}
-                    </div>
-                  )}
-                </div>
-                
-                <div className="order-items-table">
-                  <table>
-                    <thead>
-                      <tr>
-                        <th>Product</th>
-                        <th>Name</th>
-                        <th>Variant</th>
-                        <th>Quantity</th>
-                        <th>Price</th>
-                        <th>Total</th>
+                <h3>Order Items</h3>
+                <table className="order-items-table">
+                  <thead>
+                    <tr>
+                      <th>Product</th>
+                      <th>Variant</th>
+                      <th>Quantity</th>
+                      <th>Price</th>
+                      <th>Total</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {orderData.orderItems.map((item, index) => (
+                      <tr key={index}>
+                        <td className="product-name-cell">
+                          <div className="product-name">{item.product?.name || item.name || 'N/A'}</div>
+                          <div className="product-sku">{item.sku || 'No SKU'}</div>
+                        </td>
+                        <td className="variant-cell">
+                          {item.selectedSize || item.selectedColor ? (
+                            <>
+                              {item.selectedSize && <span className="variant-tag size-tag">{item.selectedSize}</span>}
+                              {item.selectedColor && <span className="variant-tag color-tag">{item.selectedColor}</span>}
+                            </>
+                          ) : (
+                            <span className="no-variant">No variant</span>
+                          )}
+                        </td>
+                        <td>{item.quantity}</td>
+                        <td>₹{item.variantPrice || item.price || 0}</td>
+                        <td>₹{((item.variantPrice || item.price || 0) * item.quantity).toFixed(2)}</td>
                       </tr>
-                    </thead>
-                    <tbody>
-                      {orderData.orderItems.length > 0 ? (
-                        orderData.orderItems.map((item, index) => (
-                          <tr key={index}>
-                            <td>
-                              <img 
-                                src={item.image} 
-                                alt={item.name} 
-                                className="product-thumbnail"
-                                onError={(e) => {
-                                  e.target.src = 'https://via.placeholder.com/50x50?text=No+Image';
-                                }}
-                              />
-                            </td>
-                            <td className="product-name-cell">
-                              <div className="product-name">{item.name || 'N/A'}</div>
-                              {item.sku && <div className="product-sku">SKU: {item.sku}</div>}
-                            </td>
-                            <td className="variant-cell">
-                              {item.selectedSize && (
-                                <span className="variant-tag size-tag">{item.selectedSize}</span>
-                              )}
-                              {item.selectedColor && (
-                                <span className="variant-tag color-tag">{item.selectedColor}</span>
-                              )}
-                              {!item.selectedSize && !item.selectedColor && (
-                                <span className="no-variant">No variant</span>
-                              )}
-                            </td>
-                            <td>{item.quantity || 0}</td>
-                            <td>₹{item.price?.toLocaleString() || '0'}</td>
-                            <td>₹{((item.price || 0) * (item.quantity || 0))?.toLocaleString() || '0'}</td>
-                          </tr>
-                        ))
-                      ) : (
-                        <tr>
-                          <td colSpan="6" style={{textAlign: 'center', padding: '20px'}}>
-                            No order items found
-                          </td>
-                        </tr>
-                      )}
-                    </tbody>
-                  </table>
-                </div>
+                    ))}
+                  </tbody>
+                </table>
               </div>
 
               {/* Order Summary */}
@@ -2762,15 +2848,15 @@ const Admin = () => {
                 <div className="order-summary">
                   <div className="summary-row">
                     <span>Subtotal:</span>
-                    <span>₹{orderData.totalPrice?.toLocaleString() || '0'}</span>
+                    <span>₹{orderData.totalPrice - orderData.shippingPrice}</span>
                   </div>
                   <div className="summary-row">
                     <span>Shipping:</span>
-                    <span>₹{orderData.shippingPrice?.toLocaleString() || '0'}</span>
+                    <span>₹{orderData.shippingPrice}</span>
                   </div>
                   <div className="summary-row total">
                     <span>Total:</span>
-                    <span>₹{orderData.totalPrice?.toLocaleString() || '0'}</span>
+                    <span>₹{orderData.totalPrice}</span>
                   </div>
                 </div>
               </div>
@@ -2781,11 +2867,136 @@ const Admin = () => {
             <button className="btn-secondary" onClick={() => setShowViewOrder(false)}>
               Close
             </button>
-            <button className="btn-primary" onClick={() => {
-              setShowViewOrder(false);
-              // You can add edit functionality here later
-            }}>
-              Edit Order
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  // View customer modal
+  const renderCustomerModal = () => {
+    if (!viewingCustomer) return null;
+
+    const { customer, orders, stats } = viewingCustomer;
+
+    return (
+      <div className="modal-overlay" onClick={() => setShowCustomerModal(false)}>
+        <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+          <div className="modal-header">
+            <h2>Customer Details - {customer.name}</h2>
+            <button className="modal-close" onClick={() => setShowCustomerModal(false)}>×</button>
+          </div>
+          
+          <div className="modal-body">
+            <div className="order-details-grid">
+              {/* Customer Information */}
+              <div className="order-section">
+                <h3>Customer Information</h3>
+                <div className="info-grid">
+                  <div className="info-item">
+                    <strong>Name:</strong> 
+                    <span className="order-value">{customer.name}</span>
+                  </div>
+                  <div className="info-item">
+                    <strong>Email:</strong> 
+                    <span className="order-value">{customer.email}</span>
+                  </div>
+                  <div className="info-item">
+                    <strong>Phone:</strong> 
+                    <span className="order-value">{customer.phone || 'N/A'}</span>
+                  </div>
+                  <div className="info-item">
+                    <strong>Joined:</strong> 
+                    <span className="order-value">{new Date(customer.createdAt).toLocaleDateString()}</span>
+                  </div>
+                  <div className="info-item">
+                    <strong>Status:</strong> 
+                    <span className={`order-value status-badge ${customer.isBlocked ? 'blocked' : 'active'}`}>
+                      {customer.isBlocked ? 'Blocked' : 'Active'}
+                    </span>
+                  </div>
+                  {customer.isBlocked && customer.blockReason && (
+                    <div className="info-item">
+                      <strong>Block Reason:</strong> 
+                      <span className="order-value">{customer.blockReason}</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Customer Statistics */}
+              <div className="order-section">
+                <h3>Customer Statistics</h3>
+                <div className="info-grid">
+                  <div className="info-item">
+                    <strong>Total Orders:</strong> 
+                    <span className="order-value">{stats.totalOrders}</span>
+                  </div>
+                  <div className="info-item">
+                    <strong>Total Spent:</strong> 
+                    <span className="order-value">₹{stats.totalSpent?.toFixed(2) || '0.00'}</span>
+                  </div>
+                  <div className="info-item">
+                    <strong>Average Order:</strong> 
+                    <span className="order-value">₹{stats.averageOrderValue?.toFixed(2) || '0.00'}</span>
+                  </div>
+                  <div className="info-item">
+                    <strong>Last Order:</strong> 
+                    <span className="order-value">
+                      {stats.lastOrderDate ? new Date(stats.lastOrderDate).toLocaleDateString() : 'No orders'}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Recent Orders */}
+              <div className="order-section full-width">
+                <h3>Recent Orders</h3>
+                {orders.length === 0 ? (
+                  <p>No orders found</p>
+                ) : (
+                  <table className="order-items-table">
+                    <thead>
+                      <tr>
+                        <th>Order ID</th>
+                        <th>Date</th>
+                        <th>Status</th>
+                        <th>Total</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {orders.map((order) => (
+                        <tr key={order._id}>
+                          <td>#{order._id.slice(-6)}</td>
+                          <td>{new Date(order.createdAt).toLocaleDateString()}</td>
+                          <td>
+                            <span className={`status-badge ${order.status}`}>
+                              {order.status}
+                            </span>
+                          </td>
+                          <td>₹{order.totalPrice}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                )}
+              </div>
+            </div>
+          </div>
+          
+          <div className="modal-footer">
+            <button 
+              className={`btn-primary ${customer.isBlocked ? 'unblock' : 'block'}`}
+              onClick={() => {
+                const reason = customer.isBlocked ? '' : prompt('Reason for blocking:');
+                handleCustomerStatusChange(customer._id, !customer.isBlocked, reason);
+                setShowCustomerModal(false);
+              }}
+            >
+              {customer.isBlocked ? 'Unblock Customer' : 'Block Customer'}
+            </button>
+            <button className="btn-secondary" onClick={() => setShowCustomerModal(false)}>
+              Close
             </button>
           </div>
         </div>
@@ -2882,6 +3093,9 @@ const Admin = () => {
         
         {/* View Order Modal */}
         {showViewOrder && renderViewOrderModal()}
+        
+        {/* View Customer Modal */}
+        {showCustomerModal && renderCustomerModal()}
       </main>
     </div>
   );

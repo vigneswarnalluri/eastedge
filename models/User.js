@@ -16,12 +16,11 @@ const userSchema = new mongoose.Schema({
   },
   password: {
     type: String,
-    required: true,
-    minlength: 6
+    required: true
   },
-  isAdmin: {
-    type: Boolean,
-    default: false
+  phone: {
+    type: String,
+    trim: true
   },
   address: {
     street: String,
@@ -30,7 +29,36 @@ const userSchema = new mongoose.Schema({
     zipCode: String,
     country: String
   },
-  phone: String
+  isAdmin: {
+    type: Boolean,
+    default: false
+  },
+  // Customer management fields
+  isBlocked: {
+    type: Boolean,
+    default: false
+  },
+  blockReason: {
+    type: String,
+    default: null
+  },
+  blockedAt: {
+    type: Date,
+    default: null
+  },
+  // Customer analytics
+  totalOrders: {
+    type: Number,
+    default: 0
+  },
+  totalSpent: {
+    type: Number,
+    default: 0
+  },
+  lastOrderDate: {
+    type: Date,
+    default: null
+  }
 }, {
   timestamps: true
 });
