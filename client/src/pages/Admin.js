@@ -2520,7 +2520,21 @@ const Admin = () => {
     fetchOrders(1, newStatus); // Reset to first page when filter changes
   };
 
-
+  // Delete order
+  const handleDeleteOrder = async (orderId) => {
+    if (window.confirm('Are you sure you want to delete this order?')) {
+      try {
+        await api.delete(`/api/orders/admin/${orderId}`);
+        // Refresh orders and stats after deletion
+        fetchOrders();
+        fetchOrderStats();
+        alert('Order deleted successfully');
+      } catch (error) {
+        console.error('Error deleting order:', error);
+        alert('Failed to delete order');
+      }
+    }
+  };
 
   // Check admin status
   const checkAdminStatus = async () => {
@@ -2548,24 +2562,6 @@ const Admin = () => {
     } catch (error) {
       console.error('Error making user admin:', error);
       alert('Failed to make user admin. Please try again.');
-    }
-  };
-
-  // Delete order
-  const handleDeleteOrder = async (orderId) => {
-    if (window.confirm('Are you sure you want to delete this order? This action cannot be undone.')) {
-      try {
-        const response = await api.delete(`/api/orders/admin/${orderId}`);
-        if (response.data.success) {
-          alert('Order deleted successfully!');
-          // Refresh orders and stats
-          fetchOrders();
-          fetchOrderStats();
-        }
-      } catch (error) {
-        console.error('Error deleting order:', error);
-        alert('Failed to delete order. Please try again.');
-      }
     }
   };
 
@@ -2797,27 +2793,6 @@ const Admin = () => {
     );
   };
 
-  // Database migration function
-  const handleMigrateDatabase = async () => {
-    if (window.confirm('This will migrate the database schema to support variants. This action cannot be undone. Continue?')) {
-      try {
-        setOrdersLoading(true);
-        const response = await api.post('/api/orders/admin/migrate-schema');
-        if (response.data.success) {
-          alert(`Database migration completed successfully!\nMigrated: ${response.data.migratedCount} orders\nErrors: ${response.data.errorCount}`);
-          // Refresh orders after migration
-          fetchOrders();
-          fetchOrderStats();
-        }
-      } catch (error) {
-        console.error('Error migrating database:', error);
-        alert('Failed to migrate database. Please try again.');
-      } finally {
-        setOrdersLoading(false);
-      }
-    }
-  };
-
   return (
     <div className="admin-layout">
       {/* Sidebar */}
@@ -2890,18 +2865,10 @@ const Admin = () => {
         {/* Top Bar */}
                  <header className="admin-header">
           <div className="header-content">
-            <h1>Admin Panel</h1>
+            <h1>Admin Dashboard</h1>
             <div className="header-actions">
-              <button className="admin-btn" onClick={checkAdminStatus}>
-                Check Admin Status
-              </button>
-              <button className="make-admin-btn" onClick={makeCurrentUserAdmin}>
-                Make Me Admin
-              </button>
-              <button className="admin-btn migrate-btn" onClick={handleMigrateDatabase}>
-                Migrate Database
-              </button>
-              <button className="admin-btn" onClick={logout}>
+              <button className="admin-btn" onClick={handleLogout}>
+                <FiLogOut />
                 Logout
               </button>
             </div>
