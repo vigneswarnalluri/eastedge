@@ -228,15 +228,55 @@ router.get('/admin/customers', auth, async (req, res) => {
 
     // Add status filter if provided
     if (status && status !== 'all') {
-      searchQuery.isBlocked = status === 'blocked';
+      if (status === 'no-orders') {
+        searchQuery.orders = { $size: 0 };
+      } else {
+        searchQuery['lastOrder.status'] = status;
+      }
     }
 
-    // Get customers with pagination
-    const customers = await User.find(searchQuery)
-      .select('-password')
-      .sort({ createdAt: -1 })
-      .skip(skip)
-      .limit(parseInt(limit));
+    // Get customers with pagination and last order status
+    const customers = await User.aggregate([
+      { $match: searchQuery },
+      {
+        $lookup: {
+          from: 'orders',
+          localField: '_id',
+          foreignField: 'user',
+          as: 'orders'
+        }
+      },
+      {
+        $addFields: {
+          lastOrder: {
+            $cond: {
+              if: { $gt: [{ $size: '$orders' }, 0] },
+              then: { $arrayElemAt: ['$orders', 0] },
+              else: null
+            }
+          },
+          orderCount: { $size: '$orders' }
+        }
+      },
+      {
+        $sort: { 'lastOrder.createdAt': -1, createdAt: -1 }
+      },
+      {
+        $project: {
+          _id: 1,
+          name: 1,
+          email: 1,
+          phone: 1,
+          createdAt: 1,
+          isBlocked: 1,
+          lastOrderStatus: '$lastOrder.status',
+          lastOrderDate: '$lastOrder.createdAt',
+          orderCount: 1
+        }
+      },
+      { $skip: skip },
+      { $limit: parseInt(limit) }
+    ]);
 
     // Get total count for pagination
     const totalCustomers = await User.countDocuments(searchQuery);
@@ -244,6 +284,25 @@ router.get('/admin/customers', auth, async (req, res) => {
     // Get customer analytics
     const analytics = await User.aggregate([
       { $match: searchQuery },
+      {
+        $lookup: {
+          from: 'orders',
+          localField: '_id',
+          foreignField: 'user',
+          as: 'orders'
+        }
+      },
+      {
+        $addFields: {
+          lastOrder: {
+            $cond: {
+              if: { $gt: [{ $size: '$orders' }, 0] },
+              then: { $arrayElemAt: ['$orders', 0] },
+              else: null
+            }
+          }
+        }
+      },
       {
         $group: {
           _id: null,
@@ -254,6 +313,60 @@ router.get('/admin/customers', auth, async (req, res) => {
             $sum: {
               $cond: [
                 { $gte: ['$createdAt', new Date(new Date().getFullYear(), new Date().getMonth(), 1)] },
+                1,
+                0
+              ]
+            }
+          },
+          customersWithOrders: {
+            $sum: {
+              $cond: [
+                { $gt: [{ $size: '$orders' }, 0] },
+                1,
+                0
+              ]
+            }
+          },
+          pendingOrders: {
+            $sum: {
+              $cond: [
+                { $eq: ['$lastOrder.status', 'Pending'] },
+                1,
+                0
+              ]
+            }
+          },
+          processingOrders: {
+            $sum: {
+              $cond: [
+                { $eq: ['$lastOrder.status', 'Processing'] },
+                1,
+                0
+              ]
+            }
+          },
+          shippedOrders: {
+            $sum: {
+              $cond: [
+                { $eq: ['$lastOrder.status', 'Shipped'] },
+                1,
+                0
+              ]
+            }
+          },
+          deliveredOrders: {
+            $sum: {
+              $cond: [
+                { $eq: ['$lastOrder.status', 'Delivered'] },
+                1,
+                0
+              ]
+            }
+          },
+          cancelledOrders: {
+            $sum: {
+              $cond: [
+                { $eq: ['$lastOrder.status', 'Cancelled'] },
                 1,
                 0
               ]
@@ -277,7 +390,13 @@ router.get('/admin/customers', auth, async (req, res) => {
         totalCustomers: 0,
         activeCustomers: 0,
         blockedCustomers: 0,
-        newCustomersThisMonth: 0
+        newCustomersThisMonth: 0,
+        customersWithOrders: 0,
+        pendingOrders: 0,
+        processingOrders: 0,
+        shippedOrders: 0,
+        deliveredOrders: 0,
+        cancelledOrders: 0
       }
     });
   } catch (error) {

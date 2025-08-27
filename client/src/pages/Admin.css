@@ -2183,6 +2183,9 @@
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.5px;
+  display: inline-block;
+  text-align: center;
+  min-width: 80px;
 }
 
 .status-badge.active {
@@ -2203,6 +2206,18 @@
 .status-badge.processing {
   background: #cce5ff;
   color: #004085;
+}
+
+.status-badge.no-orders {
+  background: #e2e3e5;
+  color: #383d41;
+  border: 1px solid #d6d8db;
+}
+
+.status-badge.default {
+  background: #f8f9fa;
+  color: #6c757d;
+  border: 1px solid #dee2e6;
 }
 
 .action-buttons {

@@ -154,6 +154,25 @@ const Admin = () => {
     }
   };
 
+  // Get status class for styling
+  const getStatusClass = (status) => {
+    if (!status || status === 'No Orders') return 'no-orders';
+    switch (status.toLowerCase()) {
+      case 'pending':
+        return 'pending';
+      case 'processing':
+        return 'processing';
+      case 'shipped':
+        return 'shipped';
+      case 'delivered':
+        return 'delivered';
+      case 'cancelled':
+        return 'cancelled';
+      default:
+        return 'default';
+    }
+  };
+
   // Fetch customers
   const fetchCustomers = async (page = 1, status = 'all', search = '') => {
     try {
@@ -1924,8 +1943,12 @@ const Admin = () => {
               className="status-filter"
             >
               <option value="all">All Status</option>
-              <option value="active">Active</option>
-              <option value="blocked">Blocked</option>
+              <option value="pending">Pending</option>
+              <option value="processing">Processing</option>
+              <option value="shipped">Shipped</option>
+              <option value="delivered">Delivered</option>
+              <option value="cancelled">Cancelled</option>
+              <option value="no-orders">No Orders</option>
             </select>
           </div>
         </div>
@@ -1938,12 +1961,12 @@ const Admin = () => {
           <p>{customerStats.totalCustomers || 0}</p>
         </div>
         <div className="stat-card">
-          <h3>Active Customers</h3>
-          <p>{customerStats.activeCustomers || 0}</p>
+          <h3>Customers with Orders</h3>
+          <p>{customerStats.customersWithOrders || 0}</p>
         </div>
         <div className="stat-card">
-          <h3>Blocked Customers</h3>
-          <p>{customerStats.blockedCustomers || 0}</p>
+          <h3>Pending Orders</h3>
+          <p>{customerStats.pendingOrders || 0}</p>
         </div>
         <div className="stat-card">
           <h3>New This Month</h3>
@@ -1985,8 +2008,8 @@ const Admin = () => {
                     <td>{customer.phone || 'N/A'}</td>
                     <td>{new Date(customer.createdAt).toLocaleDateString()}</td>
                     <td>
-                      <span className={`status-badge ${customer.isBlocked ? 'blocked' : 'active'}`}>
-                        {customer.isBlocked ? 'Blocked' : 'Active'}
+                      <span className={`status-badge ${getStatusClass(customer.lastOrderStatus || 'No Orders')}`}>
+                        {customer.lastOrderStatus || 'No Orders'}
                       </span>
                     </td>
                     <td>
@@ -1999,15 +2022,15 @@ const Admin = () => {
                           <FiEye />
                         </button>
                         <button
-                          className={`action-btn ${customer.isBlocked ? 'unblock' : 'block'}`}
+                          className={`action-btn ${getStatusClass(customer.lastOrderStatus || 'No Orders')}`}
                           onClick={() => {
-                            const action = customer.isBlocked ? 'unblock' : 'block';
-                            const reason = customer.isBlocked ? '' : prompt('Reason for blocking:');
-                            handleCustomerStatusChange(customer._id, !customer.isBlocked, reason);
+                            const action = getStatusClass(customer.lastOrderStatus || 'No Orders') === 'blocked' ? 'unblock' : 'block';
+                            const reason = getStatusClass(customer.lastOrderStatus || 'No Orders') === 'blocked' ? '' : prompt('Reason for blocking:');
+                            handleCustomerStatusChange(customer._id, getStatusClass(customer.lastOrderStatus || 'No Orders') === 'blocked', reason);
                           }}
-                          title={customer.isBlocked ? 'Unblock Customer' : 'Block Customer'}
+                          title={getStatusClass(customer.lastOrderStatus || 'No Orders') === 'blocked' ? 'Unblock Customer' : 'Block Customer'}
                         >
-                          {customer.isBlocked ? 'Unblock' : 'Block'}
+                          {getStatusClass(customer.lastOrderStatus || 'No Orders') === 'blocked' ? 'Unblock' : 'Block'}
                         </button>
                       </div>
                     </td>
@@ -2928,14 +2951,14 @@ const Admin = () => {
           
           <div className="modal-footer">
             <button 
-              className={`btn-primary ${customer.isBlocked ? 'unblock' : 'block'}`}
+              className={`btn-primary ${getStatusClass(customer.lastOrderStatus || 'No Orders')}`}
               onClick={() => {
-                const reason = customer.isBlocked ? '' : prompt('Reason for blocking:');
-                handleCustomerStatusChange(customer._id, !customer.isBlocked, reason);
+                const reason = getStatusClass(customer.lastOrderStatus || 'No Orders') === 'blocked' ? '' : prompt('Reason for blocking:');
+                handleCustomerStatusChange(customer._id, getStatusClass(customer.lastOrderStatus || 'No Orders') === 'blocked', reason);
                 setShowCustomerModal(false);
               }}
             >
-              {customer.isBlocked ? 'Unblock Customer' : 'Block Customer'}
+              {getStatusClass(customer.lastOrderStatus || 'No Orders') === 'blocked' ? 'Unblock Customer' : 'Block Customer'}
             </button>
             <button className="btn-secondary" onClick={() => setShowCustomerModal(false)}>
               Close
