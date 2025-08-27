@@ -2281,3 +2281,302 @@
 .btn-primary.unblock:hover {
   background: #1e7e34;
 }
+
+/* Products Management Styles */
+.admin-products {
+  width: 100%;
+  overflow-x: auto;
+}
+
+.admin-products .section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 30px;
+  padding: 20px 0;
+  border-bottom: 2px solid #e9ecef;
+  flex-wrap: wrap;
+  gap: 15px;
+}
+
+.admin-products .section-header h1 {
+  margin: 0;
+  font-size: 2rem;
+  font-weight: 700;
+  color: #ffffff;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+.admin-products .header-actions {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  flex-wrap: wrap;
+}
+
+.admin-products .category-filter {
+  padding: 10px 15px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  font-size: 14px;
+  background: white;
+  color: #333;
+  cursor: pointer;
+  min-width: 150px;
+}
+
+.admin-products .add-btn {
+  background: #28a745;
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transition: all 0.3s ease;
+  white-space: nowrap;
+}
+
+.admin-products .add-btn:hover {
+  background: #1e7e34;
+  transform: translateY(-1px);
+}
+
+/* Products Table Container */
+.admin-products .table-container {
+  width: 100%;
+  overflow-x: auto;
+  background: #111111;
+  border-radius: 12px;
+  border: 1px solid #333333;
+  margin-bottom: 20px;
+}
+
+.admin-products .admin-table {
+  width: 100%;
+  min-width: 1200px; /* Ensure minimum width for all columns */
+  border-collapse: collapse;
+  background: #111111;
+  color: #ffffff;
+}
+
+.admin-products .admin-table th {
+  background: #222222;
+  color: #ffffff;
+  padding: 15px 12px;
+  text-align: left;
+  font-weight: 600;
+  font-size: 14px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  border-bottom: 1px solid #333333;
+  white-space: nowrap;
+}
+
+.admin-products .admin-table td {
+  padding: 15px 12px;
+  border-bottom: 1px solid #333333;
+  font-size: 14px;
+  vertical-align: middle;
+}
+
+.admin-products .admin-table tr:hover {
+  background: #1a1a1a;
+}
+
+/* Product Image in Table */
+.admin-products .product-image {
+  width: 60px;
+  height: 60px;
+  object-fit: cover;
+  border-radius: 8px;
+  border: 2px solid #333333;
+}
+
+/* Product Actions */
+.admin-products .actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: nowrap;
+  white-space: nowrap;
+}
+
+.admin-products .action-btn {
+  padding: 8px 12px;
+  border: none;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  white-space: nowrap;
+  min-width: 60px;
+  justify-content: center;
+}
+
+.admin-products .action-btn.view {
+  background: #007bff;
+  color: white;
+}
+
+.admin-products .action-btn.view:hover {
+  background: #0056b3;
+}
+
+.admin-products .action-btn.edit {
+  background: #ffc107;
+  color: #212529;
+}
+
+.admin-products .action-btn.edit:hover {
+  background: #e0a800;
+}
+
+.admin-products .action-btn.delete {
+  background: #dc3545;
+  color: white;
+}
+
+.admin-products .action-btn.delete:hover {
+  background: #c82333;
+}
+
+/* Responsive Design */
+@media (max-width: 1400px) {
+  .admin-products .admin-table {
+    min-width: 1000px;
+  }
+  
+  .admin-products .actions {
+    flex-direction: column;
+    gap: 4px;
+  }
+  
+  .admin-products .action-btn {
+    width: 100%;
+    min-width: 50px;
+  }
+}
+
+@media (max-width: 1200px) {
+  .admin-products .section-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  
+  .admin-products .header-actions {
+    width: 100%;
+    justify-content: flex-start;
+  }
+}
+
+@media (max-width: 768px) {
+  .admin-products .admin-table {
+    min-width: 800px;
+  }
+  
+  .admin-products .table-container {
+    border-radius: 8px;
+  }
+  
+  .admin-products .admin-table th,
+  .admin-products .admin-table td {
+    padding: 10px 8px;
+    font-size: 12px;
+  }
+  
+  .admin-products .product-image {
+    width: 50px;
+    height: 50px;
+  }
+}
+
+/* General Admin Table Improvements */
+.admin-table {
+  width: 100%;
+  border-collapse: collapse;
+  background: #111111;
+  color: #ffffff;
+  font-size: 14px;
+}
+
+.admin-table th {
+  background: #222222;
+  color: #ffffff;
+  padding: 15px 12px;
+  text-align: left;
+  font-weight: 600;
+  font-size: 14px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  border-bottom: 1px solid #333333;
+  white-space: nowrap;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.admin-table td {
+  padding: 15px 12px;
+  border-bottom: 1px solid #333333;
+  font-size: 14px;
+  vertical-align: middle;
+  word-wrap: break-word;
+  max-width: 200px;
+}
+
+.admin-table tr:hover {
+  background: #1a1a1a;
+}
+
+/* Table Container with Horizontal Scroll */
+.table-container {
+  width: 100%;
+  overflow-x: auto;
+  background: #111111;
+  border-radius: 12px;
+  border: 1px solid #333333;
+  margin-bottom: 20px;
+  position: relative;
+}
+
+.table-container::-webkit-scrollbar {
+  height: 8px;
+}
+
+.table-container::-webkit-scrollbar-track {
+  background: #222222;
+  border-radius: 4px;
+}
+
+.table-container::-webkit-scrollbar-thumb {
+  background: #666666;
+  border-radius: 4px;
+}
+
+.table-container::-webkit-scrollbar-thumb:hover {
+  background: #888888;
+}
+
+/* Ensure all admin sections have proper overflow handling */
+.admin-section,
+.admin-dashboard,
+.admin-products,
+.admin-orders,
+.admin-customers,
+.admin-reviews,
+.admin-categories,
+.admin-discounts,
+.admin-content,
+.admin-settings {
+  width: 100%;
+  overflow-x: hidden;
+  padding: 20px;
+}
