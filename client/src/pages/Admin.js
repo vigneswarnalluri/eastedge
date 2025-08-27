@@ -2797,6 +2797,27 @@ const Admin = () => {
     );
   };
 
+  // Database migration function
+  const handleMigrateDatabase = async () => {
+    if (window.confirm('This will migrate the database schema to support variants. This action cannot be undone. Continue?')) {
+      try {
+        setOrdersLoading(true);
+        const response = await api.post('/api/orders/admin/migrate-schema');
+        if (response.data.success) {
+          alert(`Database migration completed successfully!\nMigrated: ${response.data.migratedCount} orders\nErrors: ${response.data.errorCount}`);
+          // Refresh orders after migration
+          fetchOrders();
+          fetchOrderStats();
+        }
+      } catch (error) {
+        console.error('Error migrating database:', error);
+        alert('Failed to migrate database. Please try again.');
+      } finally {
+        setOrdersLoading(false);
+      }
+    }
+  };
+
   return (
     <div className="admin-layout">
       {/* Sidebar */}
@@ -2874,13 +2895,14 @@ const Admin = () => {
               <button className="admin-btn" onClick={checkAdminStatus}>
                 Check Admin Status
               </button>
-              {!isAdmin && (
-                <button className="make-admin-btn" onClick={makeCurrentUserAdmin}>
-                  Make Me Admin
-                </button>
-              )}
-              <button className="logout-btn" onClick={handleLogout}>
-                <FiLogOut /> Logout
+              <button className="make-admin-btn" onClick={makeCurrentUserAdmin}>
+                Make Me Admin
+              </button>
+              <button className="admin-btn migrate-btn" onClick={handleMigrateDatabase}>
+                Migrate Database
+              </button>
+              <button className="admin-btn" onClick={logout}>
+                Logout
               </button>
             </div>
           </div>
