@@ -184,7 +184,7 @@ const Admin = () => {
         search: search
       });
       
-      const response = await api.get(`/api/users/admin/customers?${params}`);
+      const response = await api.get(`/api/customers/admin/customers?${params}`);
       if (response.data.success) {
         setCustomers(response.data.customers);
         setCustomerStats(response.data.analytics);
@@ -200,7 +200,7 @@ const Admin = () => {
   // Fetch customer details
   const fetchCustomerDetails = async (customerId) => {
     try {
-      const response = await api.get(`/api/users/admin/customers/${customerId}`);
+      const response = await api.get(`/api/customers/admin/customers/${customerId}`);
       if (response.data.success) {
         setViewingCustomer(response.data);
         setShowCustomerModal(true);
@@ -214,7 +214,7 @@ const Admin = () => {
   // Update customer status (block/unblock)
   const handleCustomerStatusChange = async (customerId, isBlocked, reason = '') => {
     try {
-      const response = await api.put(`/api/users/admin/customers/${customerId}/status`, {
+      const response = await api.put(`/api/customers/admin/customers/${customerId}/status`, {
         isBlocked,
         reason
       });
@@ -2008,8 +2008,8 @@ const Admin = () => {
                     <td>{customer.phone || 'N/A'}</td>
                     <td>{new Date(customer.createdAt).toLocaleDateString()}</td>
                     <td>
-                      <span className={`status-badge ${getStatusClass(customer.lastOrderStatus || 'No Orders')}`}>
-                        {customer.lastOrderStatus || 'No Orders'}
+                      <span className={`status-badge ${getStatusClass(customer.orderStats?.lastOrderStatus || 'No Orders')}`}>
+                        {customer.orderStats?.lastOrderStatus || 'No Orders'}
                       </span>
                     </td>
                     <td>
@@ -2022,15 +2022,15 @@ const Admin = () => {
                           <FiEye />
                         </button>
                         <button
-                          className={`action-btn ${getStatusClass(customer.lastOrderStatus || 'No Orders')}`}
+                          className={`action-btn ${customer.status?.isBlocked ? 'unblock' : 'block'}`}
                           onClick={() => {
-                            const action = getStatusClass(customer.lastOrderStatus || 'No Orders') === 'blocked' ? 'unblock' : 'block';
-                            const reason = getStatusClass(customer.lastOrderStatus || 'No Orders') === 'blocked' ? '' : prompt('Reason for blocking:');
-                            handleCustomerStatusChange(customer._id, getStatusClass(customer.lastOrderStatus || 'No Orders') === 'blocked', reason);
+                            const action = customer.status?.isBlocked ? 'unblock' : 'block';
+                            const reason = customer.status?.isBlocked ? '' : prompt('Reason for blocking:');
+                            handleCustomerStatusChange(customer._id, !customer.status?.isBlocked, reason);
                           }}
-                          title={getStatusClass(customer.lastOrderStatus || 'No Orders') === 'blocked' ? 'Unblock Customer' : 'Block Customer'}
+                          title={customer.status?.isBlocked ? 'Unblock Customer' : 'Block Customer'}
                         >
-                          {getStatusClass(customer.lastOrderStatus || 'No Orders') === 'blocked' ? 'Unblock' : 'Block'}
+                          {customer.status?.isBlocked ? 'Unblock' : 'Block'}
                         </button>
                       </div>
                     </td>
@@ -2842,7 +2842,7 @@ const Admin = () => {
   const renderCustomerModal = () => {
     if (!viewingCustomer) return null;
 
-    const { customer, orders, stats } = viewingCustomer;
+    const { customer, recentOrders, supportTickets, communications } = viewingCustomer;
 
     return (
       <div className="modal-overlay" onClick={() => setShowCustomerModal(false)}>
@@ -2876,14 +2876,30 @@ const Admin = () => {
                   </div>
                   <div className="info-item">
                     <strong>Status:</strong> 
-                    <span className={`order-value status-badge ${customer.isBlocked ? 'blocked' : 'active'}`}>
-                      {customer.isBlocked ? 'Blocked' : 'Active'}
+                    <span className={`order-value status-badge ${customer.status?.isBlocked ? 'blocked' : 'active'}`}>
+                      {customer.status?.isBlocked ? 'Blocked' : 'Active'}
                     </span>
                   </div>
-                  {customer.isBlocked && customer.blockReason && (
+                  {customer.status?.isBlocked && customer.status?.blockReason && (
                     <div className="info-item">
                       <strong>Block Reason:</strong> 
-                      <span className="order-value">{customer.blockReason}</span>
+                      <span className="order-value">{customer.status.blockReason}</span>
+                    </div>
+                  )}
+                  <div className="info-item">
+                    <strong>Loyalty Tier:</strong> 
+                    <span className={`order-value status-badge ${customer.loyalty?.tier || 'bronze'}`}>
+                      {customer.loyalty?.tier?.toUpperCase() || 'BRONZE'}
+                    </span>
+                  </div>
+                  {customer.status?.tags && customer.status.tags.length > 0 && (
+                    <div className="info-item">
+                      <strong>Tags:</strong> 
+                      <span className="order-value">
+                        {customer.status.tags.map(tag => (
+                          <span key={tag} className="tag-badge">{tag}</span>
+                        ))}
+                      </span>
                     </div>
                   )}
                 </div>
@@ -2891,25 +2907,29 @@ const Admin = () => {
 
               {/* Customer Statistics */}
               <div className="order-section">
-                <h3>Customer Statistics</h3>
+                <h3>Order Statistics</h3>
                 <div className="info-grid">
                   <div className="info-item">
                     <strong>Total Orders:</strong> 
-                    <span className="order-value">{stats.totalOrders}</span>
+                    <span className="order-value">{customer.orderStats?.totalOrders || 0}</span>
                   </div>
                   <div className="info-item">
                     <strong>Total Spent:</strong> 
-                    <span className="order-value">₹{stats.totalSpent?.toFixed(2) || '0.00'}</span>
+                    <span className="order-value">₹{customer.orderStats?.totalSpent?.toFixed(2) || '0.00'}</span>
                   </div>
                   <div className="info-item">
                     <strong>Average Order:</strong> 
-                    <span className="order-value">₹{stats.averageOrderValue?.toFixed(2) || '0.00'}</span>
+                    <span className="order-value">₹{customer.orderStats?.averageOrderValue?.toFixed(2) || '0.00'}</span>
                   </div>
                   <div className="info-item">
                     <strong>Last Order:</strong> 
                     <span className="order-value">
-                      {stats.lastOrderDate ? new Date(stats.lastOrderDate).toLocaleDateString() : 'No orders'}
+                      {customer.orderStats?.lastOrderDate ? new Date(customer.orderStats.lastOrderDate).toLocaleDateString() : 'No orders'}
                     </span>
+                  </div>
+                  <div className="info-item">
+                    <strong>Loyalty Points:</strong> 
+                    <span className="order-value">{customer.loyalty?.points || 0}</span>
                   </div>
                 </div>
               </div>
@@ -2917,9 +2937,7 @@ const Admin = () => {
               {/* Recent Orders */}
               <div className="order-section full-width">
                 <h3>Recent Orders</h3>
-                {orders.length === 0 ? (
-                  <p>No orders found</p>
-                ) : (
+                {recentOrders && recentOrders.length > 0 ? (
                   <table className="order-items-table">
                     <thead>
                       <tr>
@@ -2930,35 +2948,85 @@ const Admin = () => {
                       </tr>
                     </thead>
                     <tbody>
-                      {orders.map((order) => (
+                      {recentOrders.map((order) => (
                         <tr key={order._id}>
                           <td>#{order._id.slice(-6)}</td>
                           <td>{new Date(order.createdAt).toLocaleDateString()}</td>
                           <td>
-                            <span className={`status-badge ${order.status}`}>
+                            <span className={`status-badge ${order.status?.toLowerCase()}`}>
                               {order.status}
                             </span>
                           </td>
-                          <td>₹{order.totalPrice}</td>
+                          <td>₹{order.totalPrice?.toFixed(2) || '0.00'}</td>
                         </tr>
                       ))}
                     </tbody>
                   </table>
+                ) : (
+                  <p>No orders found</p>
                 )}
               </div>
+
+              {/* Support Tickets */}
+              {supportTickets && supportTickets.length > 0 && (
+                <div className="order-section full-width">
+                  <h3>Support Tickets</h3>
+                  <table className="order-items-table">
+                    <thead>
+                      <tr>
+                        <th>Ticket ID</th>
+                        <th>Subject</th>
+                        <th>Status</th>
+                        <th>Priority</th>
+                        <th>Created</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {supportTickets.map((ticket) => (
+                        <tr key={ticket.ticketId}>
+                          <td>{ticket.ticketId}</td>
+                          <td>{ticket.subject}</td>
+                          <td>
+                            <span className={`status-badge ${ticket.status}`}>
+                              {ticket.status}
+                            </span>
+                          </td>
+                          <td>
+                            <span className={`priority-badge ${ticket.priority}`}>
+                              {ticket.priority}
+                            </span>
+                          </td>
+                          <td>{new Date(ticket.createdAt).toLocaleDateString()}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+
+              {/* Customer Notes */}
+              {customer.status?.notes && (
+                <div className="order-section">
+                  <h3>Admin Notes</h3>
+                  <div className="info-item">
+                    <strong>Notes:</strong> 
+                    <span className="order-value">{customer.status.notes}</span>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
           
           <div className="modal-footer">
             <button 
-              className={`btn-primary ${getStatusClass(customer.lastOrderStatus || 'No Orders')}`}
+              className={`btn-primary ${customer.status?.isBlocked ? 'unblock' : 'block'}`}
               onClick={() => {
-                const reason = getStatusClass(customer.lastOrderStatus || 'No Orders') === 'blocked' ? '' : prompt('Reason for blocking:');
-                handleCustomerStatusChange(customer._id, getStatusClass(customer.lastOrderStatus || 'No Orders') === 'blocked', reason);
+                const reason = customer.status?.isBlocked ? '' : prompt('Reason for blocking:');
+                handleCustomerStatusChange(customer._id, !customer.status?.isBlocked, reason);
                 setShowCustomerModal(false);
               }}
             >
-              {getStatusClass(customer.lastOrderStatus || 'No Orders') === 'blocked' ? 'Unblock Customer' : 'Block Customer'}
+              {customer.status?.isBlocked ? 'Unblock Customer' : 'Block Customer'}
             </button>
             <button className="btn-secondary" onClick={() => setShowCustomerModal(false)}>
               Close

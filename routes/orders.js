@@ -3,6 +3,7 @@ const router = express.Router();
 const auth = require('../middleware/auth');
 const Order = require('../models/Order');
 const User = require('../models/User');
+const Customer = require('../models/Customer');
 
 // Create new order - PROTECTED ROUTE
 router.post('/', auth, async (req, res) => {
@@ -114,6 +115,22 @@ router.post('/', auth, async (req, res) => {
     
     const savedOrder = await newOrder.save();
     console.log('Created order:', savedOrder);
+    
+    // Update customer statistics
+    try {
+      const customer = await Customer.findOne({ userId: req.user._id });
+      if (customer) {
+        await customer.updateOrderStats({
+          totalPrice: total,
+          status: 'Pending',
+          category: items[0]?.category || null
+        });
+        console.log('✅ Customer statistics updated successfully');
+      }
+    } catch (error) {
+      console.error('❌ Error updating customer stats:', error);
+      // Don't fail the order creation if customer stats update fails
+    }
     
     res.status(201).json({
       success: true,

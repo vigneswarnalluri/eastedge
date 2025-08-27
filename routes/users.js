@@ -5,11 +5,12 @@ const bcrypt = require('bcryptjs');
 const User = require('../models/User');
 const auth = require('../middleware/auth'); // Added auth middleware
 const Order = require('../models/Order'); // Added Order model
+const Customer = require('../models/Customer');
 
 // Register user
 router.post('/register', async (req, res) => {
   try {
-    const { name, email, password } = req.body;
+    const { name, email, password, phone } = req.body;
 
     // Check if user already exists
     const userExists = await User.findOne({ email });
@@ -17,27 +18,49 @@ router.post('/register', async (req, res) => {
       return res.status(400).json({ message: 'User already exists' });
     }
 
+    // Hash password
+    const hashedPassword = await bcrypt.hash(password, 10);
+
     // Create new user
     const user = new User({
       name,
       email,
-      password
+      password: hashedPassword,
+      phone
     });
 
-    const savedUser = await user.save();
+    await user.save();
+
+    // Create customer record
+    const customer = new Customer({
+      userId: user._id,
+      name: user.name,
+      email: user.email,
+      phone: user.phone,
+      profile: {
+        preferences: {
+          newsletter: true,
+          marketing: false,
+          language: 'en',
+          currency: 'INR'
+        }
+      }
+    });
+
+    await customer.save();
 
     // Generate token
     const token = jwt.sign(
-      { userId: savedUser._id },
+      { userId: user._id },
       process.env.JWT_SECRET,
       { expiresIn: '7d' }
     );
 
     res.status(201).json({
-      _id: savedUser._id,
-      name: savedUser.name,
-      email: savedUser.email,
-      isAdmin: savedUser.isAdmin,
+      _id: user._id,
+      name: user.name,
+      email: user.email,
+      isAdmin: user.isAdmin,
       token
     });
   } catch (error) {
