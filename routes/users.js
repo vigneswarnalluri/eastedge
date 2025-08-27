@@ -3,6 +3,7 @@ const router = express.Router();
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
 const User = require('../models/User');
+const auth = require('../middleware/auth'); // Added auth middleware
 
 // Register user
 router.post('/register', async (req, res) => {
@@ -149,6 +150,55 @@ router.put('/profile', async (req, res) => {
     res.json(userResponse);
   } catch (error) {
     res.status(400).json({ message: error.message });
+  }
+});
+
+// Make user admin - DEVELOPMENT ONLY
+router.put('/make-admin/:id', async (req, res) => {
+  try {
+    console.log('🔍 Making user admin:', req.params.id);
+    
+    const user = await User.findByIdAndUpdate(
+      req.params.id,
+      { isAdmin: true },
+      { new: true }
+    ).select('-password');
+
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    console.log('✅ User made admin successfully:', user.email);
+    
+    res.json({
+      success: true,
+      message: 'User is now admin',
+      user
+    });
+  } catch (error) {
+    console.error('❌ Error making user admin:', error);
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// Check admin status
+router.get('/check-admin', auth, async (req, res) => {
+  try {
+    console.log('🔍 Checking admin status for user:', req.user._id, 'isAdmin:', req.user.isAdmin);
+    
+    res.json({
+      success: true,
+      isAdmin: req.user.isAdmin || false,
+      user: {
+        _id: req.user._id,
+        name: req.user.name,
+        email: req.user.email,
+        isAdmin: req.user.isAdmin
+      }
+    });
+  } catch (error) {
+    console.error('❌ Error checking admin status:', error);
+    res.status(500).json({ message: error.message });
   }
 });
 

@@ -9,6 +9,21 @@ const ProductCard = ({ product }) => {
   const [isWishlisted, setIsWishlisted] = useState(false);
   const [imageError, setImageError] = useState(false);
 
+  // Debug: Log product data when component renders
+  useEffect(() => {
+    console.log(`🎯 ProductCard rendered for ${product.name}:`, {
+      id: product._id,
+      name: product.name,
+      hasVariants: !!(product.variants && Array.isArray(product.variants)),
+      variantsCount: product.variants?.length || 0,
+      stockQuantity: product.stockQuantity,
+      category: product.category,
+      categoryName: product.categoryName,
+      price: product.price,
+      fullProduct: product
+    });
+  }, [product]);
+
   // Check if product is in wishlist on component mount
   useEffect(() => {
     setIsWishlisted(isInWishlist(product._id));
@@ -87,6 +102,44 @@ const ProductCard = ({ product }) => {
     setImageError(true);
   };
 
+  // Function to get stock status (same logic as ProductDetail)
+  const getStockStatus = () => {
+    console.log(`🔍 Stock calculation for ${product.name}:`, {
+      hasVariants: !!(product.variants && Array.isArray(product.variants)),
+      variantsCount: product.variants?.length || 0,
+      variants: product.variants,
+      stockQuantity: product.stockQuantity,
+      productData: product
+    });
+
+    // Check if we have variants with stock
+    if (product.variants && Array.isArray(product.variants) && product.variants.length > 0) {
+      const totalStock = product.variants.reduce((sum, variant) => sum + (variant.stock || 0), 0);
+      console.log(`📦 Variant-based stock calculation: ${totalStock} total`);
+      
+      if (totalStock <= 0) {
+        return { status: 'out-of-stock', text: 'Out of Stock' };
+      } else if (totalStock <= 10) {
+        return { status: 'low-stock', text: `Low Stock (${totalStock})` };
+      } else {
+        return { status: 'in-stock', text: 'In Stock' };
+      }
+    }
+    
+    // Fallback to old stockQuantity if no variants
+    console.log(`📦 Using stockQuantity fallback: ${product.stockQuantity}`);
+    if (!product.stockQuantity || product.stockQuantity <= 0) {
+      return { status: 'out-of-stock', text: 'Out of Stock' };
+    } else if (product.stockQuantity <= 10) {
+      return { status: 'low-stock', text: `Low Stock (${product.stockQuantity})` };
+    } else {
+      return { status: 'in-stock', text: 'In Stock' };
+    }
+  };
+
+  // Get stock status
+  const stockStatus = getStockStatus();
+
   return (
     <div className="product-card">
       {/* Top Section - Image Area */}
@@ -138,11 +191,9 @@ const ProductCard = ({ product }) => {
           {product.categoryName && (
             <span className="tag">{product.categoryName}</span>
           )}
-          {product.stockQuantity !== undefined && (
-            <span className={`tag stock ${product.stockQuantity > 0 ? 'in-stock' : 'out-of-stock'}`}>
-              {product.stockQuantity > 0 ? 'In Stock' : 'Out of Stock'}
-            </span>
-          )}
+          <span className={`tag stock ${stockStatus.status}`}>
+            {stockStatus.text}
+          </span>
         </div>
 
         {/* Product Description */}

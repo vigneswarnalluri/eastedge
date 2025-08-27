@@ -15,7 +15,14 @@ const orderSchema = new mongoose.Schema({
     name: String,
     quantity: Number,
     price: Number,
-    image: String
+    image: String,
+    // Add variant information
+    selectedSize: String,
+    selectedColor: String,
+    sku: String,
+    variantPrice: Number,
+    category: String,
+    categoryName: String
   }],
   shippingAddress: {
     street: String,
