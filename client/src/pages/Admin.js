@@ -1951,6 +1951,13 @@ const Admin = () => {
               <option value="no-orders">No Orders</option>
             </select>
           </div>
+          <button 
+            className="migrate-btn" 
+            onClick={migrateUsersToCustomers}
+            title="Convert existing users to customers"
+          >
+            <FiUsers /> Migrate Users
+          </button>
         </div>
       </div>
 
@@ -3035,6 +3042,21 @@ const Admin = () => {
         </div>
       </div>
     );
+  };
+
+  // Migrate existing users to customers
+  const migrateUsersToCustomers = async () => {
+    try {
+      const response = await api.post('/api/customers/admin/migrate-users');
+      if (response.data.success) {
+        alert(response.data.message);
+        // Refresh customers list
+        fetchCustomers();
+      }
+    } catch (error) {
+      console.error('Error migrating users:', error);
+      alert('Failed to migrate users to customers');
+    }
   };
 
   return (

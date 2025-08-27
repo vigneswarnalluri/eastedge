@@ -5,6 +5,67 @@ const Customer = require('../models/Customer');
 const User = require('../models/User');
 const Order = require('../models/Order');
 
+// Migrate existing users to customers (ADMIN ONLY)
+router.post('/admin/migrate-users', auth, async (req, res) => {
+  try {
+    // Check if user is admin
+    if (!req.user.isAdmin) {
+      return res.status(403).json({ success: false, message: 'Access denied. Admin only.' });
+    }
+
+    console.log('🔄 Starting user migration to customers...');
+
+    // Get all users that don't have customer records
+    const users = await User.find({});
+    let migratedCount = 0;
+    let errorCount = 0;
+
+    for (const user of users) {
+      try {
+        // Check if customer already exists
+        const existingCustomer = await Customer.findOne({ userId: user._id });
+        
+        if (!existingCustomer) {
+          // Create new customer record
+          const customer = new Customer({
+            userId: user._id,
+            name: user.name,
+            email: user.email,
+            phone: user.phone,
+            profile: {
+              preferences: {
+                newsletter: true,
+                marketing: false,
+                language: 'en',
+                currency: 'INR'
+              }
+            }
+          });
+
+          await customer.save();
+          migratedCount++;
+          console.log(`✅ Migrated user: ${user.name} (${user.email})`);
+        }
+      } catch (error) {
+        console.error(`❌ Error migrating user ${user.name}:`, error.message);
+        errorCount++;
+      }
+    }
+
+    console.log(`🎉 Migration completed: ${migratedCount} users migrated, ${errorCount} errors`);
+
+    res.json({
+      success: true,
+      message: `Migration completed successfully. ${migratedCount} users migrated to customers.`,
+      migratedCount,
+      errorCount
+    });
+  } catch (error) {
+    console.error('Error during migration:', error);
+    res.status(500).json({ success: false, message: 'Failed to migrate users' });
+  }
+});
+
 // Get all customers with comprehensive data (ADMIN ONLY)
 router.get('/admin/customers', auth, async (req, res) => {
   try {
@@ -58,42 +119,58 @@ router.get('/admin/customers', auth, async (req, res) => {
     const totalCustomers = await Customer.countDocuments(searchQuery);
 
     // Get comprehensive customer analytics
-    const analytics = await Customer.aggregate([
-      { $match: searchQuery },
-      {
-        $group: {
-          _id: null,
-          totalCustomers: { $sum: 1 },
-          totalRevenue: { $sum: '$orderStats.totalSpent' },
-          averageOrderValue: { $avg: '$orderStats.averageOrderValue' },
-          customersWithOrders: {
-            $sum: { $cond: [{ $gt: ['$orderStats.totalOrders', 0] }, 1, 0] }
-          },
-          newCustomersThisMonth: {
-            $sum: {
-              $cond: [
-                { $gte: ['$createdAt', new Date(new Date().getFullYear(), new Date().getMonth(), 1)] },
-                1,
-                0
-              ]
+    let analytics = {
+      totalCustomers: 0,
+      totalRevenue: 0,
+      averageOrderValue: 0,
+      customersWithOrders: 0,
+      newCustomersThisMonth: 0,
+      loyaltyTiers: { bronze: 0, silver: 0, gold: 0, platinum: 0 },
+      orderStatusBreakdown: { pending: 0, processing: 0, shipped: 0, delivered: 0, cancelled: 0 }
+    };
+
+    if (totalCustomers > 0) {
+      const analyticsResult = await Customer.aggregate([
+        { $match: searchQuery },
+        {
+          $group: {
+            _id: null,
+            totalCustomers: { $sum: 1 },
+            totalRevenue: { $sum: '$orderStats.totalSpent' },
+            averageOrderValue: { $avg: '$orderStats.averageOrderValue' },
+            customersWithOrders: {
+              $sum: { $cond: [{ $gt: ['$orderStats.totalOrders', 0] }, 1, 0] }
+            },
+            newCustomersThisMonth: {
+              $sum: {
+                $cond: [
+                  { $gte: ['$createdAt', new Date(new Date().getFullYear(), new Date().getMonth(), 1)] },
+                  1,
+                  0
+                ]
+              }
+            },
+            loyaltyTiers: {
+              bronze: { $sum: { $cond: [{ $eq: ['$loyalty.tier', 'bronze'] }, 1, 0] } },
+              silver: { $sum: { $cond: [{ $eq: ['$loyalty.tier', 'silver'] }, 1, 0] } },
+              gold: { $sum: { $cond: [{ $eq: ['$loyalty.tier', 'gold'] }, 1, 0] } },
+              platinum: { $sum: { $cond: [{ $eq: ['$loyalty.tier', 'platinum'] }, 1, 0] } }
+            },
+            orderStatusBreakdown: {
+              pending: { $sum: '$orderStats.orderStatusBreakdown.pending' },
+              processing: { $sum: '$orderStats.orderStatusBreakdown.processing' },
+              shipped: { $sum: '$orderStats.orderStatusBreakdown.shipped' },
+              delivered: { $sum: '$orderStats.orderStatusBreakdown.delivered' },
+              cancelled: { $sum: '$orderStats.orderStatusBreakdown.cancelled' }
             }
-          },
-          loyaltyTiers: {
-            bronze: { $sum: { $cond: [{ $eq: ['$loyalty.tier', 'bronze'] }, 1, 0] } },
-            silver: { $sum: { $cond: [{ $eq: ['$loyalty.tier', 'silver'] }, 1, 0] } },
-            gold: { $sum: { $cond: [{ $eq: ['$loyalty.tier', 'gold'] }, 1, 0] } },
-            platinum: { $sum: { $cond: [{ $eq: ['$loyalty.tier', 'platinum'] }, 1, 0] } }
-          },
-          orderStatusBreakdown: {
-            pending: { $sum: '$orderStats.orderStatusBreakdown.pending' },
-            processing: { $sum: '$orderStats.orderStatusBreakdown.processing' },
-            shipped: { $sum: '$orderStats.orderStatusBreakdown.shipped' },
-            delivered: { $sum: '$orderStats.orderStatusBreakdown.delivered' },
-            cancelled: { $sum: '$orderStats.orderStatusBreakdown.cancelled' }
           }
         }
+      ]);
+
+      if (analyticsResult.length > 0) {
+        analytics = analyticsResult[0];
       }
-    ]);
+    }
 
     res.json({
       success: true,
@@ -105,15 +182,7 @@ router.get('/admin/customers', auth, async (req, res) => {
         hasNextPage: page * limit < totalCustomers,
         hasPrevPage: page > 1
       },
-      analytics: analytics[0] || {
-        totalCustomers: 0,
-        totalRevenue: 0,
-        averageOrderValue: 0,
-        customersWithOrders: 0,
-        newCustomersThisMonth: 0,
-        loyaltyTiers: { bronze: 0, silver: 0, gold: 0, platinum: 0 },
-        orderStatusBreakdown: { pending: 0, processing: 0, shipped: 0, delivered: 0, cancelled: 0 }
-      }
+      analytics: analytics
     });
   } catch (error) {
     console.error('Error fetching customers:', error);
