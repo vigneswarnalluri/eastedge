@@ -182,8 +182,15 @@ const cartReducer = (state, action) => {
 export const CartProvider = ({ children }) => {
   const [state, dispatch] = useReducer(cartReducer, initialState);
   const [isInitialized, setIsInitialized] = useState(false);
-  const { isAuthenticated, user } = useAuth();
+  const { isAuthenticated, user, loading } = useAuth();
   
+  // Set initialized after auth state is determined
+  useEffect(() => {
+    if (loading !== undefined) { // Auth loading state is determined
+      setIsInitialized(true);
+    }
+  }, [loading]);
+
   // Get user-specific cart key
   const getCartKey = () => {
     if (isAuthenticated && user?._id) {

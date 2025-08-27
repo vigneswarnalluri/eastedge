@@ -176,6 +176,7 @@ const Admin = () => {
   // Fetch customers
   const fetchCustomers = async (page = 1, status = 'all', search = '') => {
     try {
+      console.log('🔄 Fetching customers...', { page, status, search });
       setCustomersLoading(true);
       const params = new URLSearchParams({
         page: page.toString(),
@@ -184,14 +185,20 @@ const Admin = () => {
         search: search
       });
       
+      console.log('📡 API call to:', `/api/customers/admin/customers?${params}`);
       const response = await api.get(`/api/customers/admin/customers?${params}`);
+      console.log('✅ Customers response:', response.data);
+      
       if (response.data.success) {
         setCustomers(response.data.customers);
         setCustomerStats(response.data.analytics);
         setCustomersPagination(response.data.pagination);
+        console.log('📊 Customers set:', response.data.customers.length);
+        console.log('📈 Analytics set:', response.data.analytics);
       }
     } catch (error) {
-      console.error('Error fetching customers:', error);
+      console.error('❌ Error fetching customers:', error);
+      console.error('❌ Error details:', error.response?.data || error.message);
     } finally {
       setCustomersLoading(false);
     }
@@ -260,8 +267,17 @@ const Admin = () => {
 
   // Fetch customers when customers tab is active
   useEffect(() => {
+    console.log('🔄 Customers tab useEffect triggered:', { isAuthenticated, isAdmin, activeTab });
     if (isAuthenticated && isAdmin && activeTab === 'customers') {
+      console.log('✅ Fetching customers - conditions met');
       fetchCustomers();
+    } else {
+      console.log('❌ Not fetching customers:', { 
+        isAuthenticated, 
+        isAdmin, 
+        activeTab, 
+        shouldFetch: isAuthenticated && isAdmin && activeTab === 'customers' 
+      });
     }
   }, [isAuthenticated, isAdmin, activeTab]);
   
