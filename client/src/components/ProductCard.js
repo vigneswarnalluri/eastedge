@@ -1,13 +1,17 @@
 import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useWishlist } from '../context/WishlistContext';
-import { FiHeart, FiImage } from 'react-icons/fi';
+import { useCart } from '../context/CartContext';
+import { FiHeart, FiImage, FiShoppingCart } from 'react-icons/fi';
 import './ProductCard.css';
 
 const ProductCard = ({ product }) => {
   const { addToWishlist, removeFromWishlist, isInWishlist } = useWishlist();
+  const { addToCart } = useCart();
+  const navigate = useNavigate();
   const [isWishlisted, setIsWishlisted] = useState(false);
   const [imageError, setImageError] = useState(false);
+  const [addingToCart, setAddingToCart] = useState(false);
 
   // Debug: Log product data when component renders
   useEffect(() => {
@@ -31,6 +35,7 @@ const ProductCard = ({ product }) => {
 
   const handleWishlist = (e) => {
     e.preventDefault();
+    e.stopPropagation();
     if (isWishlisted) {
       removeFromWishlist(product._id);
       setIsWishlisted(false);
@@ -39,6 +44,57 @@ const ProductCard = ({ product }) => {
       addToWishlist(product);
       setIsWishlisted(true);
       console.log('Added to wishlist:', product.name);
+    }
+  };
+
+  const handleCardClick = () => {
+    navigate(`/products/${product._id}`);
+  };
+
+  const handleAddToCart = async (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    if (!product) return;
+    
+    try {
+      setAddingToCart(true);
+      
+      // Check if product has variants (size/color)
+      if (product.variants && Array.isArray(product.variants) && product.variants.length > 0) {
+        // If product has variants, navigate to product detail page
+        navigate(`/products/${product._id}`);
+        return;
+      }
+      
+      // If no variants, add directly to cart
+      const cartItem = {
+        ...product,
+        quantity: 1,
+        selectedSize: product.sizes?.[0] || '',
+        selectedColor: product.colors?.[0] || '',
+        category: product.category || product.categoryName,
+        categoryName: product.categoryName || product.category
+      };
+      
+      addToCart(cartItem);
+      console.log('Added to cart:', cartItem);
+      
+      // Show success feedback
+      const btn = e.target;
+      const originalText = btn.innerHTML;
+      btn.innerHTML = '✓ Added!';
+      btn.style.background = '#28a745';
+      
+      setTimeout(() => {
+        btn.innerHTML = originalText;
+        btn.style.background = '';
+      }, 1500);
+      
+    } catch (error) {
+      console.error('Error adding to cart:', error);
+    } finally {
+      setAddingToCart(false);
     }
   };
 
@@ -139,9 +195,10 @@ const ProductCard = ({ product }) => {
 
   // Get stock status
   const stockStatus = getStockStatus();
+  const hasVariants = product.variants && Array.isArray(product.variants) && product.variants.length > 0;
 
   return (
-    <div className="product-card">
+    <div className="product-card" onClick={handleCardClick}>
       {/* Top Section - Image Area */}
       <div className="product-image-section">
         {getProductImage() ? (
@@ -181,9 +238,7 @@ const ProductCard = ({ product }) => {
       <div className="product-details">
         {/* Product Name */}
         <h3 className="product-name">
-          <Link to={`/products/${product._id}`}>
-            {typeof product.name === 'string' ? product.name : 'Product Name'}
-          </Link>
+          {typeof product.name === 'string' ? product.name : 'Product Name'}
         </h3>
 
         {/* Product Tags */}
@@ -209,7 +264,17 @@ const ProductCard = ({ product }) => {
 
         {/* Bottom Row - Buttons */}
         <div className="product-bottom">
-          <Link to={`/products/${product._id}`} className="view-btn">
+          <button 
+            className="add-to-cart-btn"
+            onClick={handleAddToCart}
+            disabled={addingToCart || stockStatus.status === 'out-of-stock'}
+            title={hasVariants ? 'Select options to add to cart' : 'Add to cart'}
+          >
+            <FiShoppingCart />
+            {hasVariants ? 'Select Options' : 'Add to Cart'}
+          </button>
+          
+          <Link to={`/products/${product._id}`} className="view-btn" onClick={(e) => e.stopPropagation()}>
             <FiImage />
             View
           </Link>

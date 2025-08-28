@@ -296,27 +296,58 @@ router.get('/admin/stats', auth, async (req, res) => {
       });
     }
 
-    const stats = await Order.aggregate([
-      {
-        $group: {
-          _id: null,
-          totalOrders: { $sum: 1 },
-          totalRevenue: { $sum: '$totalPrice' },
-          pendingOrders: {
-            $sum: { $cond: [{ $eq: ['$status', 'Pending'] }, 1, 0] }
-          },
-          processingOrders: {
-            $sum: { $cond: [{ $eq: ['$status', 'Processing'] }, 1, 0] }
-          },
-          shippedOrders: {
-            $sum: { $cond: [{ $eq: ['$status', 'Shipped'] }, 1, 0] }
-          },
-          deliveredOrders: {
-            $sum: { $cond: [{ $eq: ['$status', 'Delivered'] }, 1, 0] }
-          }
+    const { startDate, endDate, status } = req.query;
+    
+    // Build match stage for filtering
+    let matchStage = {};
+    
+    // Add date filtering
+    if (startDate || endDate) {
+      matchStage.createdAt = {};
+      if (startDate) {
+        matchStage.createdAt.$gte = new Date(startDate);
+      }
+      if (endDate) {
+        // Set end date to end of day
+        const endDateTime = new Date(endDate);
+        endDateTime.setHours(23, 59, 59, 999);
+        matchStage.createdAt.$lte = endDateTime;
+      }
+    }
+    
+    // Add status filtering
+    if (status && status !== 'all') {
+      matchStage.status = status;
+    }
+    
+    const pipeline = [];
+    
+    // Add match stage if filters are applied
+    if (Object.keys(matchStage).length > 0) {
+      pipeline.push({ $match: matchStage });
+    }
+    
+    pipeline.push({
+      $group: {
+        _id: null,
+        totalOrders: { $sum: 1 },
+        totalRevenue: { $sum: '$totalPrice' },
+        pendingOrders: {
+          $sum: { $cond: [{ $eq: ['$status', 'Pending'] }, 1, 0] }
+        },
+        processingOrders: {
+          $sum: { $cond: [{ $eq: ['$status', 'Processing'] }, 1, 0] }
+        },
+        shippedOrders: {
+          $sum: { $cond: [{ $eq: ['$status', 'Shipped'] }, 1, 0] }
+        },
+        deliveredOrders: {
+          $sum: { $cond: [{ $eq: ['$status', 'Delivered'] }, 1, 0] }
         }
       }
-    ]);
+    });
+    
+    const stats = await Order.aggregate(pipeline);
 
     console.log('✅ Admin stats fetched successfully');
 

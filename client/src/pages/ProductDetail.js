@@ -123,6 +123,8 @@ const ProductDetail = () => {
   useEffect(() => {
     if (product) {
       setIsWishlisted(isInWishlist(product._id));
+      // Fetch reviews for this product
+      fetchReviews(product._id);
     }
   }, [product, isInWishlist]);
 
@@ -130,8 +132,8 @@ const ProductDetail = () => {
 
   const fetchReviews = async (productId) => {
     try {
-      const response = await api.get(`/api/products/${productId}`);
-      if (response.data && response.data.reviews) {
+      const response = await api.get(`/api/reviews/product/${productId}`);
+      if (response.data && response.data.success && response.data.reviews) {
         setReviews(response.data.reviews);
       }
     } catch (error) {
@@ -155,12 +157,13 @@ const ProductDetail = () => {
     
     try {
       setSubmittingReview(true);
-      const response = await api.post(`/api/products/${product._id}/reviews`, {
+      const response = await api.post(`/api/reviews`, {
+        productId: product._id,
         rating: reviewForm.rating,
         comment: reviewForm.comment.trim()
       });
       
-      if (response.data.message === 'Review added successfully') {
+      if (response.data.success && response.data.message === 'Review submitted successfully') {
         alert('Review submitted successfully!');
         setReviewForm({ rating: 5, comment: '' });
         setShowReviewForm(false);

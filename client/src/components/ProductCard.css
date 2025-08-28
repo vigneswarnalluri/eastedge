@@ -10,11 +10,17 @@
   flex-direction: column;
   height: 650px; /* Fixed height for consistency */
   border: 1px solid #f0f0f0;
+  user-select: none;
 }
 
 .product-card:hover {
   transform: translateY(-8px);
   box-shadow: 0 16px 48px rgba(0, 0, 0, 0.15);
+}
+
+.product-card:active {
+  transform: translateY(-4px);
+  transition: transform 0.1s ease;
 }
 
 /* Top Section - Image Area */
@@ -233,7 +239,7 @@
 /* Bottom Row - Buttons */
 .product-bottom {
   display: flex;
-  justify-content: flex-start;
+  justify-content: space-between;
   align-items: center;
   gap: 15px;
   flex-shrink: 0;
@@ -265,6 +271,20 @@
   background: #333;
   transform: translateY(-1px);
   box-shadow: 0 3px 10px rgba(26, 26, 26, 0.4);
+}
+
+.add-to-cart-btn:disabled {
+  background: #ccc;
+  color: #666;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+.add-to-cart-btn:disabled:hover {
+  background: #ccc;
+  transform: none;
+  box-shadow: none;
 }
 
 .add-to-cart-btn svg {

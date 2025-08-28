@@ -4,6 +4,82 @@ const Review = require('../models/Review');
 const Product = require('../models/Product');
 const auth = require('../middleware/auth');
 
+// Get reviews for a specific product (PUBLIC)
+router.get('/product/:productId', async (req, res) => {
+  try {
+    const { productId } = req.params;
+    
+    const reviews = await Review.find({ 
+      product: productId, 
+      status: 'approved' // Only show approved reviews
+    })
+    .populate('user', 'name')
+    .sort({ createdAt: -1 });
+    
+    res.json({
+      success: true,
+      reviews
+    });
+  } catch (error) {
+    console.error('Error fetching product reviews:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: 'Failed to fetch reviews' 
+    });
+  }
+});
+
+// Submit a new review (PROTECTED)
+router.post('/', auth, async (req, res) => {
+  try {
+    const { productId, rating, comment } = req.body;
+    
+    if (!productId || !rating || !comment) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Product ID, rating, and comment are required' 
+      });
+    }
+    
+    // Check if user already reviewed this product
+    const existingReview = await Review.findOne({
+      product: productId,
+      user: req.user._id
+    });
+    
+    if (existingReview) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'You have already reviewed this product' 
+      });
+    }
+    
+    // Create new review
+    const review = new Review({
+      product: productId,
+      user: req.user._id,
+      name: req.user.name,
+      rating: parseInt(rating),
+      comment: comment.trim(),
+      status: 'pending' // Default to pending for admin approval
+    });
+    
+    await review.save();
+    
+    res.status(201).json({
+      success: true,
+      message: 'Review submitted successfully',
+      review
+    });
+  } catch (error) {
+    console.error('Error submitting review:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: 'Failed to submit review' 
+    });
+  }
+});
+
 // Migrate existing reviews from Product model to Review model (ADMIN ONLY)
 router.post('/admin/migrate', auth, async (req, res) => {
   try {

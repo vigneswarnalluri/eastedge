@@ -11,8 +11,12 @@ const Admin = () => {
   
      // All hooks must be called before any conditional returns
    const [activeTab, setActiveTab] = useState('dashboard');
-   const [selectedStatus, setSelectedStatus] = useState('all');
-   const [settingsTab, setSettingsTab] = useState('general');
+     const [selectedStatus, setSelectedStatus] = useState('all');
+  const [dateRange, setDateRange] = useState({
+    startDate: '',
+    endDate: ''
+  });
+  const [settingsTab, setSettingsTab] = useState('general');
   
   // Product management state
   const [products, setProducts] = useState([]);
@@ -166,6 +170,35 @@ const Admin = () => {
     }
   };
 
+  // Fetch revenue data with date filtering
+  const fetchRevenueData = async () => {
+    try {
+      let url = '/api/orders/admin/stats';
+      const params = new URLSearchParams();
+      
+      if (dateRange.startDate) {
+        params.append('startDate', dateRange.startDate);
+      }
+      if (dateRange.endDate) {
+        params.append('endDate', dateRange.endDate);
+      }
+      if (selectedStatus && selectedStatus !== 'all') {
+        params.append('status', selectedStatus);
+      }
+      
+      if (params.toString()) {
+        url += `?${params.toString()}`;
+      }
+      
+      const response = await api.get(url);
+      if (response.data.success) {
+        setOrderStats(response.data.stats);
+      }
+    } catch (error) {
+      console.error('Error fetching revenue data:', error);
+    }
+  };
+
   // Get status class for styling
   const getStatusClass = (status) => {
     if (!status || status === 'No Orders') return 'no-orders';
@@ -256,6 +289,14 @@ const Admin = () => {
     fetchCustomers(1, newStatus, customerSearch);
   };
 
+  // Handle date range changes
+  const handleDateChange = (field, value) => {
+    setDateRange(prev => ({
+      ...prev,
+      [field]: value
+    }));
+  };
+
   // All useEffect hooks must be called before any conditional returns
   useEffect(() => {
     if (!loading && (!isAuthenticated || !isAdmin)) {
@@ -271,6 +312,20 @@ const Admin = () => {
       fetchOrderStats();
     }
   }, [isAuthenticated, isAdmin]);
+
+  // Refetch orders when status filter changes
+  useEffect(() => {
+    if (isAuthenticated && isAdmin) {
+      fetchOrders(1, selectedStatus);
+    }
+  }, [selectedStatus, isAuthenticated, isAdmin]);
+
+  // Refetch revenue data when date range or status changes
+  useEffect(() => {
+    if (isAuthenticated && isAdmin) {
+      fetchRevenueData();
+    }
+  }, [dateRange, selectedStatus, isAuthenticated, isAdmin]);
 
   // Fetch customers when customers tab is active
   useEffect(() => {
@@ -877,29 +932,28 @@ const Admin = () => {
          </div>
        </div>
 
-      {/* Charts Placeholder */}
-      <div className="charts-section">
-        <div className="chart-container">
-          <h3>New Orders</h3>
-          <div className="chart-placeholder">Chart visualization will be added here</div>
-        </div>
-        <div className="chart-container">
-          <h3>Total Revenue</h3>
-          <div className="chart-placeholder">Chart visualization will be added here</div>
-        </div>
-        <div className="chart-container">
-          <h3>Products Sold</h3>
-          <div className="chart-placeholder">Chart visualization will be added here</div>
-        </div>
-      </div>
-
       {/* Recent Orders */}
       <div className="recent-orders">
         <div className="section-header">
           <h3>Recent Orders</h3>
-          <button className="export-btn" onClick={handleExportOrders}>
-            <FiDownload /> Export Orders
-          </button>
+          <div className="header-actions">
+            <div className="filter-dropdowns">
+              <select 
+                className="status-filter"
+                value={selectedStatus}
+                onChange={(e) => setSelectedStatus(e.target.value)}
+              >
+                <option value="all">All Orders</option>
+                <option value="Pending">Pending</option>
+                <option value="Processing">Processing</option>
+                <option value="Shipped">Shipped</option>
+                <option value="Delivered">Delivered</option>
+              </select>
+            </div>
+            <button className="export-btn" onClick={handleExportOrders}>
+              <FiDownload /> Export Orders
+            </button>
+          </div>
         </div>
         
         <div className="table-container">
@@ -914,8 +968,8 @@ const Admin = () => {
                 <th>Actions</th>
               </tr>
             </thead>
-                       <tbody>
-             {orders.slice(0, 5).map(order => (
+            <tbody>
+              {orders.slice(0, 5).map(order => (
                 <tr key={order._id}>
                   <td>#{order._id.slice(-6)}</td>
                   <td>{order.user?.name || 'N/A'}</td>
@@ -930,9 +984,9 @@ const Admin = () => {
                       <FiTrash2 />
                     </button>
                   </td>
-               </tr>
-             ))}
-           </tbody>
+                </tr>
+              ))}
+            </tbody>
           </table>
         </div>
       </div>
@@ -941,24 +995,93 @@ const Admin = () => {
       <div className="revenue-details">
         <div className="section-header">
           <h3>Revenue Details</h3>
+          <div className="header-actions">
+            <div className="filter-dropdowns">
+              <div className="filter-section">
+                <label className="filter-label">Filter by Status:</label>
+                <select 
+                  className="status-filter"
+                  value={selectedStatus}
+                  onChange={(e) => setSelectedStatus(e.target.value)}
+                >
+                  <option value="all">All Revenue</option>
+                  <option value="Pending">Pending Revenue</option>
+                  <option value="Processing">Processing Revenue</option>
+                  <option value="Shipped">Shipped Revenue</option>
+                  <option value="Delivered">Delivered Revenue</option>
+                </select>
+              </div>
+              
+                              <div className="filter-section">
+                  <label className="filter-label">Filter by Date Range:</label>
+                  <div className="date-filters">
+                    <input
+                      type="date"
+                      className="date-input"
+                      value={dateRange.startDate}
+                      onChange={(e) => handleDateChange('startDate', e.target.value)}
+                      placeholder="Start Date"
+                      title="Select Start Date"
+                    />
+                    <span className="date-separator">to</span>
+                    <input
+                      type="date"
+                      className="date-input"
+                      value={dateRange.endDate}
+                      onChange={(e) => handleDateChange('endDate', e.target.value)}
+                      placeholder="End Date"
+                      title="Select End Date"
+                    />
+                    <button 
+                      className="clear-filters-btn"
+                      onClick={() => setDateRange({ startDate: '', endDate: '' })}
+                      title="Clear Date Filters"
+                    >
+                      Clear
+                    </button>
+                  </div>
+                </div>
+            </div>
             <button className="export-btn" onClick={handleExportOrders}>
-            <FiDownload /> Export Revenue
+              <FiDownload /> Export Revenue
             </button>
           </div>
+        </div>
+        
+        <div className="revenue-summary">
+          <div className="summary-card">
+            <div className="summary-icon">
+              <FiDollarSign />
+            </div>
+            <div className="summary-content">
+              <div className="summary-value">₹{orderStats.totalRevenue?.toLocaleString() || 0}</div>
+              <div className="summary-label">Total Revenue</div>
+            </div>
+          </div>
+          <div className="summary-card">
+            <div className="summary-icon">
+              <FiShoppingCart />
+            </div>
+            <div className="summary-content">
+              <div className="summary-value">{orderStats.totalOrders || 0}</div>
+              <div className="summary-label">Total Orders</div>
+            </div>
+          </div>
+        </div>
         
         <div className="revenue-stats">
           <div className="revenue-stat">
             <span className="stat-label">Pending Orders:</span>
             <span className="stat-value">{orderStats.pendingOrders || 0}</span>
-        </div>
+          </div>
           <div className="revenue-stat">
             <span className="stat-label">Processing Orders:</span>
             <span className="stat-value">{orderStats.processingOrders || 0}</span>
-        </div>
+          </div>
           <div className="revenue-stat">
             <span className="stat-label">Shipped Orders:</span>
             <span className="stat-value">{orderStats.shippedOrders || 0}</span>
-      </div>
+          </div>
           <div className="revenue-stat">
             <span className="stat-label">Delivered Orders:</span>
             <span className="stat-value">{orderStats.deliveredOrders || 0}</span>
