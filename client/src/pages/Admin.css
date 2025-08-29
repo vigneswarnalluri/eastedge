@@ -969,7 +969,7 @@
 }
 
 .form-content {
-  background: #1a1a1a;
+  background: #1a1a1a !important;
   padding: 2.5rem;
   border-radius: 12px;
   width: 98%;
@@ -1211,7 +1211,7 @@
   display: flex;
   align-items: center;
   gap: 10px;
-  color: #ffffff;
+  color: #ffffff !important;
   font-weight: 500;
   cursor: pointer;
 }
@@ -1220,6 +1220,105 @@
   width: 18px;
   height: 18px;
   accent-color: #ffffff;
+}
+
+/* Ensure checkbox labels are always visible */
+.form-content .checkbox-group label {
+  color: #ffffff !important;
+  text-shadow: none;
+  -webkit-text-fill-color: #ffffff !important;
+}
+
+/* Override any conflicting modal styles */
+.form-modal .form-content .checkbox-group label {
+  color: #ffffff !important;
+  text-shadow: none;
+  -webkit-text-fill-color: #ffffff !important;
+  background: transparent !important;
+}
+
+/* Force checkbox labels to be visible with maximum specificity */
+.form-modal .form-content .checkbox-group label,
+.form-modal .form-content .checkbox-group label *,
+.form-modal .form-content .checkbox-group label::before,
+.form-modal .form-content .checkbox-group label::after {
+  color: #ffffff !important;
+  text-shadow: none !important;
+  -webkit-text-fill-color: #ffffff !important;
+  background: transparent !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+}
+
+/* Additional specificity to override any inherited styles */
+.form-modal .form-content .checkbox-group label {
+  color: #ffffff !important;
+  text-shadow: none !important;
+  -webkit-text-fill-color: #ffffff !important;
+  background: transparent !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+  font-weight: 500 !important;
+  font-size: 16px !important;
+}
+
+/* Ensure text content is not hidden by any means */
+.form-modal .form-content .checkbox-group label span,
+.form-modal .form-content .checkbox-group label div,
+.form-modal .form-content .checkbox-group label p {
+  color: #ffffff !important;
+  text-shadow: none !important;
+  -webkit-text-fill-color: #ffffff !important;
+  background: transparent !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+  display: inline !important;
+  position: static !important;
+  clip: auto !important;
+  clip-path: none !important;
+}
+
+/* Final override for any remaining issues */
+.form-modal .form-content .checkbox-group label {
+  all: unset !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 10px !important;
+  color: #ffffff !important;
+  font-weight: 500 !important;
+  cursor: pointer !important;
+  font-size: 16px !important;
+  line-height: 1.5 !important;
+  text-decoration: none !important;
+  text-transform: none !important;
+  letter-spacing: normal !important;
+  word-spacing: normal !important;
+  white-space: normal !important;
+  direction: ltr !important;
+  unicode-bidi: normal !important;
+  text-align: left !important;
+  text-indent: 0 !important;
+  text-shadow: none !important;
+  -webkit-text-fill-color: #ffffff !important;
+  background: transparent !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+}
+
+/* Ensure text is not clipped or positioned off-screen */
+.form-modal .form-content .checkbox-group label {
+  position: static !important;
+  top: auto !important;
+  left: auto !important;
+  right: auto !important;
+  bottom: auto !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  transform: none !important;
+  clip: auto !important;
+  clip-path: none !important;
+  overflow: visible !important;
+  z-index: auto !important;
 }
 
 /* Loading States */
