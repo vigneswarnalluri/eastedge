@@ -1,23 +1,37 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import api from '../services/api';
 import ProductCard from '../components/ProductCard';
 import { FiFilter, FiSortAsc, FiSortDesc } from 'react-icons/fi';
 import './NewArrivals.css';
+import { scrollToTop } from '../utils/scrollToTop';
 
 const NewArrivals = () => {
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [sortBy, setSortBy] = useState('newest');
   const [showFilters, setShowFilters] = useState(false);
+  const [categories, setCategories] = useState([]);
   const [filters, setFilters] = useState({
     category: '',
     priceRange: '',
     rating: ''
   });
 
+  const fetchCategories = useCallback(async () => {
+    try {
+      const response = await api.get('/api/categories');
+      setCategories(response.data);
+    } catch (error) {
+      console.error('Error fetching categories:', error);
+    }
+  }, []);
+
   useEffect(() => {
     fetchNewArrivals();
+    fetchCategories();
+    // Ensure page scrolls to top when component mounts
+    scrollToTop();
   }, [sortBy, filters]);
 
   // Make fetchNewArrivals available globally for admin panel to call
@@ -159,9 +173,11 @@ const NewArrivals = () => {
                   onChange={(e) => handleFilterChange('category', e.target.value)}
                 >
                   <option value="">All Categories</option>
-                  <option value="Apparel">Apparel</option>
-                  <option value="Accessories">Accessories</option>
-                  <option value="Home Goods">Home Goods</option>
+                  {categories.map(category => (
+                    <option key={category._id} value={category.name}>
+                      {category.name}
+                    </option>
+                  ))}
                 </select>
               </div>
 

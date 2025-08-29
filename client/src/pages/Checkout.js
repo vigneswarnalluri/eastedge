@@ -4,6 +4,7 @@ import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
 import { useUserPreferences } from '../context/UserPreferencesContext';
 import RazorpayPayment from '../components/RazorpayPayment';
+import { scrollToTop } from '../utils/scrollToTop';
 import api from '../services/api';
 import './Checkout.css';
 
@@ -70,6 +71,8 @@ const Checkout = () => {
       
       return () => clearTimeout(timer);
     }
+    // Ensure page scrolls to top when component mounts
+    scrollToTop();
   }, [cartItems, isInitialized]);
 
   // Don't render anything if not authenticated

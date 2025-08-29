@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useWishlist } from '../context/WishlistContext';
 import { useCart } from '../context/CartContext';
+import { scrollToTop } from '../utils/scrollToTop';
 import { FiEdit2, FiSave, FiX, FiUser, FiMail, FiPhone, FiMapPin, FiCalendar, FiShield, FiShoppingBag, FiHeart, FiSettings, FiTrash2 } from 'react-icons/fi';
 import WishlistItem from '../components/WishlistItem';
 import './Profile.css';
@@ -50,6 +51,8 @@ const Profile = () => {
         bio: user.bio || ''
       });
     }
+    // Ensure page scrolls to top when component mounts
+    scrollToTop();
   }, [user]);
 
   // Debug logging for wishlist items

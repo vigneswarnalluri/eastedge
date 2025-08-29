@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import api from '../services/api';
 import ProductCard from '../components/ProductCard';
+import api from '../services/api';
+import { scrollToTop } from '../utils/scrollToTop';
 import './Home.css';
 
 const Home = () => {
@@ -10,47 +11,164 @@ const Home = () => {
   const [newArrivals, setNewArrivals] = useState([]);
   const [trendingProducts, setTrendingProducts] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [categories, setCategories] = useState([]);
 
   const fetchProducts = async () => {
     try {
-      // Add timeout to prevent hanging
-      const timeout = new Promise((_, reject) => 
-        setTimeout(() => reject(new Error('Request timeout')), 5000)
-      );
+      setLoading(true);
       
-      const [featured, newArr, trending] = await Promise.race([
-        Promise.all([
-          api.get('/api/products?featured=true&limit=4'),
-          api.get('/api/products?newArrival=true&limit=3'),
-          api.get('/api/products?trending=true&limit=5')
-        ]),
-        timeout
-      ]);
-
-      // Handle API response format - products endpoint returns { products: [...], pagination: {...} }
-      const featuredData = featured.data.products ? featured.data.products : 
-                         (Array.isArray(featured.data) ? featured.data : []);
-      const newArrData = newArr.data.products ? newArr.data.products : 
-                        (Array.isArray(newArr.data) ? newArr.data : []);
-      const trendingData = trending.data.products ? trending.data.products : 
-                         (Array.isArray(trending.data) ? trending.data : []);
-
+      // Fetch featured products
+      const featuredResponse = await api.get('/api/products?featured=true&limit=6');
+      const featuredData = featuredResponse.data.products || featuredResponse.data || [];
       setFeaturedProducts(featuredData);
-      setNewArrivals(newArrData);
+      
+      // Fetch new arrivals
+      const newArrivalsResponse = await api.get('/api/products?newArrival=true&limit=6');
+      const newArrivalsData = newArrivalsResponse.data.products || newArrivalsResponse.data || [];
+      setNewArrivals(newArrivalsData);
+      
+      // Fetch trending products
+      const trendingResponse = await api.get('/api/products?trending=true&limit=6');
+      const trendingData = trendingResponse.data.products || trendingResponse.data || [];
       setTrendingProducts(trendingData);
     } catch (error) {
       console.error('Error fetching products:', error);
-      // Set empty arrays on error to prevent crashes
-      setFeaturedProducts([]);
-      setNewArrivals([]);
-      setTrendingProducts([]);
     } finally {
       setLoading(false);
     }
   };
 
+  const fetchCategories = async () => {
+    try {
+      const response = await api.get('/api/categories');
+      const categoriesData = response.data || [];
+      
+      // Transform categories data to match our UI structure
+      let transformedCategories = categoriesData
+        .filter(category => !category.parentCategory) // Only main categories
+        .slice(0, 6) // Limit to 6 categories
+        .map(category => {
+          // Force use of specific uploaded images regardless of database content
+          let imagePath;
+          switch (category.name.toLowerCase()) {
+            case 'apparel':
+            case 'fashion and apparel':
+              imagePath = '/fashion and apparel.jpg';
+              break;
+            case 'accessories':
+              imagePath = '/accessories.jpg';
+              break;
+            case 'furniture':
+              imagePath = '/man-815795.jpg';
+              break;
+            case 'electronics':
+              imagePath = '/electronics.jpg';
+              break;
+            case 'home goods':
+            case 'home & living':
+              imagePath = '/man-1281562.jpg';
+              break;
+            case 'beauty & health':
+            case 'beauty and health':
+              imagePath = '/beauty and health.jpg';
+              break;
+            case 'diy and hardware':
+              imagePath = '/diy and hardware.jpg';
+              break;
+            default:
+              imagePath = '/man-1281562.jpg'; // Default fallback
+          }
+          
+          return {
+            name: category.name,
+            image: imagePath,
+            link: `/products?category=${encodeURIComponent(category.name)}`,
+            description: category.description
+          };
+        });
+      
+      // Ensure we have at least 3 categories for a good grid layout
+      if (transformedCategories.length < 3) {
+        // Add fallback categories if we don't have enough
+        const fallbackCategories = [
+          {
+            name: "Fashion & Apparel",
+            image: "/fashion and apparel.jpg",
+            link: "/products?category=Fashion%20%26%20Apparel"
+          },
+          {
+            name: "Accessories",
+            image: "/accessories.jpg",
+            link: "/products?category=Accessories"
+          },
+          {
+            name: "Electronics",
+            image: "/electronics.jpg",
+            link: "/products?category=Electronics"
+          },
+          {
+            name: "Beauty & Health",
+            image: "/beauty and health.jpg",
+            link: "/products?category=Beauty%20%26%20Health"
+          },
+          {
+            name: "DIY & Hardware",
+            image: "/diy and hardware.jpg",
+            link: "/products?category=DIY%20%26%20Hardware"
+          }
+        ];
+        
+        // Merge API categories with fallbacks, avoiding duplicates
+        const existingNames = transformedCategories.map(cat => cat.name.toLowerCase());
+        fallbackCategories.forEach(fallback => {
+          if (!existingNames.includes(fallback.name.toLowerCase())) {
+            transformedCategories.push(fallback);
+          }
+        });
+        
+        // Ensure we have exactly 3 categories
+        transformedCategories = transformedCategories.slice(0, 3);
+      }
+      
+      setCategories(transformedCategories);
+    } catch (error) {
+      console.error('Error fetching categories:', error);
+      // Fallback to default categories if API fails
+      setCategories([
+        {
+          name: "Fashion & Apparel",
+          image: "/fashion and apparel.jpg",
+          link: "/products?category=Fashion%20%26%20Apparel"
+        },
+        {
+          name: "Accessories",
+          image: "/accessories.jpg",
+          link: "/products?category=Accessories"
+        },
+        {
+          name: "Electronics",
+          image: "/electronics.jpg",
+          link: "/products?category=Electronics"
+        },
+        {
+          name: "Beauty & Health",
+          image: "/beauty and health.jpg",
+          link: "/products?category=Beauty%20%26%20Health"
+        },
+        {
+          name: "DIY & Hardware",
+          image: "/diy and hardware.jpg",
+          link: "/products?category=DIY%20%26%20Hardware"
+        }
+      ]);
+    }
+  };
+
   useEffect(() => {
     fetchProducts();
+    fetchCategories();
+    // Ensure page scrolls to top on load
+    scrollToTop();
   }, []);
 
   // Make fetchProducts available globally for admin panel to call
@@ -85,24 +203,6 @@ const Home = () => {
     }
   ];
 
-  const categories = [
-    {
-      name: "Apparel",
-      image: "/apparel.webp",
-      link: "/products?category=Apparel"
-    },
-    {
-      name: "Accessories",
-      image: "/accessories.png",
-      link: "/products?category=Accessories"
-    },
-    {
-      name: "Home Goods",
-      image: "/homegoods.png",
-      link: "/products?category=Home%20Goods"
-    }
-  ];
-
   // Show content even if API fails, but with loading state for products
   if (loading && (featuredProducts.length === 0 && newArrivals.length === 0 && trendingProducts.length === 0)) {
     return (
@@ -119,30 +219,23 @@ const Home = () => {
         <div className="hero-image">
           <img src={heroSections[0].image} alt={heroSections[0].title} />
         </div>
-        <motion.div 
-          className="hero-content"
-          initial={{ opacity: 0, x: -50 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ duration: 1, delay: 0.5 }}
-        >
-          <motion.h1 
-            className="hero-title"
-            initial={{ opacity: 0, y: 30 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 1, delay: 0.7 }}
-          >
+        <div className="hero-content">
+          <h1 className="hero-title">
             {heroSections[0].title}
-          </motion.h1>
-          <motion.p 
-            className="hero-subtitle"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8, delay: 0.9 }}
-          >
+          </h1>
+          <p className="hero-subtitle">
             {heroSections[0].subtitle}
-          </motion.p>
-          {/* Hero actions removed - no buttons */}
-        </motion.div>
+          </p>
+          {/* Hero CTA Button */}
+          <div className="hero-actions">
+            <Link to="/products" className="btn btn-primary hero-cta">
+              Shop Now
+            </Link>
+            <Link to="/new-arrivals" className="btn btn-secondary hero-cta">
+              New Arrivals
+            </Link>
+          </div>
+        </div>
       </section>
 
               {/* Featured Categories */}
@@ -152,26 +245,28 @@ const Home = () => {
               <h2>Featured Categories</h2>
             </div>
             <div className="categories-grid">
-              {categories.map((category, index) => (
-                <motion.div
-                  key={index}
-                  className="category-card"
-                  initial={{ opacity: 0, y: 30 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.6, delay: index * 0.1 }}
-                  whileHover={{ y: -10 }}
-                >
-                  <Link to={category.link}>
-                    <div className="category-image">
-                      <img src={category.image} alt={category.name} />
-                    </div>
-                    <div className="category-content">
-                      <h3>{category.name}</h3>
-                      <span className="category-link">Shop {category.name} →</span>
-                    </div>
-                  </Link>
-                </motion.div>
-              ))}
+              {categories.length > 0 ? (
+                categories.map((category, index) => (
+                  <div
+                    key={index}
+                    className="category-card"
+                  >
+                    <Link to={category.link}>
+                      <div className="category-image">
+                        <img src={category.image} alt={category.name} />
+                      </div>
+                      <div className="category-content">
+                        <h3>{category.name}</h3>
+                        <span className="category-link">Shop {category.name} →</span>
+                      </div>
+                    </Link>
+                  </div>
+                ))
+              ) : (
+                <div className="categories-loading">
+                  <p>Loading categories...</p>
+                </div>
+              )}
             </div>
           </div>
         </section>
@@ -185,14 +280,11 @@ const Home = () => {
             <div className="products-grid">
               {newArrivals.length > 0 ? (
                 newArrivals.map((product, index) => (
-                  <motion.div
+                  <div
                     key={product._id}
-                    initial={{ opacity: 0, y: 30 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.6, delay: index * 0.1 }}
                   >
                     <ProductCard product={product} />
-                  </motion.div>
+                  </div>
                 ))
               ) : (
                 <div className="no-products">
@@ -209,18 +301,13 @@ const Home = () => {
         {/* Exclusive Collection Banner */}
         <section className="exclusive-banner">
           <div className="container">
-            <motion.div
-              className="banner-content"
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ duration: 0.8 }}
-            >
+            <div className="banner-content">
               <h2>THE NEW<br />BLACK & WHITE COLLECTION</h2>
               <p>Embrace sophistication with our latest arrivals.</p>
               <Link to="/products" className="btn btn-primary">
                 Shop The Collection
               </Link>
-            </motion.div>
+            </div>
           </div>
         </section>
 
@@ -233,14 +320,11 @@ const Home = () => {
             <div className="products-grid">
               {trendingProducts.length > 0 ? (
                 trendingProducts.map((product, index) => (
-                  <motion.div
+                  <div
                     key={product._id}
-                    initial={{ opacity: 0, y: 30 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.6, delay: index * 0.1 }}
                   >
                     <ProductCard product={product} />
-                  </motion.div>
+                  </div>
                 ))
               ) : (
                 <div className="no-products">

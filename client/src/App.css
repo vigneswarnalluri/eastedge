@@ -8,9 +8,39 @@ main {
   flex: 1;
 }
 
-/* Smooth scrolling */
+/* Smooth scrolling - but only for intentional navigation */
 html {
+  scroll-behavior: auto; /* Changed from 'smooth' to 'auto' to prevent auto-scrolling */
+}
+
+/* Smooth scrolling for intentional anchor clicks */
+html[data-smooth-scroll="true"] {
   scroll-behavior: smooth;
+}
+
+/* Performance optimizations for smooth scrolling */
+* {
+  /* Optimize for scrolling performance */
+  -webkit-overflow-scrolling: touch;
+  scroll-behavior: auto;
+}
+
+/* Optimize images and heavy elements */
+img, video, canvas {
+  /* Prevent layout shifts during scroll */
+  max-width: 100%;
+  height: auto;
+  /* Optimize rendering */
+  image-rendering: -webkit-optimize-contrast;
+  image-rendering: crisp-edges;
+}
+
+/* Optimize animations and transitions */
+* {
+  /* Reduce motion for better performance */
+  animation-duration: 0.01ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.01ms !important;
 }
 
 /* Focus styles for accessibility */

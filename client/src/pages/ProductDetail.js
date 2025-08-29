@@ -11,16 +11,12 @@ import {
   FiShield, 
   FiRefreshCw,
   FiArrowLeft,
-  FiShoppingCart,
-  FiEye,
-  FiChevronLeft,
-  FiChevronRight,
   FiCheck,
-  FiPackage,
-  FiCreditCard
+  FiPackage
 } from 'react-icons/fi';
 import './ProductDetail.css';
 import api from '../services/api';
+import { scrollToTop } from '../utils/scrollToTop';
 
 const ProductDetail = () => {
   const { id } = useParams();
@@ -54,43 +50,23 @@ const ProductDetail = () => {
   // Update ref whenever quantity state changes
   useEffect(() => {
     quantityRef.current = quantity;
-    console.log('Quantity ref updated to:', quantityRef.current);
   }, [quantity]);
-
-  // Debug quantity state changes
-  useEffect(() => {
-    console.log('Quantity state changed to:', quantity);
-  }, [quantity]);
-
-  // Debug component re-renders
-  useEffect(() => {
-    console.log('ProductDetail component rendered with quantity:', quantity);
-  });
 
   const fetchProduct = async () => {
     try {
       setLoading(true);
       const response = await api.get(`/api/products/${id}`);
-      console.log('Product data received:', response.data);
-      console.log('Product sizes:', response.data.sizes);
-      console.log('Product colors:', response.data.colors);
-      console.log('Product images:', response.data.images);
-      console.log('Product variants:', response.data.variants);
       setProduct(response.data);
         
         // Set default selections
       if (response.data.sizes && Array.isArray(response.data.sizes) && response.data.sizes.length > 0) {
-        console.log('Setting default size to:', response.data.sizes[0]);
         setSelectedSize(response.data.sizes[0]);
       } else if (response.data.sizes && typeof response.data.sizes === 'string') {
         // Handle case where sizes might be a string
         const sizeArray = response.data.sizes.split(',').map(s => s.trim()).filter(s => s);
-        console.log('Sizes is a string, converted to array:', sizeArray);
         if (sizeArray.length > 0) {
           setSelectedSize(sizeArray[0]);
         }
-      } else {
-        console.log('No valid sizes found in response');
       }
       if (response.data.colors && Array.isArray(response.data.colors) && response.data.colors.length > 0) {
         // Handle different color formats
@@ -118,6 +94,8 @@ const ProductDetail = () => {
   useEffect(() => {
     fetchProduct();
     // Don't reset quantity here - let it persist
+    // Ensure page scrolls to top when component mounts
+    scrollToTop();
   }, [id]);
 
   useEffect(() => {
@@ -125,6 +103,13 @@ const ProductDetail = () => {
       setIsWishlisted(isInWishlist(product._id));
       // Fetch reviews for this product
       fetchReviews(product._id);
+      
+      // Reset currentImageIndex when product changes
+      if (product.images && Array.isArray(product.images) && product.images.length > 0) {
+        setCurrentImageIndex(0);
+      } else if (product.image) {
+        setCurrentImageIndex(0);
+      }
     }
   }, [product, isInWishlist]);
 
@@ -181,18 +166,6 @@ const ProductDetail = () => {
 
 
   const handleAddToCart = useCallback(() => {
-    console.log('🚨 handleAddToCart FUNCTION CALLED! 🚨');
-    console.log('=== handleAddToCart DEBUG ===');
-    console.log('Current quantity state:', quantity);
-    console.log('Current quantity ref:', quantityRef.current);
-    console.log('Selected size:', selectedSize);
-    console.log('Selected color:', selectedColor);
-    console.log('Product:', product);
-    
-    // Force a direct check of the current quantity
-    const currentQuantity = quantityRef.current; // Use ref instead of state
-    console.log('Direct quantity check (from ref):', currentQuantity);
-    
     if (product && selectedSize && selectedColor) {
       // Find the specific variant to get detailed information
       let variantInfo = null;
@@ -206,7 +179,7 @@ const ProductDetail = () => {
         ...product,
         selectedSize,
         selectedColor,
-        quantity: currentQuantity, // Use the ref value
+        quantity: quantityRef.current, // Use the ref value
         // Add variant-specific information
         variantPrice: variantInfo?.price || product.price,
         variantStock: variantInfo?.stock || 0,
@@ -214,9 +187,6 @@ const ProductDetail = () => {
         category: product.category || product.categoryName,
         categoryName: product.categoryName || product.category
       };
-      console.log('Cart item being created:', cartItem);
-      console.log('Final quantity being sent to cart:', cartItem.quantity);
-      console.log('Variant info found:', variantInfo);
       addToCart(cartItem);
     } else {
       let missingOptions = [];
@@ -224,7 +194,6 @@ const ProductDetail = () => {
       if (!selectedColor) missingOptions.push('color');
       alert(`Please select ${missingOptions.join(' and ')} before adding to cart`);
     }
-    console.log('=== END handleAddToCart DEBUG ===');
   }, [product, selectedSize, selectedColor, quantity, addToCart]); // Add quantity back to dependencies
 
   const handleBuyNow = useCallback(() => {
@@ -268,21 +237,13 @@ const ProductDetail = () => {
     }
   };
 
+  const handleThumbnailHover = (index) => {
+    setCurrentImageIndex(index);
+  };
+
   const handleImageClick = (index) => {
     setCurrentImageIndex(index);
     setShowImageModal(true);
-  };
-
-  const nextImage = () => {
-    setCurrentImageIndex((prev) => 
-      prev === images.length - 1 ? 0 : prev + 1
-    );
-  };
-
-  const prevImage = () => {
-    setCurrentImageIndex((prev) => 
-      prev === 0 ? images.length - 1 : prev - 1
-    );
   };
 
   const getStockStatus = () => {
@@ -347,17 +308,20 @@ const ProductDetail = () => {
   const stockStatus = getStockStatus();
   const images = (() => {
     // First check if we have multiple images
-    if (product.images && Array.isArray(product.images) && product.images.length > 0) {
+    if (product?.images && Array.isArray(product.images) && product.images.length > 0) {
       return product.images;
     }
     // If no images array, check if we have a main image
-    if (product.image) {
+    if (product?.image) {
       return [product.image];
     }
     // Fallback to empty array
     return [];
   })();
   const hasMultipleImages = images.length > 1;
+  
+  // Safety check for currentImageIndex
+  const safeCurrentImageIndex = Math.min(currentImageIndex, Math.max(0, images.length - 1));
 
   // Safety check to ensure product is properly loaded
   if (!product || typeof product !== 'object') {
@@ -396,51 +360,39 @@ const ProductDetail = () => {
         <div className="product-detail-content">
           {/* Product Images Section */}
           <div className="product-images">
-            <div className="main-image-container">
-              <div className="main-image" onClick={() => handleImageClick(currentImageIndex)}>
-                <img src={images[currentImageIndex]} alt={product.name} />
-                {hasMultipleImages && (
-                  <div className="image-overlay">
-                    <FiEye />
-                    <span>Click to enlarge</span>
-                  </div>
-                )}
-              </div>
-              
-              {hasMultipleImages && (
-                <div className="image-navigation">
-                  <button 
-                    className="nav-btn prev-btn" 
-                    onClick={prevImage}
-                    disabled={currentImageIndex === 0}
-                  >
-                    <FiChevronLeft />
-                  </button>
-                  <button 
-                    className="nav-btn next-btn" 
-                    onClick={nextImage}
-                    disabled={currentImageIndex === images.length - 1}
-                  >
-                    <FiChevronRight />
-                  </button>
-                </div>
-              )}
-            </div>
-
-            {/* Thumbnail Gallery */}
+            {/* Thumbnail Gallery - Left Side */}
             {hasMultipleImages && (
-              <div className="thumbnail-gallery">
+              <div className="thumbnail-gallery-left">
                 {images.map((image, index) => (
                   <div
                     key={index}
-                    className={`thumbnail ${index === currentImageIndex ? 'active' : ''}`}
-                    onClick={() => setCurrentImageIndex(index)}
+                    className={`thumbnail ${index === safeCurrentImageIndex ? 'active' : ''}`}
+                    onMouseEnter={() => handleThumbnailHover(index)}
                   >
-                    <img src={image} alt={`${product.name} ${index + 1}`} />
+                    <img 
+                      src={image} 
+                      alt={`${product.name} ${index + 1}`}
+                      onError={(e) => {
+                        e.target.src = '/placeholder-product.png';
+                      }}
+                    />
                   </div>
                 ))}
               </div>
             )}
+
+            {/* Main Image Container - Right Side */}
+            <div className="main-image-container">
+              <div className="main-image" onClick={() => handleImageClick(safeCurrentImageIndex)}>
+                <img 
+                  src={images[safeCurrentImageIndex] || images[0] || '/placeholder-product.png'} 
+                  alt={product.name}
+                  onError={(e) => {
+                    e.target.src = '/placeholder-product.png';
+                  }}
+                />
+              </div>
+            </div>
           </div>
           
           {/* Product Information Section - Amazon Style */}
@@ -497,8 +449,6 @@ const ProductDetail = () => {
                 <div className="hero-options">
                   {/* Size Selection */}
                   {(() => {
-                    console.log('Rendering sizes section. Product sizes:', product.sizes);
-                    console.log('Product variants:', product.variants);
                     
                     // Only show sizes that have variants with stock
                     let sizesToRender = [];
@@ -518,7 +468,6 @@ const ProductDetail = () => {
                       sizesToRender = product.sizes.split(',').map(s => s.trim()).filter(s => s);
                     }
                     
-                    console.log('Sizes to render (with stock):', sizesToRender);
                     
                     if (sizesToRender.length > 0) {
                       return (
@@ -533,7 +482,6 @@ const ProductDetail = () => {
                                 key={size}
                                 className={`size-option ${selectedSize === size ? 'selected' : ''}`}
                                 onClick={() => {
-                                  console.log('Size selected:', size);
                                   setSelectedSize(size);
                                 }}
                                 style={{
@@ -577,8 +525,6 @@ const ProductDetail = () => {
 
                   {/* Color Selection */}
                   {(() => {
-                    console.log('Rendering colors section. Product colors:', product.colors);
-                    console.log('Product variants:', product.variants);
                     
                     // Only show colors that have variants with stock
                     let colorsToRender = [];
@@ -598,7 +544,6 @@ const ProductDetail = () => {
                       colorsToRender = product.colors.split(',').map(c => c.trim()).filter(c => c);
                     }
                     
-                    console.log('Colors to render (with stock):', colorsToRender);
                     
                     if (colorsToRender.length > 0) {
                       return (
@@ -629,7 +574,6 @@ const ProductDetail = () => {
                                   key={colorName}
                                   className={`color-option ${selectedColor === colorName ? 'selected' : ''}`}
                                   onClick={() => {
-                                    console.log('Color selected:', colorName, 'Original color data:', color);
                                     setSelectedColor(colorName);
                                   }}
                                   style={{ 
@@ -692,7 +636,6 @@ const ProductDetail = () => {
                       <button 
                         onClick={() => {
                           const newQuantity = Math.max(1, quantity - 1);
-                          console.log('Decreasing quantity from', quantity, 'to', newQuantity);
                           setQuantity(newQuantity);
                         }}
                         className="quantity-btn"
@@ -705,7 +648,6 @@ const ProductDetail = () => {
                         value={quantity} 
                         onChange={(e) => {
                           const newQuantity = Math.max(1, parseInt(e.target.value) || 1);
-                          console.log('Input quantity changed from', quantity, 'to', newQuantity);
                           setQuantity(newQuantity);
                         }}
                         className="quantity-input"
@@ -721,7 +663,6 @@ const ProductDetail = () => {
                       <button 
                         onClick={() => {
                           const newQuantity = quantity + 1;
-                          console.log('Increasing quantity from', quantity, 'to', newQuantity);
                           setQuantity(newQuantity);
                         }}
                         className="quantity-btn"
@@ -1084,19 +1025,14 @@ const ProductDetail = () => {
               ×
             </button>
             <div className="modal-image-container">
-              <img src={images[currentImageIndex]} alt={product.name} />
+              <img 
+                src={images[safeCurrentImageIndex] || images[0] || '/placeholder-product.png'} 
+                alt={product.name}
+                onError={(e) => {
+                  e.target.src = '/placeholder-product.png';
+                }}
+              />
             </div>
-            {hasMultipleImages && (
-              <div className="modal-navigation">
-                <button onClick={prevImage} disabled={currentImageIndex === 0}>
-                  <FiChevronLeft />
-                </button>
-                <span>{currentImageIndex + 1} of {images.length}</span>
-                <button onClick={nextImage} disabled={currentImageIndex === images.length - 1}>
-                  <FiChevronRight />
-                </button>
-              </div>
-            )}
           </div>
         </div>
       )}

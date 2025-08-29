@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams, Link } from 'react-router-dom';
 import api from '../services/api';
 import { motion } from 'framer-motion';
 import ProductCard from '../components/ProductCard';
 import { useUserPreferences } from '../context/UserPreferencesContext';
+import { scrollToTop } from '../utils/scrollToTop';
 import './Products.css';
 
 const Products = () => {
@@ -14,11 +15,21 @@ const Products = () => {
   const [searchTerm, setSearchTerm] = useState(searchParams.get('search') || '');
   const [filters, setFilters] = useState({
     category: searchParams.get('category') || '',
-    featured: searchParams.get('featured') || '',
-    newArrival: searchParams.get('newArrival') || '',
-    trending: searchParams.get('trending') || ''
+    sort: searchParams.get('sort') || '',
+    special: searchParams.get('special') || ''
   });
   
+  // Update filters when URL params change
+  useEffect(() => {
+    const newFilters = {
+      category: searchParams.get('category') || '',
+      sort: searchParams.get('sort') || '',
+      special: searchParams.get('special') || ''
+    };
+    setFilters(newFilters);
+  }, [searchParams]);
+  
+  const [categories, setCategories] = useState([]);
   const { addRecentSearch, preferences } = useUserPreferences();
 
   // Debounced search function
@@ -26,10 +37,8 @@ const Products = () => {
     (() => {
       let timeoutId;
       return (searchValue) => {
-        console.log('Debounced search called with:', searchValue);
         clearTimeout(timeoutId);
         timeoutId = setTimeout(() => {
-          console.log('Executing debounced search for:', searchValue);
           setSearchLoading(true);
           fetchProducts(searchValue);
         }, 500); // Wait 500ms after user stops typing
@@ -39,14 +48,14 @@ const Products = () => {
   );
 
   useEffect(() => {
-    console.log('Component mounted, initial searchTerm:', searchTerm, 'initial filters:', filters);
     fetchProducts();
-  }, [filters]);
+    fetchCategories();
+    // Ensure page scrolls to top when component mounts
+    scrollToTop();
+  }, []); // Empty dependency array since we only want to run this once on mount
 
   // Handle search input changes
   useEffect(() => {
-    console.log('Search term changed:', searchTerm, 'URL param:', searchParams.get('search'));
-    
     // Skip initial load
     if (searchTerm === searchParams.get('search')) {
       return;
@@ -54,17 +63,24 @@ const Products = () => {
     
     // If search term is empty, clear results and fetch all products
     if (!searchTerm.trim()) {
-      console.log('Search term is empty, fetching all products');
       fetchProducts('');
       return;
     }
     
     // Debounce the search
-    console.log('Debouncing search for:', searchTerm);
     debouncedSearch(searchTerm);
   }, [searchTerm, debouncedSearch, searchParams]);
 
-  const fetchProducts = async (searchValue = null) => {
+  const fetchCategories = useCallback(async () => {
+    try {
+      const response = await api.get('/api/categories');
+      setCategories(response.data);
+    } catch (error) {
+      console.error('Error fetching categories:', error);
+    }
+  }, []);
+
+  const fetchProducts = useCallback(async (searchValue = null) => {
     try {
       if (searchValue !== null) {
         setSearchLoading(true);
@@ -80,16 +96,55 @@ const Products = () => {
         params.append('search', searchToUse.trim());
       }
       
-      // Add other filters
-      Object.entries(filters).forEach(([key, value]) => {
-        if (value) params.append(key, value);
-      });
+      // Add category filter
+      if (filters.category) {
+        params.append('category', filters.category);
+      }
+      
+      // Add special filters
+      if (filters.special) {
+        switch (filters.special) {
+          case 'featured':
+            params.append('featured', 'true');
+            break;
+          case 'newArrival':
+            params.append('newArrival', 'true');
+            break;
+          case 'trending':
+            params.append('trending', 'true');
+            break;
+          default:
+            break;
+        }
+      }
 
-      console.log('Fetching products with params:', params.toString());
+      // Add sorting parameter
+      if (filters.sort) {
+        let sortParam = '';
+        switch (filters.sort) {
+          case 'price_asc':
+            sortParam = 'price';
+            break;
+          case 'price_desc':
+            sortParam = 'price-desc';
+            break;
+          case 'newest':
+            sortParam = 'createdAt';
+            break;
+          case 'rating':
+            sortParam = 'rating';
+            break;
+          default:
+            sortParam = 'createdAt';
+            break;
+        }
+        params.append('sort', sortParam);
+      }
+
       const response = await api.get(`/api/products?${params.toString()}`);
       
       // Handle API response format - products endpoint returns { products: [...], pagination: {...} }
-      const productsData = response.data.products ? response.data.products : 
+      let productsData = response.data.products ? response.data.products : 
                          (Array.isArray(response.data) ? response.data : []);
       
       setProducts(productsData);
@@ -100,7 +155,14 @@ const Products = () => {
       setLoading(false);
       setSearchLoading(false);
     }
-  };
+  }, [searchTerm, filters]);
+
+  // Refetch products when filters change
+  useEffect(() => {
+    if (filters.category || filters.sort || filters.special) {
+      fetchProducts();
+    }
+  }, [filters, fetchProducts]);
 
   // Make fetchProducts available globally for admin panel to call
   useEffect(() => {
@@ -138,9 +200,8 @@ const Products = () => {
   const clearFilters = () => {
     setFilters({
       category: '',
-      featured: '',
-      newArrival: '',
-      trending: ''
+      sort: '',
+      special: ''
     });
     setSearchTerm('');
     setSearchParams({});
@@ -173,9 +234,11 @@ const Products = () => {
                 onChange={(e) => handleFilterChange('category', e.target.value)}
               >
                 <option value="">All Categories</option>
-                <option value="Apparel">Apparel</option>
-                <option value="Accessories">Accessories</option>
-                <option value="Home Goods">Home Goods</option>
+                {categories.map(category => (
+                  <option key={category._id} value={category.name}>
+                    {category.name}
+                  </option>
+                ))}
               </select>
             </div>
 
@@ -183,14 +246,11 @@ const Products = () => {
               <label>Search</label>
               <div className="search-input-container">
                                  <input
-                   type="text"
-                   placeholder="Search products..."
-                   value={searchTerm}
-                   onChange={(e) => {
-                     console.log('Search input changed to:', e.target.value);
-                     setSearchTerm(e.target.value);
-                   }}
-                 />
+                  type="text"
+                  placeholder="Search products..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                />
                 {searchLoading && <div className="search-spinner"></div>}
               </div>
             </div>

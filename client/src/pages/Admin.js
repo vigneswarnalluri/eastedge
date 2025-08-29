@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { FiBarChart2, FiPackage, FiShoppingCart, FiUsers, FiStar, FiTag, FiFileText, FiSettings, FiLogOut, FiPlus, FiEye, FiEdit, FiTrash2, FiDownload, FiFilter, FiUpload, FiDollarSign, FiMessageSquare } from 'react-icons/fi';
+import { scrollToTop } from '../utils/scrollToTop';
+import { FiBarChart2, FiPackage, FiShoppingCart, FiUsers, FiStar, FiTag, FiFileText, FiSettings, FiLogOut, FiPlus, FiEye, FiEdit, FiTrash2, FiDownload, FiUpload, FiDollarSign, FiMessageSquare } from 'react-icons/fi';
 import api from '../services/api';
 import './Admin.css';
 
@@ -95,12 +96,21 @@ const Admin = () => {
   const [replyLoading, setReplyLoading] = useState(false);
 
   const [showAddCategory, setShowAddCategory] = useState(false);
+  const [showEditCategory, setShowEditCategory] = useState(false);
+  const [editingCategory, setEditingCategory] = useState(null);
   const [categoryForm, setCategoryForm] = useState({ 
     name: '', 
     description: '', 
+    image: '',
+    imagePreview: '',
     status: 'active',
     parentCategory: null
   });
+  
+  // Category search and filter state
+  const [categorySearch, setCategorySearch] = useState('');
+  const [categoryStatusFilter, setCategoryStatusFilter] = useState('all');
+  const [categoryTypeFilter, setCategoryTypeFilter] = useState('all');
   
   // View product state
   const [viewingProduct, setViewingProduct] = useState(null);
@@ -114,7 +124,7 @@ const Admin = () => {
       
       const [productsRes, categoriesRes] = await Promise.all([
         api.get('/api/products'),
-        api.get('/api/categories')
+        api.get('/api/categories/admin/all')
       ]);
       
       console.log('Products response:', productsRes.data);
@@ -218,6 +228,27 @@ const Admin = () => {
     }
   };
 
+  // Fetch categories from backend
+  const fetchCategories = async () => {
+    try {
+      console.log('Fetching categories...');
+      const response = await api.get('/api/categories/admin/all');
+      console.log('Categories response:', response.data);
+      
+      if (Array.isArray(response.data)) {
+        setCategories(response.data);
+        console.log('Categories set successfully:', response.data.length);
+      } else {
+        console.error('Invalid categories response format:', response.data);
+        setCategories([]);
+      }
+    } catch (error) {
+      console.error('Error fetching categories:', error);
+      console.error('Error response:', error.response?.data);
+      setCategories([]);
+    }
+  };
+
 
 
   // Fetch customers
@@ -310,6 +341,8 @@ const Admin = () => {
       fetchData();
       fetchOrders();
       fetchOrderStats();
+      // Ensure page scrolls to top when component mounts
+      scrollToTop();
     }
   }, [isAuthenticated, isAdmin]);
 
@@ -338,6 +371,13 @@ const Admin = () => {
   useEffect(() => {
     if (isAuthenticated && isAdmin && activeTab === 'reviews') {
       fetchReviews();
+    }
+  }, [isAuthenticated, isAdmin, activeTab]);
+
+  // Fetch categories when categories tab is active
+  useEffect(() => {
+    if (isAuthenticated && isAdmin && activeTab === 'categories') {
+      fetchCategories();
     }
   }, [isAuthenticated, isAdmin, activeTab]);
   
@@ -683,27 +723,288 @@ const Admin = () => {
 
   // Category management functions
   const handleAddCategory = async () => {
-    if (categoryForm.name.trim()) {
-      try {
-        const categoryData = {
-          name: categoryForm.name.trim(),
-          description: `Category for ${categoryForm.name.trim()}`,
-          isActive: categoryForm.status === 'active',
-          slug: categoryForm.name.trim().toLowerCase().replace(/\s+/g, '-')
-        };
-
-        if (categoryForm.parentCategory) {
-          categoryData.parentCategory = categoryForm.parentCategory;
-        }
-
-        const response = await api.post('/api/categories', categoryData);
-        setCategories([...categories, response.data]);
-        setCategoryForm({ name: '', description: '', status: 'active', parentCategory: null });
-        setShowAddCategory(false);
-      } catch (error) {
-        console.error('Error adding category:', error);
-        alert('Error adding category. Please try again.');
+    if (!categoryForm.name.trim()) {
+      alert('Category name is required');
+      return;
+    }
+    
+    if (!categoryForm.description.trim()) {
+      alert('Category description is required');
+      return;
+    }
+    
+    try {
+      const formData = new FormData();
+      formData.append('name', categoryForm.name.trim());
+      formData.append('description', categoryForm.description.trim());
+      formData.append('isActive', categoryForm.status === 'active');
+      
+      if (categoryForm.parentCategory) {
+        formData.append('parentCategory', categoryForm.parentCategory);
       }
+      
+      if (categoryForm.image) {
+        formData.append('image', categoryForm.image);
+      }
+
+      const response = await api.post('/api/categories', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
+      
+      // Refresh categories instead of manually updating state
+      await fetchCategories();
+      setCategoryForm({ name: '', description: '', image: '', imagePreview: '', status: 'active', parentCategory: null });
+      setShowAddCategory(false);
+      alert('Category added successfully!');
+    } catch (error) {
+      console.error('Error adding category:', error);
+      alert('Error adding category. Please try again.');
+    }
+  };
+
+  const handleEditCategory = async () => {
+    if (!editingCategory || !categoryForm.name.trim()) {
+      alert('Category name is required');
+      return;
+    }
+    
+    if (!categoryForm.description.trim()) {
+      alert('Category description is required');
+      return;
+    }
+    
+    try {
+      const formData = new FormData();
+      formData.append('name', categoryForm.name.trim());
+      formData.append('description', categoryForm.description.trim());
+      formData.append('isActive', categoryForm.status === 'active');
+      
+      if (categoryForm.parentCategory) {
+        formData.append('parentCategory', categoryForm.parentCategory);
+      }
+      
+      if (categoryForm.image) {
+        formData.append('image', categoryForm.image);
+      }
+
+      const response = await api.put(`/api/categories/${editingCategory._id}`, formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
+      
+      // Refresh categories instead of manually updating state
+      await fetchCategories();
+      
+      setCategoryForm({ name: '', description: '', image: '', imagePreview: '', status: 'active', parentCategory: null });
+      setShowEditCategory(false);
+      setEditingCategory(null);
+      alert('Category updated successfully!');
+    } catch (error) {
+      console.error('Error updating category:', error);
+      alert('Error updating category. Please try again.');
+    }
+  };
+
+  const openEditCategory = (category) => {
+    setEditingCategory(category);
+    setCategoryForm({
+      name: category.name,
+      description: category.description || '',
+      image: '',
+      imagePreview: category.image || '',
+      status: category.isActive ? 'active' : 'inactive',
+      parentCategory: category.parentCategory?._id || null
+    });
+    setShowEditCategory(true);
+  };
+
+  const handleImageChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      setCategoryForm({
+        ...categoryForm,
+        image: file,
+        imagePreview: URL.createObjectURL(file)
+      });
+    }
+  };
+
+  const clearCategoryForm = () => {
+    setCategoryForm({ name: '', description: '', image: '', imagePreview: '', status: 'active', parentCategory: null });
+    setEditingCategory(null);
+  };
+
+  // Category filtering and search
+  const getFilteredCategories = () => {
+    let filtered = [...categories];
+    
+    // Search filter
+    if (categorySearch.trim()) {
+      filtered = filtered.filter(cat => 
+        cat.name.toLowerCase().includes(categorySearch.toLowerCase()) ||
+        (cat.description && cat.description.toLowerCase().includes(categorySearch.toLowerCase()))
+      );
+    }
+    
+    // Status filter
+    if (categoryStatusFilter !== 'all') {
+      filtered = filtered.filter(cat => 
+        categoryStatusFilter === 'active' ? cat.isActive : !cat.isActive
+      );
+    }
+    
+    // Type filter
+    if (categoryTypeFilter !== 'all') {
+      filtered = filtered.filter(cat => 
+        categoryTypeFilter === 'main' ? !cat.parentCategory : cat.parentCategory
+      );
+    }
+    
+    return filtered;
+  };
+
+  const handleCategorySearch = (e) => {
+    setCategorySearch(e.target.value);
+  };
+
+  const handleCategoryStatusFilter = (e) => {
+    setCategoryStatusFilter(e.target.value);
+  };
+
+  const handleCategoryTypeFilter = (e) => {
+    setCategoryTypeFilter(e.target.value);
+  };
+
+  const clearCategoryFilters = () => {
+    setCategorySearch('');
+    setCategoryStatusFilter('all');
+    setCategoryTypeFilter('all');
+  };
+
+
+
+  // Function to create all predefined categories
+  const createAllPredefinedCategories = async () => {
+    try {
+      console.log('Creating all predefined categories...');
+      
+      const allCategories = [
+        {
+          name: "Electronics",
+          description: "Electronic devices and gadgets",
+          subCategories: [
+            "Smartphones", "Laptops", "Tablets", "Headphones", "Speakers", "Cameras", "Gaming Consoles"
+          ]
+        },
+        {
+          name: "Fashion and Apparel",
+          description: "Clothing, shoes, and fashion accessories",
+          subCategories: [
+            "Men's Clothing", "Women's Clothing", "Kids' Clothing", "Shoes", "Bags", "Jewelry", "Watches"
+          ]
+        },
+        {
+          name: "Food and Beverages",
+          description: "Food products and beverages",
+          subCategories: [
+            "Snacks", "Beverages", "Organic Food", "Gourmet", "Health Food", "Beverages"
+          ]
+        },
+        {
+          name: "DIY and Hardware",
+          description: "Do-it-yourself and hardware tools",
+          subCategories: [
+            "Power Tools", "Hand Tools", "Garden Tools", "Building Materials", "Paint", "Electrical"
+          ]
+        },
+        {
+          name: "Health, Personal Care, and Beauty",
+          description: "Health and beauty products",
+          subCategories: [
+            "Skincare", "Makeup", "Hair Care", "Personal Care", "Vitamins", "Fitness"
+          ]
+        },
+        {
+          name: "Furniture and Home Décor",
+          description: "Furniture and home decoration items",
+          subCategories: [
+            "Living Room", "Bedroom", "Kitchen", "Bathroom", "Outdoor", "Lighting", "Decor"
+          ]
+        },
+        {
+          name: "Media",
+          description: "Books, movies, music, and digital media",
+          subCategories: [
+            "Books", "Movies", "Music", "Magazines", "Digital Downloads", "Audiobooks"
+          ]
+        },
+        {
+          name: "Toys and Hobbies",
+          description: "Toys, games, and hobby supplies",
+          subCategories: [
+            "Board Games", "Puzzles", "Educational Toys", "Arts & Crafts", "Sports Equipment", "Collectibles"
+          ]
+        }
+      ];
+      
+      // Get existing categories
+      const existingCategories = await api.get('/api/categories/admin/all');
+      const existingCategoryNames = existingCategories.data.map(cat => cat.name);
+      
+      let totalCreated = 0;
+      
+      // Create main categories
+      for (const category of allCategories) {
+        if (!existingCategoryNames.includes(category.name)) {
+          const categoryData = {
+            name: category.name,
+            description: category.description,
+            isActive: true,
+            image: '/accessories.png',
+            slug: category.name.toLowerCase().replace(/\s+/g, '-')
+          };
+          
+          try {
+            const response = await api.post('/api/categories', categoryData);
+            console.log(`Created main category: ${category.name}`);
+            totalCreated++;
+            
+            // Create sub-categories
+            for (const subCatName of category.subCategories) {
+              const subCategoryData = {
+                name: subCatName,
+                description: `${subCatName} under ${category.name}`,
+                isActive: true,
+                image: '/accessories.png',
+                parentCategory: response.data._id,
+                slug: subCatName.toLowerCase().replace(/\s+/g, '-')
+              };
+              
+              try {
+                await api.post('/api/categories', subCategoryData);
+                console.log(`Created sub-category: ${subCatName}`);
+                totalCreated++;
+              } catch (error) {
+                console.error(`Error creating sub-category ${subCatName}:`, error);
+              }
+            }
+          } catch (error) {
+            console.error(`Error creating main category ${category.name}:`, error);
+          }
+        }
+      }
+      
+      // Refresh categories
+      await fetchCategories();
+      
+      if (totalCreated > 0) {
+        alert(`Successfully created ${totalCreated} categories and sub-categories!`);
+      } else {
+        alert('All predefined categories already exist!');
+      }
+      
+    } catch (error) {
+      console.error('Error creating predefined categories:', error);
+      alert('Error creating predefined categories. Please try again.');
     }
   };
 
@@ -757,7 +1058,7 @@ const Admin = () => {
       }
 
       // Refresh categories after creating sub-categories
-      fetchData();
+      await fetchCategories();
       alert('Sample sub-categories created successfully!');
     } catch (error) {
       console.error('Error creating sample sub-categories:', error);
@@ -768,13 +1069,11 @@ const Admin = () => {
   const handleDeleteCategory = async (categoryId) => {
     if (window.confirm('Are you sure you want to delete this category? This will affect all products in this category.')) {
       try {
-        await api.delete(`/api/categories/${categoryId}`);
-        setCategories(categories.filter(cat => cat._id !== categoryId));
-        // Also remove products in this category
-        setProducts(products.filter(product => {
-          const category = categories.find(cat => cat._id === categoryId);
-          return category ? product.categoryName !== category.name : true;
-        }));
+              await api.delete(`/api/categories/${categoryId}`);
+      // Refresh categories instead of manually updating state
+      await fetchCategories();
+      // Also refresh products to update category references
+      await fetchData();
       } catch (error) {
         console.error('Error deleting category:', error);
         alert('Error deleting category. Please try again.');
@@ -2441,12 +2740,48 @@ const Admin = () => {
     <div className="admin-categories">
       <div className="section-header">
         <h1>Categories</h1>
-        <div className="header-actions">
-          <button className="add-btn" onClick={createSampleSubCategories}>
-            <FiPlus /> Create Sample Sub-Categories
-          </button>
-          <button className="add-btn" onClick={() => setShowAddCategory(true)}>
-            <FiPlus /> Add Category
+                  <div className="header-actions">
+            <button className="add-btn" onClick={() => setShowAddCategory(true)}>
+              <FiPlus /> Add Category
+            </button>
+          </div>
+      </div>
+
+      {/* Search and Filter Section */}
+      <div className="search-filter-container">
+        <div className="search-section">
+          <input
+            type="text"
+            placeholder="Search categories..."
+            value={categorySearch}
+            onChange={handleCategorySearch}
+            className="search-input"
+          />
+        </div>
+        
+        <div className="filter-section">
+          <select
+            value={categoryStatusFilter}
+            onChange={handleCategoryStatusFilter}
+            className="status-filter"
+          >
+            <option value="all">All Status</option>
+            <option value="active">Active</option>
+            <option value="inactive">Inactive</option>
+          </select>
+          
+          <select
+            value={categoryTypeFilter}
+            onChange={handleCategoryTypeFilter}
+            className="status-filter"
+          >
+            <option value="all">All Types</option>
+            <option value="main">Main Categories</option>
+            <option value="sub">Sub Categories</option>
+          </select>
+          
+          <button className="clear-filters-btn" onClick={clearCategoryFilters}>
+            Clear Filters
           </button>
         </div>
       </div>
@@ -2492,24 +2827,120 @@ const Admin = () => {
                  <option value="inactive">Inactive</option>
                </select>
              </div>
-             <div className="form-group">
-               <label>Description</label>
-               <textarea
-                 className="form-textarea"
-                 value={categoryForm.description || ''}
-                 onChange={(e) => setCategoryForm({...categoryForm, description: e.target.value})}
-                 placeholder="Enter category description"
-               />
-             </div>
+                         <div className="form-group">
+              <label>Description</label>
+              <textarea
+                className="form-textarea"
+                value={categoryForm.description || ''}
+                onChange={(e) => setCategoryForm({...categoryForm, description: e.target.value})}
+                placeholder="Enter category description"
+              />
+            </div>
+            
+            <div className="form-group">
+              <label>Category Image</label>
+              <input
+                type="file"
+                accept="image/*"
+                onChange={handleImageChange}
+                className="form-input"
+              />
+              {categoryForm.imagePreview && (
+                <div className="image-preview">
+                  <img src={categoryForm.imagePreview} alt="Preview" />
+                </div>
+              )}
+            </div>
             <div className="form-actions">
-                             <button className="cancel-btn" onClick={() => {
-                 setShowAddCategory(false);
-                 setCategoryForm({ name: '', description: '', status: 'active', parentCategory: null });
-               }}>
+                                           <button className="cancel-btn" onClick={() => {
+                setShowAddCategory(false);
+                clearCategoryForm();
+              }}>
                 Cancel
               </button>
               <button className="save-btn" onClick={handleAddCategory}>
                 Add Category
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Category Form */}
+      {showEditCategory && (
+        <div className="form-modal" onClick={() => setShowEditCategory(false)}>
+          <div className="form-content" onClick={(e) => e.stopPropagation()}>
+            <h3>Edit Category</h3>
+            <div className="form-group">
+              <label>Category Name *</label>
+              <input
+                type="text"
+                className="form-input"
+                value={categoryForm.name}
+                onChange={(e) => setCategoryForm({...categoryForm, name: e.target.value})}
+                placeholder="Enter category name"
+              />
+            </div>
+            <div className="form-group">
+              <label>Parent Category</label>
+              <select
+                className="form-input"
+                value={categoryForm.parentCategory || ''}
+                onChange={(e) => setCategoryForm({...categoryForm, parentCategory: e.target.value || null})}
+              >
+                <option value="">Select Parent Category (Optional)</option>
+                {Array.isArray(categories) ? categories
+                  .filter(cat => !cat.parentCategory && cat._id !== editingCategory?._id) // Don't allow self as parent
+                  .map(cat => (
+                    <option key={cat._id} value={cat._id}>{cat.name}</option>
+                  )) : null}
+              </select>
+            </div>
+            <div className="form-group">
+              <label>Status</label>
+              <select
+                className="form-input"
+                value={categoryForm.status}
+                onChange={(e) => setCategoryForm({...categoryForm, status: e.target.value})}
+              >
+                <option value="active">Active</option>
+                <option value="inactive">Inactive</option>
+              </select>
+            </div>
+            <div className="form-group">
+              <label>Description</label>
+              <textarea
+                className="form-textarea"
+                value={categoryForm.description || ''}
+                placeholder="Enter category description"
+                onChange={(e) => setCategoryForm({...categoryForm, description: e.target.value})}
+              />
+            </div>
+            
+            <div className="form-group">
+              <label>Category Image</label>
+              <input
+                type="file"
+                accept="image/*"
+                onChange={handleImageChange}
+                className="form-input"
+              />
+              {categoryForm.imagePreview && (
+                <div className="form-image-preview">
+                  <img src={categoryForm.imagePreview} alt="Preview" />
+                </div>
+              )}
+            </div>
+            
+            <div className="form-actions">
+              <button className="cancel-btn" onClick={() => {
+                setShowEditCategory(false);
+                clearCategoryForm();
+              }}>
+                Cancel
+              </button>
+              <button className="save-btn" onClick={handleEditCategory}>
+                Update Category
               </button>
             </div>
           </div>
@@ -2529,7 +2960,7 @@ const Admin = () => {
             </tr>
           </thead>
           <tbody>
-            {Array.isArray(categories) ? categories
+            {Array.isArray(getFilteredCategories()) ? getFilteredCategories()
               .filter(cat => !cat.parentCategory) // Only show main categories in the main table
               .map(mainCategory => {
                 const subCategories = categories.filter(cat => 
@@ -2562,7 +2993,7 @@ const Admin = () => {
                         {mainCategory.isActive ? 'Active' : 'Inactive'}
                       </span></td>
                       <td className="actions">
-                        <button className="action-btn edit"><FiEdit /></button>
+                        <button className="action-btn edit" onClick={() => openEditCategory(mainCategory)}><FiEdit /></button>
                         <button className="action-btn delete" onClick={() => handleDeleteCategory(mainCategory._id)}><FiTrash2 /></button>
                       </td>
                     </tr>
@@ -2588,7 +3019,7 @@ const Admin = () => {
                             {mainCategory.isActive ? 'Active' : 'Inactive'}
                           </span></td>
                           <td className="actions">
-                            <button className="action-btn edit"><FiEdit /></button>
+                            <button className="action-btn edit" onClick={() => openEditCategory(subCategory)}><FiEdit /></button>
                             <button className="action-btn delete" onClick={() => handleDeleteCategory(subCategory._id)}><FiTrash2 /></button>
                           </td>
                         </tr>
@@ -3439,6 +3870,163 @@ const Admin = () => {
     } catch (error) {
       console.error('Error migrating users:', error);
       alert('Failed to migrate users');
+    }
+  };
+
+  // Function to sync categories with products
+  const syncCategoriesWithProducts = async () => {
+    try {
+      console.log('Syncing categories with products...');
+      
+      // Define all the main categories and their sub-categories
+      const allCategories = [
+        {
+          name: "Electronics",
+          description: "Electronic devices and gadgets",
+          subCategories: [
+            "Smartphones", "Laptops", "Tablets", "Headphones", "Speakers", "Cameras", "Gaming Consoles"
+          ]
+        },
+        {
+          name: "Fashion and Apparel",
+          description: "Clothing, shoes, and fashion accessories",
+          subCategories: [
+            "Men's Clothing", "Women's Clothing", "Kids' Clothing", "Shoes", "Bags", "Jewelry", "Watches"
+          ]
+        },
+        {
+          name: "Food and Beverages",
+          description: "Food products and beverages",
+          subCategories: [
+            "Snacks", "Beverages", "Organic Food", "Gourmet", "Health Food", "Beverages"
+          ]
+        },
+        {
+          name: "DIY and Hardware",
+          description: "Do-it-yourself and hardware tools",
+          subCategories: [
+            "Power Tools", "Hand Tools", "Garden Tools", "Building Materials", "Paint", "Electrical"
+          ]
+        },
+        {
+          name: "Health, Personal Care, and Beauty",
+          description: "Health and beauty products",
+          subCategories: [
+            "Skincare", "Makeup", "Hair Care", "Personal Care", "Vitamins", "Fitness"
+          ]
+        },
+        {
+          name: "Furniture and Home Décor",
+          description: "Furniture and home decoration items",
+          subCategories: [
+            "Living Room", "Bedroom", "Kitchen", "Bathroom", "Outdoor", "Lighting", "Decor"
+          ]
+        },
+        {
+          name: "Media",
+          description: "Books, movies, music, and digital media",
+          subCategories: [
+            "Books", "Movies", "Music", "Magazines", "Digital Downloads", "Audiobooks"
+          ]
+        },
+        {
+          name: "Toys and Hobbies",
+          description: "Toys, games, and hobby supplies",
+          subCategories: [
+            "Board Games", "Puzzles", "Educational Toys", "Arts & Crafts", "Sports Equipment", "Collectibles"
+          ]
+        }
+      ];
+      
+      // Get existing categories
+      const existingCategories = await api.get('/api/categories/admin/all');
+      const existingCategoryNames = existingCategories.data.map(cat => cat.name);
+      console.log('Existing categories:', existingCategoryNames);
+      
+      // Find missing main categories
+      const missingMainCategories = allCategories.filter(cat => 
+        !existingCategoryNames.includes(cat.name)
+      );
+      console.log('Missing main categories:', missingMainCategories);
+      
+      // Create missing main categories
+      for (const category of missingMainCategories) {
+        const categoryData = {
+          name: category.name,
+          description: category.description,
+          isActive: true,
+          image: '/accessories.png',
+          slug: category.name.toLowerCase().replace(/\s+/g, '-')
+        };
+        
+        try {
+          const response = await api.post('/api/categories', categoryData);
+          console.log(`Created main category: ${category.name}`);
+          
+          // Create sub-categories for this main category
+          for (const subCatName of category.subCategories) {
+            const subCategoryData = {
+              name: subCatName,
+              description: `${subCatName} under ${category.name}`,
+              isActive: true,
+              image: '/accessories.png',
+              parentCategory: response.data._id,
+              slug: subCatName.toLowerCase().replace(/\s+/g, '-')
+            };
+            
+            try {
+              await api.post('/api/categories', subCategoryData);
+              console.log(`Created sub-category: ${subCatName} under ${category.name}`);
+            } catch (error) {
+              console.error(`Error creating sub-category ${subCatName}:`, error);
+            }
+          }
+        } catch (error) {
+          console.error(`Error creating main category ${category.name}:`, error);
+        }
+      }
+      
+      // Also check for product-specific categories that might not be in our predefined list
+      const productCategories = [...new Set(products.map(p => p.categoryName).filter(Boolean))];
+      const missingProductCategories = productCategories.filter(catName => 
+        !existingCategoryNames.includes(catName) && 
+        !allCategories.some(cat => cat.name === catName)
+      );
+      
+      if (missingProductCategories.length > 0) {
+        console.log('Additional product categories found:', missingProductCategories);
+        
+        for (const categoryName of missingProductCategories) {
+          const categoryData = {
+            name: categoryName,
+            description: `Category for ${categoryName} products`,
+            isActive: true,
+            image: '/accessories.png',
+            slug: categoryName.toLowerCase().replace(/\s+/g, '-')
+          };
+          
+          try {
+            await api.post('/api/categories', categoryData);
+            console.log(`Created additional category: ${categoryName}`);
+          } catch (error) {
+            console.error(`Error creating additional category ${categoryName}:`, error);
+          }
+        }
+      }
+      
+      // Refresh categories
+      await fetchCategories();
+      
+      const totalCreated = missingMainCategories.length + missingProductCategories.length;
+      if (totalCreated > 0) {
+        alert(`Successfully synced ${totalCreated} categories and their sub-categories!`);
+      } else {
+        alert('All categories are already synced!');
+      }
+      
+    } catch (error) {
+      console.error('Error syncing categories:', error);
+      alert('Error syncing categories. Please try again.');
     }
   };
 
