@@ -13,8 +13,10 @@ const app = express();
 app.use(cors({
   origin: process.env.NODE_ENV === 'production' 
     ? ['https://eastedge.onrender.com', 'https://eastedge.in', 'https://www.eastedge.in'] 
-    : true,
-  credentials: true
+    : ['http://localhost:3000', 'http://localhost:3001', 'http://127.0.0.1:3000', 'http://127.0.0.1:3001'],
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
 }));
 
 app.use(express.json({ limit: '10mb' }));
@@ -76,6 +78,7 @@ app.use('/api/orders', require('./routes/orders'));
 app.use('/api/payments', require('./routes/payments'));
 app.use('/api/cart', require('./routes/cart'));
 app.use('/api/reviews', require('./routes/reviews'));
+app.use('/api/discounts', require('./routes/discounts'));
 
 // Serve uploaded images
 app.use('/uploads', express.static(path.join(__dirname, 'client/public/uploads')));
@@ -98,7 +101,12 @@ app.use((err, req, res, next) => {
   });
 });
 
-// 404 handler
+// 404 handler for API routes
+app.use('/api/*', (req, res) => {
+  res.status(404).json({ message: 'API endpoint not found' });
+});
+
+// 404 handler for all other routes
 app.use('*', (req, res) => {
   res.status(404).json({ message: 'Route not found' });
 });
