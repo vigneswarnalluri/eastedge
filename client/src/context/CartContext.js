@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useReducer, useEffect, useState } from 'react';
+import React, { createContext, useContext, useReducer, useEffect, useState, useCallback } from 'react';
 import { useAuth } from './AuthContext';
 
 const CartContext = createContext();
@@ -182,15 +182,16 @@ const cartReducer = (state, action) => {
 export const CartProvider = ({ children }) => {
   const [state, dispatch] = useReducer(cartReducer, initialState);
   const [isInitialized, setIsInitialized] = useState(false);
+  const [hasLoadedFromStorage, setHasLoadedFromStorage] = useState(false);
   const { isAuthenticated, user } = useAuth();
   
   // Get user-specific cart key
-  const getCartKey = () => {
+  const getCartKey = useCallback(() => {
     if (isAuthenticated && user?._id) {
       return `cart_${user._id}`;
     }
     return 'cart_guest';
-  };
+  }, [isAuthenticated, user?._id]);
   
   // Debug logging for state changes
   useEffect(() => {
@@ -209,44 +210,66 @@ export const CartProvider = ({ children }) => {
 
   // Load cart from localStorage
   useEffect(() => {
+    console.log('🛒 Cart loading effect triggered - isInitialized:', isInitialized, 'cartKey:', getCartKey());
+    
     const loadCartFromStorage = () => {
       try {
         const cartKey = getCartKey();
+        console.log('🔑 Loading cart with key:', cartKey);
         const savedCart = localStorage.getItem(cartKey);
+        console.log('📦 Raw saved cart data:', savedCart);
         
         if (savedCart) {
           const parsedCart = JSON.parse(savedCart);
-          console.log('Loading cart from storage:', parsedCart);
+          console.log('✅ Parsed cart data:', parsedCart);
           
-          // Validate loaded data
+          // Validate loaded data - be more lenient with validation
           if (parsedCart && 
-              Array.isArray(parsedCart.items) && 
-              typeof parsedCart.total === 'number' && 
-              typeof parsedCart.itemCount === 'number' &&
-              parsedCart.total >= 0 &&
-              parsedCart.itemCount >= 0) {
+              Array.isArray(parsedCart.items)) {
             
-            dispatch({ type: 'LOAD_CART', payload: parsedCart });
+            // Ensure total and itemCount are numbers, calculate if missing
+            const validatedCart = {
+              items: parsedCart.items,
+              total: typeof parsedCart.total === 'number' ? parsedCart.total : 
+                     parsedCart.items.reduce((sum, item) => sum + ((item.variantPrice || item.price || 0) * (item.quantity || 1)), 0),
+              itemCount: typeof parsedCart.itemCount === 'number' ? parsedCart.itemCount : 
+                        parsedCart.items.reduce((sum, item) => sum + (item.quantity || 1), 0)
+            };
+            
+            console.log('🎯 Dispatching LOAD_CART action with validated payload:', validatedCart);
+            dispatch({ type: 'LOAD_CART', payload: validatedCart });
+            setHasLoadedFromStorage(true);
           } else {
-            console.error('Corrupted cart data detected, resetting');
+            console.error('❌ Invalid cart data structure, resetting');
             resetCorruptedCart();
           }
+        } else {
+          console.log('📭 No saved cart found for key:', cartKey);
+          // Don't clear cart if no saved data - this is normal for new users
+          setHasLoadedFromStorage(true);
         }
       } catch (error) {
-        console.error('Error loading cart from storage:', error);
-        resetCorruptedCart();
+        console.error('❌ Error loading cart from storage:', error);
+        // Only reset if it's a JSON parsing error, not if the cart is empty
+        if (localStorage.getItem(getCartKey())) {
+          resetCorruptedCart();
+        }
+        setHasLoadedFromStorage(true);
       }
     };
 
     if (isInitialized) {
+      console.log('🚀 Cart is initialized, loading from storage...');
       loadCartFromStorage();
+    } else {
+      console.log('⏳ Cart not yet initialized, waiting...');
     }
   }, [isInitialized, getCartKey]);
 
   // Save cart to localStorage whenever it changes
   useEffect(() => {
-    if (!isInitialized) {
-      console.log('Skipping save - cart not yet initialized');
+    if (!isInitialized || !hasLoadedFromStorage) {
+      console.log('⏸️ Skipping save - cart not yet initialized or not loaded from storage');
       return;
     }
     
@@ -256,23 +279,23 @@ export const CartProvider = ({ children }) => {
       itemCount: state.itemCount
     };
     const cartKey = getCartKey();
-    console.log('Saving cart to localStorage with key:', cartKey, 'data:', cartData);
+    console.log('💾 Saving cart to localStorage with key:', cartKey, 'data:', cartData);
     
     try {
       localStorage.setItem(cartKey, JSON.stringify(cartData));
-      console.log('Cart saved successfully to localStorage');
+      console.log('✅ Cart saved successfully to localStorage');
     } catch (error) {
-      console.error('Error saving cart to localStorage:', error);
+      console.error('❌ Error saving cart to localStorage:', error);
       // Try to clear localStorage if it's full
       try {
         localStorage.clear();
         localStorage.setItem(cartKey, JSON.stringify(cartData));
-        console.log('Cart saved after clearing localStorage');
+        console.log('🔄 Cart saved after clearing localStorage');
       } catch (clearError) {
-        console.error('Failed to save cart even after clearing localStorage:', clearError);
+        console.error('❌ Failed to save cart even after clearing localStorage:', clearError);
       }
     }
-  }, [state.items, state.total, state.itemCount, isInitialized, isAuthenticated, user?._id]);
+  }, [state.items, state.total, state.itemCount, isInitialized, hasLoadedFromStorage, getCartKey]);
 
   // Migrate guest cart to user cart when logging in
   useEffect(() => {
@@ -281,6 +304,28 @@ export const CartProvider = ({ children }) => {
       migrateGuestCart();
     }
   }, [isAuthenticated, user?._id, isInitialized]);
+
+  // Initialize cart and set isInitialized to true
+  useEffect(() => {
+    console.log('🔧 Cart initialization effect - isAuthenticated:', isAuthenticated, 'user:', user?._id);
+    
+    // Set initialized to true immediately for guest users, or after auth check for authenticated users
+    if (!isAuthenticated) {
+      // Guest user - initialize immediately
+      console.log('👤 Guest user detected, initializing immediately');
+      setIsInitialized(true);
+      console.log('✅ Cart context initialized for guest user');
+    } else {
+      // Authenticated user - initialize after auth check
+      console.log('🔐 Authenticated user detected, initializing after auth check');
+      const timer = setTimeout(() => {
+        setIsInitialized(true);
+        console.log('✅ Cart context initialized for authenticated user');
+      }, 100);
+      
+      return () => clearTimeout(timer);
+    }
+  }, [isAuthenticated, user?._id]);
 
   const addToCart = (product, quantity = 1) => {
     console.log('Adding to cart:', product, 'quantity:', quantity);

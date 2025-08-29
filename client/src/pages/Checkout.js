@@ -32,6 +32,12 @@ const Checkout = () => {
   const [errors, setErrors] = useState({});
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState('razorpay');
 
+  // Discount code state
+  const [discountCode, setDiscountCode] = useState('');
+  const [discountLoading, setDiscountLoading] = useState(false);
+  const [appliedDiscount, setAppliedDiscount] = useState(null);
+  const [discountError, setDiscountError] = useState('');
+
   // Redirect unauthenticated users to login
   useEffect(() => {
     if (!isAuthenticated) {
@@ -74,6 +80,70 @@ const Checkout = () => {
     // Ensure page scrolls to top when component mounts
     scrollToTop();
   }, [cartItems, isInitialized]);
+
+  // Force re-render when discount changes to update payment amounts
+  useEffect(() => {
+    // This effect will trigger re-render when appliedDiscount changes
+  }, [appliedDiscount]);
+
+  // Discount code validation
+  const validateDiscountCode = async () => {
+    if (!discountCode.trim()) {
+      setDiscountError('Please enter a discount code');
+      return;
+    }
+
+    setDiscountLoading(true);
+    setDiscountError('');
+
+    try {
+      const response = await api.post('/api/discounts/validate', {
+        code: discountCode.trim(),
+        orderAmount: getFinalTotal() || 0
+      });
+
+      if (response.data.valid) {
+        setAppliedDiscount(response.data.discount);
+        setDiscountError('');
+        console.log('Discount applied:', response.data.discount);
+      }
+    } catch (error) {
+      console.error('Discount validation error:', error);
+      if (error.response?.data?.message) {
+        setDiscountError(error.response.data.message);
+      } else {
+        setDiscountError('Invalid discount code');
+      }
+      setAppliedDiscount(null);
+    } finally {
+      setDiscountLoading(false);
+    }
+  };
+
+  // Remove applied discount
+  const removeDiscount = () => {
+    setAppliedDiscount(null);
+    setDiscountCode('');
+    setDiscountError('');
+  };
+
+  // Calculate final total with discount
+  const getFinalTotal = () => {
+    let total = getTotalPrice() || 0;
+    
+    // Add COD charges if applicable
+    if (formData.paymentMethod === 'cod') {
+      total += 50;
+    }
+    
+    // Apply discount if available
+    if (appliedDiscount) {
+      total -= appliedDiscount.discountAmount;
+      total = Math.max(0, total); // Ensure total doesn't go below 0
+    }
+    
+    return total;
+  };
 
   // Don't render anything if not authenticated
   if (!isAuthenticated) {
@@ -240,7 +310,7 @@ const Checkout = () => {
       const orderData = {
         items: cartItems,
         shipping: formData,
-        total: formData.paymentMethod === 'cod' ? getTotalPrice() + 50 : getTotalPrice(),
+        total: getFinalTotal(),
         paymentMethod: formData.paymentMethod,
         codCharges: formData.paymentMethod === 'cod' ? 50 : 0
       };
@@ -249,7 +319,8 @@ const Checkout = () => {
       console.log('Payment method:', formData.paymentMethod);
       console.log('Order data being sent:', orderData);
       console.log('Cart total:', getTotalPrice());
-      console.log('COD total:', formData.paymentMethod === 'cod' ? getTotalPrice() + 50 : getTotalPrice());
+      console.log('Final total with discounts:', getFinalTotal());
+      console.log('COD total:', formData.paymentMethod === 'cod' ? getFinalTotal() : getFinalTotal());
       
       // Debug cart items structure
       console.log('=== CART ITEMS DEBUG ===');
@@ -515,11 +586,12 @@ const Checkout = () => {
 
               {formData.paymentMethod === 'razorpay' ? (
                 <RazorpayPayment
-                  amount={getTotalPrice() || 0}
+                  key={`razorpay-${getFinalTotal()}-${appliedDiscount?.code || 'no-discount'}`}
+                  amount={getFinalTotal() || 0}
                   orderData={{
                     items: cartItems || [],
                     shipping: formData,
-                    total: getTotalPrice() || 0
+                    total: getFinalTotal() || 0
                   }}
                   onSuccess={(paymentResponse) => {
                     console.log('Payment successful:', paymentResponse);
@@ -538,13 +610,14 @@ const Checkout = () => {
                     <p>Cash on delivery charges: ₹50</p>
                     <p>Available for orders above ₹500</p>
                     <p>Not available for international shipping</p>
+                    <p className="cod-total">Pay ₹{getFinalTotal().toFixed(2)} when you receive your order.</p>
                   </div>
                   <button 
                     type="submit" 
                     className="btn-primary checkout-submit-btn cod-btn"
                     disabled={loading}
                   >
-                    {loading ? 'Processing...' : `Place COD Order - ₹${((getTotalPrice() || 0) + 50).toFixed(2)}`}
+                    {loading ? 'Processing...' : `Place COD Order - ₹${getFinalTotal().toFixed(2)}`}
                   </button>
                 </div>
               ) : (
@@ -553,7 +626,7 @@ const Checkout = () => {
                   className="btn-primary checkout-submit-btn"
                   disabled={loading}
                 >
-                  {loading ? 'Processing...' : `Place Order - ₹${(getTotalPrice() || 0).toFixed(2)}`}
+                  {loading ? 'Processing...' : `Place Order - ₹${getFinalTotal().toFixed(2)}`}
                 </button>
               )}
             </form>
@@ -561,6 +634,57 @@ const Checkout = () => {
 
           <div className="order-summary">
             <h3>Order Summary</h3>
+            
+            {/* Discount Code Section */}
+            <div className="discount-section">
+              <h4>Have a discount code?</h4>
+              <div className="discount-input-group">
+                <input
+                  type="text"
+                  placeholder="Enter discount code"
+                  value={discountCode}
+                  onChange={(e) => setDiscountCode(e.target.value.toUpperCase())}
+                  className="discount-input"
+                  disabled={discountLoading || !!appliedDiscount}
+                />
+                {!appliedDiscount ? (
+                  <button
+                    type="button"
+                    onClick={validateDiscountCode}
+                    className="discount-apply-btn"
+                    disabled={discountLoading || !discountCode.trim()}
+                  >
+                    {discountLoading ? 'Applying...' : 'Apply'}
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={removeDiscount}
+                    className="discount-remove-btn"
+                  >
+                    Remove
+                  </button>
+                )}
+              </div>
+              
+              {/* Discount Error Message */}
+              {discountError && (
+                <div className="discount-error">{discountError}</div>
+              )}
+              
+              {/* Applied Discount Display */}
+              {appliedDiscount && (
+                <div className="applied-discount">
+                  <span className="discount-label">
+                    {appliedDiscount.type === 'percentage' ? `${appliedDiscount.value}% OFF` : `₹${appliedDiscount.value} OFF`}
+                  </span>
+                  <span className="discount-amount">
+                    -₹{appliedDiscount.discountAmount.toFixed(2)}
+                  </span>
+                </div>
+              )}
+            </div>
+
             <div className="order-items">
               {cartItems && cartItems.map(item => (
                 <div key={`${item.id}-${item.selectedSize}`} className="order-item">
@@ -592,9 +716,15 @@ const Checkout = () => {
                   <span>₹50.00</span>
                 </div>
               )}
+              {appliedDiscount && (
+                <div className="total-row discount-row">
+                  <span>Discount ({appliedDiscount.code}):</span>
+                  <span>-₹{appliedDiscount.discountAmount.toFixed(2)}</span>
+                </div>
+              )}
               <div className="total-row total-final">
                 <span>Total:</span>
-                <span>₹{formData.paymentMethod === 'cod' ? ((getTotalPrice() || 0) + 50).toFixed(2) : (getTotalPrice() || 0).toFixed(2)}</span>
+                <span>₹{getFinalTotal().toFixed(2)}</span>
               </div>
             </div>
           </div>

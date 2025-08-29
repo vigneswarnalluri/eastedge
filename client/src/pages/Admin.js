@@ -95,6 +95,25 @@ const Admin = () => {
   const [replyText, setReplyText] = useState('');
   const [replyLoading, setReplyLoading] = useState(false);
 
+  // Discount management state
+  const [discounts, setDiscounts] = useState([]);
+  const [discountsLoading, setDiscountsLoading] = useState(false);
+  const [showAddDiscount, setShowAddDiscount] = useState(false);
+  const [showEditDiscount, setShowEditDiscount] = useState(false);
+  const [editingDiscount, setEditingDiscount] = useState(null);
+  const [discountForm, setDiscountForm] = useState({
+    code: '',
+    type: 'percentage',
+    value: '',
+    minOrderAmount: '',
+    maxDiscount: '',
+    maxUses: '',
+    validFrom: '',
+    validUntil: '',
+    isActive: true,
+    description: ''
+  });
+
   const [showAddCategory, setShowAddCategory] = useState(false);
   const [showEditCategory, setShowEditCategory] = useState(false);
   const [editingCategory, setEditingCategory] = useState(null);
@@ -335,16 +354,24 @@ const Admin = () => {
     }
   }, [loading, isAuthenticated, isAdmin, navigate]);
 
-  // Fetch orders and stats when component mounts
+  // Fetch data when component mounts
   useEffect(() => {
     if (isAuthenticated && isAdmin) {
       fetchData();
       fetchOrders();
-      fetchOrderStats();
-      // Ensure page scrolls to top when component mounts
+      fetchCustomers();
+      fetchReviews();
+      fetchCategories();
       scrollToTop();
     }
   }, [isAuthenticated, isAdmin]);
+
+  // Fetch discounts when discounts tab is active
+  useEffect(() => {
+    if (activeTab === 'discounts' && isAuthenticated && isAdmin) {
+      fetchDiscounts();
+    }
+  }, [activeTab, isAuthenticated, isAdmin]);
 
   // Refetch orders when status filter changes
   useEffect(() => {
@@ -3042,36 +3069,348 @@ const Admin = () => {
     <div className="admin-discounts">
       <div className="section-header">
         <h1>Discounts</h1>
-        <button className="add-btn">
+        <button className="add-btn" onClick={() => setShowAddDiscount(true)}>
           <FiPlus /> Add Discount
         </button>
       </div>
       
-      <div className="table-container">
-        <table className="admin-table">
-          <thead>
-            <tr>
-              <th>Code</th>
-              <th>Type</th>
-              <th>Value</th>
-              <th>Uses</th>
-              <th>Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr>
-              <td>SALE20</td>
-              <td>Percentage</td>
-              <td>20%</td>
-              <td>25/100</td>
-              <td className="actions">
-                <button className="action-btn edit"><FiEdit /></button>
-                <button className="action-btn delete"><FiTrash2 /></button>
-              </td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
+      {discountsLoading ? (
+        <div className="loading-spinner">Loading discounts...</div>
+      ) : (
+        <div className="table-container">
+          <table className="admin-table">
+            <thead>
+              <tr>
+                <th>Code</th>
+                <th>Type</th>
+                <th>Value</th>
+                <th>Min Order</th>
+                <th>Max Uses</th>
+                <th>Valid Until</th>
+                <th>Status</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {discounts.length > 0 ? (
+                discounts.map((discount) => (
+                  <tr key={discount._id}>
+                    <td><strong>{discount.code}</strong></td>
+                    <td>{discount.type === 'percentage' ? 'Percentage' : 'Fixed Amount'}</td>
+                    <td>
+                      {discount.type === 'percentage' ? `${discount.value}%` : `₹${discount.value}`}
+                    </td>
+                    <td>₹{discount.minOrderAmount || '0'}</td>
+                    <td>{discount.maxUses || 'Unlimited'}</td>
+                    <td>{discount.validUntil ? new Date(discount.validUntil).toLocaleDateString() : 'No expiry'}</td>
+                    <td>
+                      <span className={`status-badge ${discount.isActive ? 'active' : 'inactive'}`}>
+                        {discount.isActive ? 'Active' : 'Inactive'}
+                      </span>
+                    </td>
+                    <td className="actions">
+                      <button 
+                        className="action-btn edit" 
+                        onClick={() => openEditDiscount(discount)}
+                        title="Edit Discount"
+                      >
+                        <FiEdit />
+                      </button>
+                      <button 
+                        className="action-btn delete" 
+                        onClick={() => handleDeleteDiscount(discount._id)}
+                        title="Delete Discount"
+                      >
+                        <FiTrash2 />
+                      </button>
+                    </td>
+                  </tr>
+                ))
+              ) : (
+                <tr>
+                  <td colSpan="8" className="no-data">
+                    No discounts found. Create your first discount code!
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {/* Add Discount Modal */}
+      {showAddDiscount && (
+        <div className="modal-overlay">
+          <div className="modal">
+            <div className="modal-header">
+              <h2>Add New Discount</h2>
+              <button className="close-btn" onClick={() => setShowAddDiscount(false)}>×</button>
+            </div>
+            <form onSubmit={handleAddDiscount} className="modal-form">
+              <div className="form-row">
+                <div className="form-group">
+                  <label>Discount Code *</label>
+                  <input
+                    type="text"
+                    value={discountForm.code}
+                    onChange={(e) => setDiscountForm({...discountForm, code: e.target.value.toUpperCase()})}
+                    placeholder="e.g., SALE20"
+                    required
+                  />
+                </div>
+                <div className="form-group">
+                  <label>Type *</label>
+                  <select
+                    value={discountForm.type}
+                    onChange={(e) => setDiscountForm({...discountForm, type: e.target.value})}
+                    required
+                  >
+                    <option value="percentage">Percentage</option>
+                    <option value="fixed">Fixed Amount</option>
+                  </select>
+                </div>
+              </div>
+              
+              <div className="form-row">
+                <div className="form-group">
+                  <label>Value *</label>
+                  <input
+                    type="number"
+                    value={discountForm.value}
+                    onChange={(e) => setDiscountForm({...discountForm, value: e.target.value})}
+                    placeholder={discountForm.type === 'percentage' ? '20' : '100'}
+                    min="0"
+                    max={discountForm.type === 'percentage' ? '100' : '9999'}
+                    required
+                  />
+                  <span className="input-suffix">
+                    {discountForm.type === 'percentage' ? '%' : '₹'}
+                  </span>
+                </div>
+                <div className="form-group">
+                  <label>Minimum Order Amount</label>
+                  <input
+                    type="number"
+                    value={discountForm.minOrderAmount}
+                    onChange={(e) => setDiscountForm({...discountForm, minOrderAmount: e.target.value})}
+                    placeholder="0"
+                    min="0"
+                  />
+                </div>
+              </div>
+
+              <div className="form-row">
+                <div className="form-group">
+                  <label>Maximum Discount</label>
+                  <input
+                    type="number"
+                    value={discountForm.maxDiscount}
+                    onChange={(e) => setDiscountForm({...discountForm, maxDiscount: e.target.value})}
+                    placeholder="No limit"
+                    min="0"
+                  />
+                </div>
+                <div className="form-group">
+                  <label>Maximum Uses</label>
+                  <input
+                    type="number"
+                    value={discountForm.maxUses}
+                    onChange={(e) => setDiscountForm({...discountForm, maxUses: e.target.value})}
+                    placeholder="Unlimited"
+                    min="0"
+                  />
+                </div>
+              </div>
+
+              <div className="form-row">
+                <div className="form-group">
+                  <label>Valid From</label>
+                  <input
+                    type="date"
+                    value={discountForm.validFrom}
+                    onChange={(e) => setDiscountForm({...discountForm, validFrom: e.target.value})}
+                  />
+                </div>
+                <div className="form-group">
+                  <label>Valid Until</label>
+                  <input
+                    type="date"
+                    value={discountForm.validUntil}
+                    onChange={(e) => setDiscountForm({...discountForm, validUntil: e.target.value})}
+                  />
+                </div>
+              </div>
+
+              <div className="form-group">
+                <label>Description</label>
+                <textarea
+                  value={discountForm.description}
+                  onChange={(e) => setDiscountForm({...discountForm, description: e.target.value})}
+                  placeholder="Optional description for this discount"
+                  rows="3"
+                />
+              </div>
+
+              <div className="form-group checkbox-group">
+                <label>
+                  <input
+                    type="checkbox"
+                    checked={discountForm.isActive}
+                    onChange={(e) => setDiscountForm({...discountForm, isActive: e.target.checked})}
+                  />
+                  Active
+                </label>
+              </div>
+
+              <div className="form-actions">
+                <button type="button" className="btn-secondary" onClick={() => setShowAddDiscount(false)}>
+                  Cancel
+                </button>
+                <button type="submit" className="btn-primary">
+                  Create Discount
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Discount Modal */}
+      {showEditDiscount && editingDiscount && (
+        <div className="modal-overlay">
+          <div className="modal">
+            <div className="modal-header">
+              <h2>Edit Discount</h2>
+              <button className="close-btn" onClick={() => setShowEditDiscount(false)}>×</button>
+            </div>
+            <form onSubmit={handleEditDiscount} className="modal-form">
+              <div className="form-row">
+                <div className="form-group">
+                  <label>Discount Code *</label>
+                  <input
+                    type="text"
+                    value={discountForm.code}
+                    onChange={(e) => setDiscountForm({...discountForm, code: e.target.value.toUpperCase()})}
+                    placeholder="e.g., SALE20"
+                    required
+                  />
+                </div>
+                <div className="form-group">
+                  <label>Type *</label>
+                  <select
+                    value={discountForm.type}
+                    onChange={(e) => setDiscountForm({...discountForm, type: e.target.value})}
+                    required
+                  >
+                    <option value="percentage">Percentage</option>
+                    <option value="fixed">Fixed Amount</option>
+                  </select>
+                </div>
+              </div>
+              
+              <div className="form-row">
+                <div className="form-group">
+                  <label>Value *</label>
+                  <input
+                    type="number"
+                    value={discountForm.value}
+                    onChange={(e) => setDiscountForm({...discountForm, value: e.target.value})}
+                    placeholder={discountForm.type === 'percentage' ? '20' : '100'}
+                    min="0"
+                    max={discountForm.type === 'percentage' ? '100' : '9999'}
+                    required
+                  />
+                  <span className="input-suffix">
+                    {discountForm.type === 'percentage' ? '%' : '₹'}
+                  </span>
+                </div>
+                <div className="form-group">
+                  <label>Minimum Order Amount</label>
+                  <input
+                    type="number"
+                    value={discountForm.minOrderAmount}
+                    onChange={(e) => setDiscountForm({...discountForm, minOrderAmount: e.target.value})}
+                    placeholder="0"
+                    min="0"
+                  />
+                </div>
+              </div>
+
+              <div className="form-row">
+                <div className="form-group">
+                  <label>Maximum Discount</label>
+                  <input
+                    type="number"
+                    value={discountForm.maxDiscount}
+                    onChange={(e) => setDiscountForm({...discountForm, maxDiscount: e.target.value})}
+                    placeholder="No limit"
+                    min="0"
+                  />
+                </div>
+                <div className="form-group">
+                  <label>Maximum Uses</label>
+                  <input
+                    type="number"
+                    value={discountForm.maxUses}
+                    onChange={(e) => setDiscountForm({...discountForm, maxUses: e.target.value})}
+                    placeholder="Unlimited"
+                    min="0"
+                  />
+                </div>
+              </div>
+
+              <div className="form-row">
+                <div className="form-group">
+                  <label>Valid From</label>
+                  <input
+                    type="date"
+                    value={discountForm.validFrom}
+                    onChange={(e) => setDiscountForm({...discountForm, validFrom: e.target.value})}
+                  />
+                </div>
+                <div className="form-group">
+                  <label>Valid Until</label>
+                  <input
+                    type="date"
+                    value={discountForm.validUntil}
+                    onChange={(e) => setDiscountForm({...discountForm, validUntil: e.target.value})}
+                  />
+                </div>
+              </div>
+
+              <div className="form-group">
+                <label>Description</label>
+                <textarea
+                  value={discountForm.description}
+                  onChange={(e) => setDiscountForm({...discountForm, description: e.target.value})}
+                  placeholder="Optional description for this discount"
+                  rows="3"
+                />
+              </div>
+
+              <div className="form-group checkbox-group">
+                <label>
+                  <input
+                    type="checkbox"
+                    checked={discountForm.isActive}
+                    onChange={(e) => setDiscountForm({...discountForm, isActive: e.target.checked})}
+                  />
+                  Active
+                </label>
+              </div>
+
+              <div className="form-actions">
+                <button type="button" className="btn-secondary" onClick={() => setShowEditDiscount(false)}>
+                  Cancel
+                </button>
+                <button type="submit" className="btn-primary">
+                  Update Discount
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 
@@ -4028,6 +4367,87 @@ const Admin = () => {
       console.error('Error syncing categories:', error);
       alert('Error syncing categories. Please try again.');
     }
+  };
+
+  // Discount management functions
+  const fetchDiscounts = async () => {
+    setDiscountsLoading(true);
+    try {
+      const response = await api.get('/api/discounts');
+      setDiscounts(response.data);
+    } catch (error) {
+      console.error('Error fetching discounts:', error);
+    } finally {
+      setDiscountsLoading(false);
+    }
+  };
+
+  const handleAddDiscount = async (e) => {
+    e.preventDefault();
+    try {
+      const response = await api.post('/api/discounts', discountForm);
+      setDiscounts([...discounts, response.data]);
+      setShowAddDiscount(false);
+      resetDiscountForm();
+    } catch (error) {
+      console.error('Error adding discount:', error);
+    }
+  };
+
+  const handleEditDiscount = async (e) => {
+    e.preventDefault();
+    try {
+      const response = await api.put(`/api/discounts/${editingDiscount._id}`, discountForm);
+      setDiscounts(discounts.map(d => d._id === editingDiscount._id ? response.data : d));
+      setShowEditDiscount(false);
+      setEditingDiscount(null);
+      resetDiscountForm();
+    } catch (error) {
+      console.error('Error updating discount:', error);
+    }
+  };
+
+  const handleDeleteDiscount = async (discountId) => {
+    if (window.confirm('Are you sure you want to delete this discount?')) {
+      try {
+        await api.delete(`/api/discounts/${discountId}`);
+        setDiscounts(discounts.filter(d => d._id !== discountId));
+      } catch (error) {
+        console.error('Error deleting discount:', error);
+      }
+    }
+  };
+
+  const resetDiscountForm = () => {
+    setDiscountForm({
+      code: '',
+      type: 'percentage',
+      value: '',
+      minOrderAmount: '',
+      maxDiscount: '',
+      maxUses: '',
+      validFrom: '',
+      validUntil: '',
+      isActive: true,
+      description: ''
+    });
+  };
+
+  const openEditDiscount = (discount) => {
+    setEditingDiscount(discount);
+    setDiscountForm({
+      code: discount.code,
+      type: discount.type,
+      value: discount.value,
+      minOrderAmount: discount.minOrderAmount || '',
+      maxDiscount: discount.maxDiscount || '',
+      maxUses: discount.maxUses || '',
+      validFrom: discount.validFrom ? discount.validFrom.split('T')[0] : '',
+      validUntil: discount.validUntil ? discount.validUntil.split('T')[0] : '',
+      isActive: discount.isActive,
+      description: discount.description || ''
+    });
+    setShowEditDiscount(true);
   };
 
   return (
