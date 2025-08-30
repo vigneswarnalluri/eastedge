@@ -79,6 +79,8 @@ app.use('/api/payments', require('./routes/payments'));
 app.use('/api/cart', require('./routes/cart'));
 app.use('/api/reviews', require('./routes/reviews'));
 app.use('/api/discounts', require('./routes/discounts'));
+app.use('/api/content', require('./routes/content'));
+app.use('/api/settings', require('./routes/settings'));
 
 // Serve uploaded images
 app.use('/uploads', express.static(path.join(__dirname, 'client/public/uploads')));

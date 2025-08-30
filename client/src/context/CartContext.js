@@ -6,7 +6,8 @@ const CartContext = createContext();
 const initialState = {
   items: [],
   total: 0,
-  itemCount: 0
+  itemCount: 0,
+  uniqueItemCount: 0
 };
 
 console.log('CartContext: Initial state created:', initialState);
@@ -66,7 +67,8 @@ const cartReducer = (state, action) => {
               : item
           ),
           total: sanitizedState.total + ((action.payload.variantPrice || action.payload.price) * action.payload.quantity),
-          itemCount: sanitizedState.itemCount + action.payload.quantity
+          itemCount: sanitizedState.itemCount + action.payload.quantity,
+          uniqueItemCount: sanitizedState.items.length // Same number of unique items
         };
       } else {
         console.log('Adding new item to cart');
@@ -74,7 +76,8 @@ const cartReducer = (state, action) => {
           ...sanitizedState,
           items: [...sanitizedState.items, action.payload],
           total: sanitizedState.total + ((action.payload.variantPrice || action.payload.price) * action.payload.quantity),
-          itemCount: sanitizedState.itemCount + action.payload.quantity
+          itemCount: sanitizedState.itemCount + action.payload.quantity,
+          uniqueItemCount: sanitizedState.items.length + 1 // One more unique item
         };
       }
       
@@ -96,7 +99,8 @@ const cartReducer = (state, action) => {
         ...sanitizedState,
         items: sanitizedState.items.filter(item => createItemKey(item) !== action.payload),
         total: sanitizedState.total - ((itemToRemove?.variantPrice || itemToRemove?.price || 0) * (itemToRemove?.quantity || 0)),
-        itemCount: sanitizedState.itemCount - (itemToRemove?.quantity || 0)
+        itemCount: sanitizedState.itemCount - (itemToRemove?.quantity || 0),
+        uniqueItemCount: sanitizedState.items.length - 1
       };
       
       // Validate new state
@@ -123,7 +127,8 @@ const cartReducer = (state, action) => {
         ...sanitizedState,
         items: updatedItems,
         total: newTotal,
-        itemCount: newItemCount
+        itemCount: newItemCount,
+        uniqueItemCount: updatedItems.length
       };
       
       // Validate new state
@@ -140,7 +145,8 @@ const cartReducer = (state, action) => {
         ...state,
         items: [],
         total: 0,
-        itemCount: 0
+        itemCount: 0,
+        uniqueItemCount: 0
       };
       console.log('New state after CLEAR_CART:', newState);
       return newState;
@@ -165,7 +171,8 @@ const cartReducer = (state, action) => {
         ...sanitizedState,
         items: loadedItems,
         total: loadedTotal > 0 ? loadedTotal : calculatedTotal,
-        itemCount: loadedItemCount > 0 ? loadedItemCount : calculatedItemCount
+        itemCount: loadedItemCount > 0 ? loadedItemCount : calculatedItemCount,
+        uniqueItemCount: loadedItems.length
       };
       
       console.log('New state after LOAD_CART:', newState);
@@ -539,6 +546,7 @@ export const CartProvider = ({ children }) => {
         items: state.items,
         total: state.total,
         itemCount: state.itemCount,
+        uniqueItemCount: state.uniqueItemCount,
         isInitialized,
         addToCart,
         removeFromCart,

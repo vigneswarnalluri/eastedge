@@ -1127,39 +1127,7 @@
 
 
 
-/* Security and delivery info */
-.security-delivery-section {
-  background: #f8f9fa;
-  padding: 1.5rem;
-  border-radius: 8px;
-  margin-bottom: 2rem;
-}
-
-.security-delivery-section h4 {
-  font-size: 1rem;
-  margin-bottom: 1rem;
-  color: #1a1a1a;
-  font-weight: 600;
-}
-
-.delivery-features {
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
-}
-
-.delivery-feature {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  font-size: 0.9rem;
-  color: #666;
-}
-
-.delivery-feature svg {
-  color: #007600;
-  font-size: 1rem;
-}
+/* Security and delivery info - Removed as requested */
 
 .share-section {
   margin-top: 1rem;
@@ -1946,4 +1914,60 @@
   .rating-input {
     flex-wrap: wrap;
   }
+}
+
+/* Wash Details Tab Styling */
+.wash-details-content {
+  padding: 20px 0;
+}
+
+.wash-section {
+  margin-bottom: 25px;
+  padding: 20px;
+  background: #f8f9fa;
+  border-radius: 12px;
+  border-left: 4px solid #059669;
+}
+
+.wash-section h4 {
+  color: #1a1a1a;
+  font-size: 1.1rem;
+  font-weight: 600;
+  margin: 0 0 12px 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.wash-section h4::before {
+  content: '🧺';
+  font-size: 1.2rem;
+}
+
+.wash-section p {
+  color: #555;
+  line-height: 1.6;
+  margin: 0;
+  font-size: 0.95rem;
+}
+
+.no-wash-details {
+  text-align: center;
+  padding: 40px 20px;
+  color: #666;
+}
+
+.no-wash-details p {
+  margin: 10px 0;
+  line-height: 1.5;
+}
+
+.no-wash-details p:first-child {
+  font-size: 1.1rem;
+  color: #888;
+}
+
+.no-wash-details p:last-child {
+  font-size: 0.9rem;
+  color: #999;
 }

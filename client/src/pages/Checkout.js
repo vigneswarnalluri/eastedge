@@ -81,6 +81,33 @@ const Checkout = () => {
     scrollToTop();
   }, [cartItems, isInitialized]);
 
+  // Debug orderPlaced state changes
+  useEffect(() => {
+    console.log('🔄 orderPlaced state changed:', orderPlaced);
+    if (orderPlaced) {
+      console.log('✅ Order success page should now be visible');
+      // Scroll to top when showing success page
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  }, [orderPlaced]);
+
+  // Check localStorage for order success on component mount
+  useEffect(() => {
+    const savedOrderPlaced = localStorage.getItem('orderPlaced');
+    if (savedOrderPlaced === 'true') {
+      console.log('🔄 Restoring orderPlaced state from localStorage');
+      setOrderPlaced(true);
+    }
+    
+    // Cleanup function to clear localStorage when component unmounts
+    return () => {
+      if (orderPlaced) {
+        localStorage.removeItem('orderPlaced');
+        localStorage.removeItem('orderData');
+      }
+    };
+  }, [orderPlaced]);
+
   // Force re-render when discount changes to update payment amounts
   useEffect(() => {
     // This effect will trigger re-render when appliedDiscount changes
@@ -164,54 +191,6 @@ const Checkout = () => {
     );
   }
 
-  // Debug cart state
-  console.log('Checkout render - isInitialized:', isInitialized);
-  console.log('Checkout render - cartItems:', cartItems);
-  console.log('Checkout render - cartItems type:', typeof cartItems);
-  console.log('Checkout render - cartItems isArray:', Array.isArray(cartItems));
-  console.log('Checkout render - cartItems length:', cartItems?.length);
-  
-  // Add manual cart reload for debugging
-  const handleReloadCart = () => {
-    console.log('=== MANUAL CART RELOAD ===');
-    console.log('Current cart state:', { cartItems, isInitialized });
-    console.log('localStorage keys:', Object.keys(localStorage));
-    const cartKeys = Object.keys(localStorage).filter(key => key.startsWith('cart_'));
-    console.log('Cart keys found:', cartKeys);
-    cartKeys.forEach(key => {
-      const data = localStorage.getItem(key);
-      console.log(`Cart key ${key}:`, data);
-    });
-  };
-
-  // Function to load the cart with items
-  const loadCartWithItems = () => {
-    console.log('=== LOADING CART WITH ITEMS ===');
-    const cartKeys = Object.keys(localStorage).filter(key => key.startsWith('cart_'));
-    
-    // Find the cart key that has items
-    for (const key of cartKeys) {
-      const data = localStorage.getItem(key);
-      try {
-        const cartData = JSON.parse(data);
-        if (cartData.items && cartData.items.length > 0) {
-          console.log('Found cart with items:', key, cartData);
-          
-          // Copy the cart data to the current user's cart key
-          const currentCartKey = `cart_${user?._id || 'guest'}`;
-          localStorage.setItem(currentCartKey, JSON.stringify(cartData));
-          console.log('Copied cart data to:', currentCartKey);
-          
-          // Force page reload to refresh cart context
-          window.location.reload();
-          break;
-        }
-      } catch (error) {
-        console.error('Error parsing cart data:', error);
-      }
-    }
-  };
-
   // Safety check for cart context - only show error if cart is initialized but empty
   if (isInitialized && (!cartItems || cartItems.length === 0)) {
     return (
@@ -220,28 +199,12 @@ const Checkout = () => {
           <div className="empty-cart">
             <h2>Your cart is empty</h2>
             <p>Add some items to your cart before checking out.</p>
-            <div style={{ marginTop: '1rem' }}>
-              <button 
-                onClick={handleReloadCart} 
-                className="btn-secondary"
-                style={{ marginRight: '1rem' }}
-              >
-                Debug Cart
-              </button>
-              <button 
-                onClick={loadCartWithItems} 
-                className="btn-secondary"
-                style={{ marginRight: '1rem' }}
-              >
-                Load Cart with Items
-              </button>
-              <button 
-                onClick={() => navigate('/products')} 
-                className="btn-primary"
-              >
-                Continue Shopping
-              </button>
-            </div>
+            <button 
+              onClick={() => navigate('/products')} 
+              className="btn-primary"
+            >
+              Continue Shopping
+            </button>
           </div>
         </div>
       </div>
@@ -292,18 +255,27 @@ const Checkout = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     
+    console.log('🚀 Starting COD order submission...');
+    console.log('📋 Form data:', formData);
+    console.log('🛒 Cart items:', cartItems);
+    console.log('💰 Total price:', getTotalPrice());
+    console.log('💳 Payment method:', formData.paymentMethod);
+    
     // Safety check for cart items
     if (!cartItems || cartItems.length === 0) {
+      console.error('❌ No cart items found');
       setErrors({ submit: 'No items in cart. Please add items before proceeding.' });
       return;
     }
     
     const formErrors = validateForm();
     if (Object.keys(formErrors).length > 0) {
+      console.error('❌ Form validation failed:', formErrors);
       setErrors(formErrors);
       return;
     }
 
+    console.log('✅ Form validation passed, proceeding with order placement...');
     setLoading(true);
 
     try {
@@ -344,15 +316,53 @@ const Checkout = () => {
       }
       console.log('=== END CART ITEMS DEBUG ===');
 
+      console.log('📡 Making API call to /api/orders...');
       const response = await api.post('/api/orders', orderData);
+      console.log('📡 API response received:', response);
 
       console.log('COD order successful:', response.data);
-        clearCart();
+      
+      if (response.data.success) {
+        console.log('✅ Order placed successfully, clearing cart and showing success page');
+        
+        // Set order placed state first
         setOrderPlaced(true);
+        console.log('🎯 orderPlaced state set to true, should show success page now');
+        
+        // Store order success in localStorage as backup
+        localStorage.setItem('orderPlaced', 'true');
+        localStorage.setItem('orderData', JSON.stringify(response.data.order));
+        
+        // Small delay before clearing cart to ensure state change takes effect
+        setTimeout(() => {
+          clearCart();
+          console.log('🛒 Cart cleared after state change');
+        }, 100);
+        
+        setError(null); // Clear any previous errors
+      } else {
+        console.error('❌ Order response indicates failure:', response.data);
+        setErrors({ submit: response.data.message || 'Failed to place order. Please try again.' });
+      }
 
     } catch (error) {
-      console.error('Order error:', error);
-      setErrors({ submit: 'Failed to place order. Please try again.' });
+      console.error('❌ Order placement error:', error);
+      console.error('❌ Error details:', {
+        message: error.message,
+        response: error.response?.data,
+        status: error.response?.status
+      });
+      
+      let errorMessage = 'Failed to place order. Please try again.';
+      
+      if (error.response?.data?.message) {
+        errorMessage = error.response.data.message;
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+      
+      setErrors({ submit: errorMessage });
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -612,6 +622,23 @@ const Checkout = () => {
                     <p>Not available for international shipping</p>
                     <p className="cod-total">Pay ₹{getFinalTotal().toFixed(2)} when you receive your order.</p>
                   </div>
+                  
+                  {/* Temporary test button - remove after fixing */}
+                  <button 
+                    type="button" 
+                    className="btn-secondary"
+                    style={{ marginBottom: '10px', width: '100%' }}
+                    onClick={() => {
+                      console.log('🧪 Test: Manually setting orderPlaced to true');
+                      setOrderPlaced(true);
+                      localStorage.setItem('orderPlaced', 'true');
+                      // Scroll to top when showing success page
+                      window.scrollTo({ top: 0, behavior: 'smooth' });
+                    }}
+                  >
+                    🧪 Test Success Page (Remove After Fix)
+                  </button>
+                  
                   <button 
                     type="submit" 
                     className="btn-primary checkout-submit-btn cod-btn"

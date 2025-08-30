@@ -11,7 +11,9 @@
     "build": "cd client && npm run build",
     "install-client": "cd client && npm install",
     "render-build": "npm install && npm run install-client && npm run build",
-    "heroku-postbuild": "npm run install-client && npm run build"
+    "heroku-postbuild": "npm run install-client && npm run build",
+    "init-content": "node scripts/initializeContent.js",
+    "init-settings": "node scripts/initializeSettings.js"
   },
   "keywords": [
     "ecommerce",

@@ -12,7 +12,7 @@ const Header = () => {
   const [isUserDropdownOpen, setIsUserDropdownOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const { isAuthenticated, isAdmin, logout, loading } = useAuth();
-  const { itemCount } = useCart();
+  const { uniqueItemCount } = useCart();
   const { addRecentSearch, preferences } = useUserPreferences();
   const navigate = useNavigate();
 
@@ -157,7 +157,7 @@ const Header = () => {
             {/* Cart Button */}
             <Link to="/cart" className="action-btn cart-btn" title="Shopping cart">
               <FiShoppingCart />
-              {itemCount > 0 && <span className="cart-badge">{itemCount}</span>}
+              {uniqueItemCount > 0 && <span className="cart-badge">{uniqueItemCount}</span>}
             </Link>
 
             {/* Mobile Menu Button */}

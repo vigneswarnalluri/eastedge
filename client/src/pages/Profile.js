@@ -6,6 +6,7 @@ import { scrollToTop } from '../utils/scrollToTop';
 import { FiEdit2, FiSave, FiX, FiUser, FiMail, FiPhone, FiMapPin, FiCalendar, FiShield, FiShoppingBag, FiHeart, FiSettings, FiTrash2 } from 'react-icons/fi';
 import WishlistItem from '../components/WishlistItem';
 import './Profile.css';
+import { useNavigate } from 'react-router-dom';
 
 const Profile = () => {
   const { user, updateProfile } = useAuth();
@@ -19,6 +20,8 @@ const Profile = () => {
   const { addToCart } = useCart();
   const [isEditing, setIsEditing] = useState(false);
   const [activeTab, setActiveTab] = useState('profile');
+  const [orders, setOrders] = useState([]);
+  const [ordersLoading, setOrdersLoading] = useState(false);
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -34,6 +37,7 @@ const Profile = () => {
   });
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState({ type: '', text: '' });
+  const navigate = useNavigate();
 
   useEffect(() => {
     if (user) {
@@ -62,6 +66,34 @@ const Profile = () => {
       console.log('First item structure:', JSON.stringify(wishlistItems[0], null, 2));
     }
   }, [wishlistItems]);
+
+  // Fetch user orders when orders tab is active
+  useEffect(() => {
+    if (activeTab === 'orders' && user) {
+      fetchUserOrders();
+    }
+  }, [activeTab, user]);
+
+  const fetchUserOrders = async () => {
+    setOrdersLoading(true);
+    try {
+      const response = await fetch('/api/orders', {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        }
+      });
+      const data = await response.json();
+      if (data.success) {
+        setOrders(data.orders);
+      } else {
+        console.error('Failed to fetch orders:', data.message);
+      }
+    } catch (error) {
+      console.error('Error fetching orders:', error);
+    } finally {
+      setOrdersLoading(false);
+    }
+  };
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -122,6 +154,31 @@ const Profile = () => {
     const names = name.split(' ');
     if (names.length === 1) return names[0].charAt(0).toUpperCase();
     return (names[0].charAt(0) + names[names.length - 1].charAt(0)).toUpperCase();
+  };
+
+  const getOrderStatusColor = (status) => {
+    switch (status?.toLowerCase()) {
+      case 'pending':
+        return 'status-pending';
+      case 'processing':
+        return 'status-processing';
+      case 'shipped':
+        return 'status-shipped';
+      case 'delivered':
+        return 'status-delivered';
+      case 'cancelled':
+        return 'status-cancelled';
+      default:
+        return 'status-pending';
+    }
+  };
+
+  const formatOrderDate = (dateString) => {
+    return new Date(dateString).toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric'
+    });
   };
 
   // Wishlist handlers
@@ -498,7 +555,10 @@ const Profile = () => {
 
                 <div className="profile-quick-actions">
                   <h3>Quick Actions</h3>
-                  <button className="quick-action-btn">
+                  <button 
+                    className="quick-action-btn"
+                    onClick={() => navigate('/orders')}
+                  >
                     <FiShoppingBag /> View Orders
                   </button>
                   <button 
@@ -516,9 +576,101 @@ const Profile = () => {
           )}
 
           {activeTab === 'orders' && (
-            <div className="tab-panel">
-              <h3>Order History</h3>
-              <p>Your order history will appear here.</p>
+            <div className="orders-tab">
+              <div className="orders-header">
+                <h3><FiShoppingBag /> Order History</h3>
+                <p>Track your orders and view order details</p>
+                <button 
+                  onClick={() => navigate('/orders')}
+                  className="btn-primary"
+                  style={{ marginTop: '15px' }}
+                >
+                  View Full Orders Page
+                </button>
+              </div>
+
+              {ordersLoading ? (
+                <div className="loading-orders">
+                  <div className="spinner"></div>
+                  <p>Loading orders...</p>
+                </div>
+              ) : orders.length === 0 ? (
+                <div className="empty-orders">
+                  <div className="empty-orders-icon">
+                    <FiShoppingBag />
+                  </div>
+                  <h4>No orders yet</h4>
+                  <p>Start shopping to see your order history here!</p>
+                  <button 
+                    className="btn-primary"
+                    onClick={() => window.location.href = '/products'}
+                  >
+                    Browse Products
+                  </button>
+                </div>
+              ) : (
+                <div className="orders-list">
+                  {orders.map((order) => (
+                    <div key={order._id} className="order-card">
+                      <div className="order-header">
+                        <div className="order-info">
+                          <h4>Order #{order._id.slice(-8).toUpperCase()}</h4>
+                          <p className="order-date">
+                            Placed on {formatOrderDate(order.createdAt)}
+                          </p>
+                        </div>
+                        <div className="order-status">
+                          <span className={`status-badge ${getOrderStatusColor(order.status)}`}>
+                            {order.status}
+                          </span>
+                        </div>
+                      </div>
+                      
+                      <div className="order-items">
+                        {order.orderItems?.map((item, index) => (
+                          <div key={index} className="order-item">
+                            <div className="item-image">
+                              {item.image ? (
+                                <img src={item.image} alt={item.name} />
+                              ) : (
+                                <div className="item-placeholder">
+                                  <FiShoppingBag />
+                                </div>
+                              )}
+                            </div>
+                            <div className="item-details">
+                              <h5>{item.name}</h5>
+                              <p className="item-variants">
+                                {item.selectedSize && `Size: ${item.selectedSize}`}
+                                {item.selectedSize && item.selectedColor && ' • '}
+                                {item.selectedColor && `Color: ${item.selectedColor}`}
+                              </p>
+                              <p className="item-price">₹{item.price} × {item.quantity}</p>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                      
+                      <div className="order-footer">
+                        <div className="order-total">
+                          <span>Total:</span>
+                          <strong>₹{order.totalPrice}</strong>
+                        </div>
+                        <div className="order-actions">
+                          <button className="btn-secondary">
+                            View Details
+                          </button>
+                          {order.status === 'delivered' && (
+                            <button className="btn-primary">
+                              Reorder
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           )}
 

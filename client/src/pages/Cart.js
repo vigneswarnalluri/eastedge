@@ -6,7 +6,7 @@ import { FiTrash2, FiPlus, FiMinus, FiShoppingBag, FiArrowLeft, FiCreditCard } f
 import './Cart.css';
 
 const Cart = () => {
-  const { items, total, itemCount, updateQuantity, removeFromCart, clearCart } = useCart();
+  const { items, total, itemCount, uniqueItemCount, updateQuantity, removeFromCart, clearCart } = useCart();
 
   // Create unique key for cart operations
   const createItemKey = (item) => {
@@ -30,7 +30,8 @@ const Cart = () => {
     console.log('=== CART DEBUG ===');
     console.log('Cart items:', items);
     console.log('Total:', total);
-    console.log('Item count:', itemCount);
+    console.log('Item count (total quantity):', itemCount);
+    console.log('Unique item count:', uniqueItemCount);
     items.forEach((item, index) => {
       console.log(`Item ${index}:`, {
         id: item._id,
@@ -44,7 +45,7 @@ const Cart = () => {
     console.log('=== END CART DEBUG ===');
   };
 
-  if (itemCount === 0) {
+  if (uniqueItemCount === 0) {
     return (
       <div className="cart-page">
         <div className="container">
@@ -80,18 +81,7 @@ const Cart = () => {
             transition={{ duration: 0.6 }}
           >
             <h1>Shopping Cart</h1>
-            <p>{items.length} item{items.length !== 1 ? 's' : ''} in your cart</p>
-            <div className="cart-debug-actions">
-              <button className="debug-btn" onClick={() => console.log('Cart State:', { items, total, itemCount })}>
-                Debug Cart
-              </button>
-              <button className="reset-cart-btn" onClick={() => {
-                localStorage.clear();
-                window.location.reload();
-              }}>
-                Reset Cart
-              </button>
-            </div>
+            <p>{uniqueItemCount} item{uniqueItemCount !== 1 ? 's' : ''} in your cart ({itemCount} total quantity)</p>
           </motion.div>
         </div>
 

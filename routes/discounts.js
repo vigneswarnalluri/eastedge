@@ -205,11 +205,19 @@ router.delete('/:id', auth, async (req, res) => {
       return res.status(404).json({ message: 'Discount not found' });
     }
 
-    await discount.remove();
+    await Discount.findByIdAndDelete(req.params.id);
     res.json({ message: 'Discount deleted successfully' });
   } catch (error) {
-    console.error('Error deleting discount:', error);
-    res.status(500).json({ message: 'Server error' });
+    console.error('❌ Error deleting discount:', error);
+    console.error('❌ Error details:', {
+      name: error.name,
+      message: error.message,
+      stack: error.stack
+    });
+    res.status(500).json({ 
+      message: 'Server error',
+      error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
+    });
   }
 });
 

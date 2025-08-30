@@ -58,6 +58,13 @@ const subcategories = [
     parentCategory: "Apparel"
   },
   {
+    name: "Men's Clothing",
+    description: "Clothing specifically designed for men",
+    image: "/apparel.webp",
+    isActive: true,
+    parentCategory: "Apparel"
+  },
+  {
     name: "Watches",
     description: "Timepieces and wrist accessories",
     image: "/accessories.png",

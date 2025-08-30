@@ -7,12 +7,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { 
   FiHeart, 
   FiStar, 
-  FiTruck, 
-  FiShield, 
-  FiRefreshCw,
   FiArrowLeft,
-  FiCheck,
-  FiPackage
+  FiCheck
 } from 'react-icons/fi';
 import './ProductDetail.css';
 import api from '../services/api';
@@ -747,27 +743,7 @@ const ProductDetail = () => {
 
 
             {/* Security and Delivery Section */}
-            <div className="security-delivery-section">
-              <h4>Delivery & Returns</h4>
-              <div className="delivery-features">
-                <div className="delivery-feature">
-                  <FiTruck />
-                  <span>Free delivery on orders above ₹999</span>
-                </div>
-                <div className="delivery-feature">
-                  <FiShield />
-                  <span>Secure transaction</span>
-                </div>
-                <div className="delivery-feature">
-                  <FiRefreshCw />
-                  <span>10 days Return & Exchange</span>
-                </div>
-                <div className="delivery-feature">
-                  <FiPackage />
-                  <span>Amazon Delivered</span>
-                </div>
-              </div>
-            </div>
+            {/* Removed Delivery & Returns section as requested */}
           </div>
         </div>
 
@@ -797,6 +773,12 @@ const ProductDetail = () => {
               onClick={() => setActiveTab('shipping')}
             >
               Shipping & Returns
+            </button>
+            <button 
+              className={`tab-btn ${activeTab === 'wash-details' ? 'active' : ''}`}
+              onClick={() => setActiveTab('wash-details')}
+            >
+              Wash Details
             </button>
           </div>
 
@@ -1008,6 +990,70 @@ const ProductDetail = () => {
                       <li>Size exchange available within return period</li>
                     </ul>
                   </div>
+                </motion.div>
+              )}
+
+              {activeTab === 'wash-details' && (
+                <motion.div
+                  key="wash-details"
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -20 }}
+                  transition={{ duration: 0.3 }}
+                  className="tab-panel"
+                >
+                  <h3>Wash & Care Instructions</h3>
+                  
+                  {product.washDetails ? (
+                    <div className="wash-details-content">
+                      {product.washDetails.washing && (
+                        <div className="wash-section">
+                          <h4>Washing Instructions</h4>
+                          <p>{product.washDetails.washing}</p>
+                        </div>
+                      )}
+                      
+                      {product.washDetails.drying && (
+                        <div className="wash-section">
+                          <h4>Drying Instructions</h4>
+                          <p>{product.washDetails.drying}</p>
+                        </div>
+                      )}
+                      
+                      {product.washDetails.ironing && (
+                        <div className="wash-section">
+                          <h4>Ironing Instructions</h4>
+                          <p>{product.washDetails.ironing}</p>
+                        </div>
+                      )}
+                      
+                      {product.washDetails.bleaching && (
+                        <div className="wash-section">
+                          <h4>Bleaching Instructions</h4>
+                          <p>{product.washDetails.bleaching}</p>
+                        </div>
+                      )}
+                      
+                      {product.washDetails.dryCleaning && (
+                        <div className="wash-section">
+                          <h4>Dry Cleaning Instructions</h4>
+                          <p>{product.washDetails.dryCleaning}</p>
+                        </div>
+                      )}
+                      
+                      {product.washDetails.additionalCare && (
+                        <div className="wash-section">
+                          <h4>Additional Care Tips</h4>
+                          <p>{product.washDetails.additionalCare}</p>
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="no-wash-details">
+                      <p>Wash and care instructions not available for this product.</p>
+                      <p>Please refer to the product label or contact customer support for care instructions.</p>
+                    </div>
+                  )}
                 </motion.div>
               )}
             </AnimatePresence>

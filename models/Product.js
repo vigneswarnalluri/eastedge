@@ -109,6 +109,14 @@ const productSchema = new mongoose.Schema({
   shippingInfo: {
     freeShipping: { type: Boolean, default: false },
     estimatedDays: { type: Number, default: 3 }
+  },
+  washDetails: {
+    washing: { type: String, default: '' },
+    drying: { type: String, default: '' },
+    ironing: { type: String, default: '' },
+    bleaching: { type: String, default: '' },
+    dryCleaning: { type: String, default: '' },
+    additionalCare: { type: String, default: '' }
   }
 }, {
   timestamps: true

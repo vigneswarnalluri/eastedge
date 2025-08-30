@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { useSettings } from '../context/SettingsContext';
 import { scrollToTop } from '../utils/scrollToTop';
 import { FiBarChart2, FiPackage, FiShoppingCart, FiUsers, FiStar, FiTag, FiFileText, FiSettings, FiLogOut, FiPlus, FiEye, FiEdit, FiTrash2, FiDownload, FiUpload, FiDollarSign, FiMessageSquare } from 'react-icons/fi';
 import api from '../services/api';
@@ -8,6 +9,7 @@ import './Admin.css';
 
 const Admin = () => {
   const { logout, isAuthenticated, isAdmin, loading, user } = useAuth();
+  const { settings, updateSettings } = useSettings();
   const navigate = useNavigate();
   
      // All hooks must be called before any conditional returns
@@ -18,6 +20,80 @@ const Admin = () => {
     endDate: ''
   });
   const [settingsTab, setSettingsTab] = useState('general');
+  
+  // Content Manager State
+  const [contentData, setContentData] = useState({
+    announcement: {
+      text: 'Hii',
+      link: 'Visit',
+      linkType: 'none',
+      buttonText: 'Learn More',
+      targetPage: '',
+      enabled: false
+    },
+    heroSlides: [
+      {
+        title: 'Title',
+        description: 'The wait is over! Our most anticipated collection is finally here.',
+        ctaText: 'Shop Now',
+        ctaLink: '/products',
+        image: '',
+        imagePreview: ''
+      }
+    ],
+    promotionalBanner: {
+      title: '',
+      ctaText: '',
+      enabled: false
+    },
+    staticPages: [
+      { title: 'About Us', slug: 'about-us', content: '', published: true },
+      { title: 'Contact Us', slug: 'contact-us', content: '', published: true }
+    ]
+  });
+
+  // Settings State
+  // Debug useEffect for content data
+  useEffect(() => {
+    console.log('Content data updated:', contentData);
+  }, [contentData]);
+
+  // Load content from backend
+  const loadContent = async () => {
+    try {
+      const response = await api.get('/api/content');
+      console.log('Content loaded from backend:', response.data);
+      setContentData(response.data);
+    } catch (error) {
+      console.error('Error loading content:', error);
+    }
+  };
+
+  // Load settings from backend
+  const loadSettings = async () => {
+    try {
+      console.log('🔄 Loading settings from backend...');
+      // Settings are already loaded in the context
+      console.log('✅ Settings loaded from context:', settings);
+    } catch (error) {
+      console.error('❌ Error loading settings:', error);
+      // Settings will use default values if loading fails
+    }
+  };
+
+  // Load content when component mounts
+  useEffect(() => {
+    loadContent();
+    loadSettings();
+  }, []);
+
+  // Update local settingsData when context settings change
+  useEffect(() => {
+    setSettingsData(settings);
+  }, [settings]);
+
+  // Use settings from context instead of local state
+  const [settingsData, setSettingsData] = useState(settings);
   
   // Product management state
   const [products, setProducts] = useState([]);
@@ -44,7 +120,15 @@ const Admin = () => {
     variants: [],
     featured: false,
     newArrival: false,
-    trending: false
+    trending: false,
+    washDetails: {
+      washing: '',
+      drying: '',
+      ironing: '',
+      bleaching: '',
+      dryCleaning: '',
+      additionalCare: ''
+    }
   });
   
   // Sync sizes and colors with variants whenever variants change
@@ -90,6 +174,30 @@ const Admin = () => {
   const [reviewsPagination, setReviewsPagination] = useState({});
   const [reviewStatusFilter, setReviewStatusFilter] = useState('all');
   const [reviewSearch, setReviewSearch] = useState('');
+
+  // Fetch reviews function - moved to top to fix hoisting issue
+  const fetchReviews = async (page = 1, status = 'all', search = '') => {
+    try {
+      setReviewsLoading(true);
+      const params = new URLSearchParams({
+        page: page.toString(),
+        limit: '10',
+        status: status,
+        search: search
+      });
+      
+      const response = await api.get(`/api/reviews/admin?${params}`);
+      if (response.data.success) {
+        setReviews(response.data.reviews);
+        setReviewStats(response.data.analytics);
+        setReviewsPagination(response.data.pagination);
+      }
+    } catch (error) {
+      console.error('Error fetching reviews:', error);
+    } finally {
+      setReviewsLoading(false);
+    }
+  };
   const [showReplyModal, setShowReplyModal] = useState(false);
   const [selectedReview, setSelectedReview] = useState(null);
   const [replyText, setReplyText] = useState('');
@@ -493,7 +601,8 @@ const Admin = () => {
         variants: processedVariants,
         featured: productForm.featured,
         newArrival: productForm.newArrival,
-        trending: productForm.trending
+        trending: productForm.trending,
+        washDetails: productForm.washDetails
       };
 
       console.log('Original colors from form:', productForm.colors);
@@ -521,7 +630,15 @@ const Admin = () => {
         variants: [],
         featured: false,
         newArrival: false,
-        trending: false
+        trending: false,
+        washDetails: {
+          washing: '',
+          drying: '',
+          ironing: '',
+          bleaching: '',
+          dryCleaning: '',
+          additionalCare: ''
+        }
       });
       
       // Close the modal and remove the class
@@ -573,7 +690,15 @@ const Admin = () => {
       variants: product.variants || [],
       featured: product.featured || false,
       newArrival: product.newArrival || false,
-      trending: product.trending || false
+      trending: product.trending || false,
+      washDetails: product.washDetails || {
+        washing: '',
+        drying: '',
+        ironing: '',
+        bleaching: '',
+        dryCleaning: '',
+        additionalCare: ''
+      }
     });
     setShowAddProduct(true);
   };
@@ -632,7 +757,8 @@ const Admin = () => {
           variants: processedVariants,
           featured: productForm.featured,
           newArrival: productForm.newArrival,
-          trending: productForm.trending
+          trending: productForm.trending,
+          washDetails: productForm.washDetails
         };
 
         console.log('Original colors from form:', productForm.colors);
@@ -670,7 +796,15 @@ const Admin = () => {
           variants: [],
           featured: false,
           newArrival: false,
-          trending: false
+          trending: false,
+          washDetails: {
+            washing: '',
+            drying: '',
+            ironing: '',
+            bleaching: '',
+            dryCleaning: '',
+            additionalCare: ''
+          }
         });
         setShowAddProduct(false);
       } catch (error) {
@@ -714,6 +848,196 @@ const Admin = () => {
     console.log('handleViewOrder called with order:', order); // Debug log
     setViewingOrder(order);
     setShowViewOrder(true);
+  };
+
+  // Content Management Functions
+  const handleAnnouncementChange = (field, value) => {
+    console.log(`Updating announcement ${field}:`, value);
+    setContentData(prev => ({
+      ...prev,
+      announcement: {
+        ...prev.announcement,
+        [field]: value
+      }
+    }));
+  };
+
+  const handleHeroSlideChange = (slideIndex, field, value) => {
+    setContentData(prev => ({
+      ...prev,
+      heroSlides: prev.heroSlides.map((slide, index) => 
+        index === slideIndex 
+          ? { ...slide, [field]: value }
+          : slide
+      )
+    }));
+  };
+
+  const addHeroSlide = () => {
+    const newSlide = {
+      title: '',
+      description: '',
+      ctaText: '',
+      ctaLink: '',
+      image: '',
+      imagePreview: ''
+    };
+    setContentData(prev => ({
+      ...prev,
+      heroSlides: [...prev.heroSlides, newSlide]
+    }));
+  };
+
+  const removeHeroSlide = (slideIndex) => {
+    setContentData(prev => ({
+      ...prev,
+      heroSlides: prev.heroSlides.filter((slide, index) => index !== slideIndex)
+    }));
+  };
+
+  const handlePromotionalBannerChange = (field, value) => {
+    setContentData(prev => ({
+      ...prev,
+      promotionalBanner: {
+        ...prev.promotionalBanner,
+        [field]: value
+      }
+    }));
+  };
+
+  const handleStaticPageChange = (pageIndex, field, value) => {
+    setContentData(prev => ({
+      ...prev,
+      staticPages: prev.staticPages.map((page, index) => 
+        index === pageIndex 
+          ? { ...page, [field]: value }
+          : page
+      )
+    }));
+  };
+
+  const addStaticPage = () => {
+    const newPage = {
+      title: '',
+      slug: '',
+      content: '',
+      published: false
+    };
+    setContentData(prev => ({
+      ...prev,
+      staticPages: [...prev.staticPages, newPage]
+    }));
+  };
+
+  const removeStaticPage = (pageIndex) => {
+    setContentData(prev => ({
+      ...prev,
+      staticPages: prev.staticPages.filter((page, index) => index !== pageIndex)
+    }));
+  };
+
+  const saveContent = async () => {
+    try {
+      console.log('Save Content button clicked!');
+      console.log('Current content data:', contentData);
+      
+      // Clean the data before sending - remove client-side IDs
+      const cleanContentData = {
+        ...contentData,
+        heroSlides: contentData.heroSlides.map(slide => {
+          const { id, ...cleanSlide } = slide;
+          return cleanSlide;
+        }),
+        staticPages: contentData.staticPages.map(page => {
+          const { id, ...cleanPage } = page;
+          return cleanPage;
+        })
+      };
+      
+      console.log('Cleaned content data:', cleanContentData);
+      
+      const response = await api.put('/api/content', cleanContentData);
+      console.log('Content saved successfully:', response.data);
+      
+      // Update local state with the saved data
+      setContentData(response.data.content);
+      
+      alert('Content saved successfully!');
+    } catch (error) {
+      console.error('Error saving content:', error);
+      alert('Error saving content. Please try again.');
+    }
+  };
+
+  // Settings Management Functions
+  const handleSettingsChange = (section, field, value) => {
+    setSettingsData(prev => ({
+      ...prev,
+      [section]: {
+        ...prev[section],
+        [field]: value
+      }
+    }));
+  };
+
+  const handleAdminUserChange = (userId, field, value) => {
+    setSettingsData(prev => ({
+      ...prev,
+      admin: {
+        ...prev.admin,
+        users: prev.admin.users.map(user => 
+          user.id === userId 
+            ? { ...user, [field]: value }
+            : user
+        )
+      }
+    }));
+  };
+
+  const addAdminUser = () => {
+    const newUser = {
+      id: `user_${Date.now()}`,
+      name: '',
+      email: '',
+      role: 'Editor'
+    };
+    setSettingsData(prev => ({
+      ...prev,
+      admin: {
+        ...prev.admin,
+        users: [...prev.admin.users, newUser]
+      }
+    }));
+  };
+
+  const removeAdminUser = (userId) => {
+    setSettingsData(prev => ({
+      ...prev,
+      admin: {
+        ...prev.admin,
+        users: prev.admin.users.filter(user => user.id !== userId)
+      }
+    }));
+  };
+
+  const saveSettings = async (section) => {
+    try {
+      console.log(`🔄 Saving ${section} settings...`);
+      console.log(`📤 Data being sent:`, settingsData[section]);
+      
+      // Save to backend and update context
+      const result = await updateSettings(section, settingsData[section]);
+      
+      if (result.success) {
+        console.log(`✅ ${section} settings saved successfully!`);
+        alert(`${section.charAt(0).toUpperCase() + section.slice(1)} settings saved successfully!`);
+      } else {
+        throw new Error(result.error || 'Failed to save settings');
+      }
+    } catch (error) {
+      console.error(`❌ Error saving ${section} settings:`, error);
+      alert(`Error saving ${section} settings. Please try again.`);
+    }
   };
 
   const handleOrderStatusChange = async (orderId, newStatus) => {
@@ -923,17 +1247,10 @@ const Admin = () => {
           ]
         },
         {
-          name: "Fashion and Apparel",
+          name: "Apparel",
           description: "Clothing, shoes, and fashion accessories",
           subCategories: [
             "Men's Clothing", "Women's Clothing", "Kids' Clothing", "Shoes", "Bags", "Jewelry", "Watches"
-          ]
-        },
-        {
-          name: "Food and Beverages",
-          description: "Food products and beverages",
-          subCategories: [
-            "Snacks", "Beverages", "Organic Food", "Gourmet", "Health Food", "Beverages"
           ]
         },
         {
@@ -968,7 +1285,9 @@ const Admin = () => {
           name: "Toys and Hobbies",
           description: "Toys, games, and hobby supplies",
           subCategories: [
-            "Board Games", "Puzzles", "Educational Toys", "Arts & Crafts", "Sports Equipment", "Collectibles"
+            "Outdoor Toys",
+            "Board Games & Puzzles",
+            "Arts & Crafts Supplies"
           ]
         }
       ];
@@ -1045,6 +1364,7 @@ const Admin = () => {
         { name: 'Jeans', parentCategory: 'Apparel', description: 'Classic denim jeans' },
         { name: 'Shirts', parentCategory: 'Apparel', description: 'Formal and casual shirts' },
         { name: 'Dresses', parentCategory: 'Apparel', description: 'Elegant dresses for all occasions' },
+        { name: "Men's Clothing", parentCategory: 'Apparel', description: 'Clothing specifically designed for men' },
         
         // Accessories sub-categories
         { name: 'Watches', parentCategory: 'Accessories', description: 'Stylish timepieces' },
@@ -1157,19 +1477,12 @@ const Admin = () => {
       "Gaming Consoles & Accessories",
       "Smart Home Devices"
     ],
-    "Fashion and Apparel": [
+    "Apparel": [
       "Women's Clothing",
       "Men's Clothing", 
       "Shoes",
       "Accessories",
       "Kids & Baby Clothing"
-    ],
-    "Food and Beverages": [
-      "Grocery & Staples",
-      "Organic & Health Foods",
-      "Beverages", 
-      "Snacks & Confectionery",
-      "Gourmet & Specialty Foods"
     ],
     "DIY and Hardware": [
       "Power Tools",
@@ -1199,7 +1512,6 @@ const Admin = () => {
       "Video Games"
     ],
     "Toys and Hobbies": [
-      "Educational Toys",
       "Outdoor Toys",
       "Board Games & Puzzles",
       "Arts & Crafts Supplies"
@@ -1299,7 +1611,13 @@ const Admin = () => {
                 <tr key={order._id}>
                   <td>#{order._id.slice(-6)}</td>
                   <td>{order.user?.name || 'N/A'}</td>
-                  <td>{new Date(order.createdAt).toLocaleDateString()}</td>
+                  <td>{new Date(order.createdAt).toLocaleString('en-US', {
+                    year: 'numeric',
+                    month: 'short',
+                    day: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit'
+                  })}</td>
                   <td>₹{order.totalPrice?.toLocaleString() || 0}</td>
                   <td><span className={`status-badge ${order.status?.toLowerCase()}`}>{order.status}</span></td>
                   <td className="actions">
@@ -1442,7 +1760,6 @@ const Admin = () => {
           <div className="form-content" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
               <h3>Add New Product</h3>
-              <div className="modal-hint">Click outside to close</div>
               <button 
                 className="close-btn" 
                 onClick={handleCloseAddProduct}
@@ -2015,6 +2332,108 @@ const Admin = () => {
               </div>
             </div>
 
+            {/* Wash Details Section */}
+            <div className="form-section">
+              <h4>Wash & Care Instructions</h4>
+              <div className="form-grid">
+                <div className="form-group">
+                  <label>Washing Instructions</label>
+                  <textarea
+                    className="form-textarea"
+                    value={productForm.washDetails?.washing || ''}
+                    onChange={(e) => setProductForm({
+                      ...productForm, 
+                      washDetails: {
+                        ...productForm.washDetails,
+                        washing: e.target.value
+                      }
+                    })}
+                    placeholder="Enter washing instructions (e.g., Machine wash cold, gentle cycle)"
+                  />
+                </div>
+                
+                <div className="form-group">
+                  <label>Drying Instructions</label>
+                  <textarea
+                    className="form-textarea"
+                    value={productForm.washDetails?.drying || ''}
+                    onChange={(e) => setProductForm({
+                      ...productForm, 
+                      washDetails: {
+                        ...productForm.washDetails,
+                        drying: e.target.value
+                      }
+                    })}
+                    placeholder="Enter drying instructions (e.g., Tumble dry low, line dry)"
+                  />
+                </div>
+                
+                <div className="form-group">
+                  <label>Ironing Instructions</label>
+                  <textarea
+                    className="form-textarea"
+                    value={productForm.washDetails?.ironing || ''}
+                    onChange={(e) => setProductForm({
+                      ...productForm, 
+                      washDetails: {
+                        ...productForm.washDetails,
+                        ironing: e.target.value
+                      }
+                    })}
+                    placeholder="Enter ironing instructions (e.g., Iron on low heat, steam iron)"
+                  />
+                </div>
+                
+                <div className="form-group">
+                  <label>Bleaching Instructions</label>
+                  <textarea
+                    className="form-textarea"
+                    value={productForm.washDetails?.bleaching || ''}
+                    onChange={(e) => setProductForm({
+                      ...productForm, 
+                      washDetails: {
+                        ...productForm.washDetails,
+                        bleaching: e.target.value
+                      }
+                    })}
+                    placeholder="Enter bleaching instructions (e.g., Do not bleach, bleach as needed)"
+                  />
+                </div>
+                
+                <div className="form-group">
+                  <label>Dry Cleaning Instructions</label>
+                  <textarea
+                    className="form-textarea"
+                    value={productForm.washDetails?.dryCleaning || ''}
+                    onChange={(e) => setProductForm({
+                      ...productForm, 
+                      washDetails: {
+                        ...productForm.washDetails,
+                        dryCleaning: e.target.value
+                      }
+                    })}
+                    placeholder="Enter dry cleaning instructions (e.g., Dry clean only, dry clean as needed)"
+                  />
+                </div>
+                
+                <div className="form-group">
+                  <label>Additional Care Tips</label>
+                  <textarea
+                    className="form-textarea"
+                    value={productForm.washDetails?.additionalCare || ''}
+                    onChange={(e) => setProductForm({
+                      ...productForm, 
+                      washDetails: {
+                        ...productForm.washDetails,
+                        additionalCare: e.target.value
+                      }
+                    })}
+                    placeholder="Enter any additional care tips or special instructions"
+                  />
+                </div>
+              </div>
+            </div>
+
             <div className="form-actions">
               <button className="cancel-btn" onClick={() => {
                 setShowAddProduct(false);
@@ -2036,7 +2455,15 @@ const Admin = () => {
                   variants: [],
                   featured: false,
                   newArrival: false,
-                  trending: false
+                  trending: false,
+                  washDetails: {
+                    washing: '',
+                    drying: '',
+                    ironing: '',
+                    bleaching: '',
+                    dryCleaning: '',
+                    additionalCare: ''
+                  }
                 });
               }}>
                 Cancel
@@ -2342,7 +2769,13 @@ const Admin = () => {
                   <tr key={order._id}>
                     <td>#{order._id.slice(-6)}</td>
                     <td>{order.user?.name || 'N/A'}</td>
-                    <td>{new Date(order.createdAt).toLocaleDateString()}</td>
+                    <td>{new Date(order.createdAt).toLocaleString('en-US', {
+                      year: 'numeric',
+                      month: 'short',
+                      day: 'numeric',
+                      hour: '2-digit',
+                      minute: '2-digit'
+                    })}</td>
                     <td>₹{order.totalPrice?.toLocaleString() || 0}</td>
                     <td>{order.paymentMethod}</td>
                     <td><span className={`status-badge ${order.status?.toLowerCase()}`}>{order.status}</span></td>
@@ -3418,41 +3851,171 @@ const Admin = () => {
     <div className="admin-content">
       <h1>Content Manager</h1>
       
+
+      
       {/* Top Bar Announcement */}
       <div className="content-section">
         <h3>Top Bar Announcement</h3>
         <div className="form-group">
-          <input type="text" placeholder="Announcement Text" className="form-input" />
+          <label>
+            <input 
+              type="checkbox" 
+              checked={contentData.announcement.enabled}
+              onChange={(e) => handleAnnouncementChange('enabled', e.target.checked)}
+            />
+            Enable Announcement
+          </label>
         </div>
         <div className="form-group">
-          <input type="text" placeholder="Call to Action Link (Optional)" className="form-input" />
+          <input 
+            type="text" 
+            placeholder="Announcement Text" 
+            className="form-input"
+            value={contentData.announcement.text || ''}
+            onChange={(e) => handleAnnouncementChange('text', e.target.value)}
+          />
         </div>
-        <button className="save-btn">Save Announcement</button>
+        
+        {/* Link Type Selection */}
+        <div className="form-group">
+          <label>Link Type:</label>
+          <select 
+            className="form-select"
+            value={contentData.announcement.linkType}
+            onChange={(e) => handleAnnouncementChange('linkType', e.target.value)}
+          >
+            <option value="none">No Link</option>
+            <option value="internal">Internal Page</option>
+            <option value="external">External URL</option>
+          </select>
+        </div>
+
+        {/* Button Text */}
+        <div className="form-group">
+          <input 
+            type="text" 
+            placeholder="Button Text (e.g., Learn More, Shop Now, Read More)" 
+            className="form-input"
+            value={contentData.announcement.buttonText || 'Learn More'}
+            onChange={(e) => handleAnnouncementChange('buttonText', e.target.value)}
+          />
+        </div>
+
+        {/* Target Page Selection (for internal links) */}
+        {contentData.announcement.linkType === 'internal' && (
+          <div className="form-group">
+            <label>Target Page:</label>
+            <select 
+              className="form-select"
+              value={contentData.announcement.targetPage}
+              onChange={(e) => handleAnnouncementChange('targetPage', e.target.value)}
+            >
+              <option value="">Select a page</option>
+              <option value="/">Home</option>
+              <option value="/products">Products</option>
+              <option value="/new-arrivals">New Arrivals</option>
+              <option value="/about">About Us</option>
+              <option value="/contact">Contact Us</option>
+              <option value="/cart">Cart</option>
+            </select>
+          </div>
+        )}
+
+        {/* External URL (for external links) */}
+        {contentData.announcement.linkType === 'external' && (
+          <div className="form-group">
+            <input 
+              type="url" 
+              placeholder="External URL (e.g., https://example.com)" 
+              className="form-input"
+              value={contentData.announcement.link}
+              onChange={(e) => handleAnnouncementChange('link', e.target.value)}
+            />
+          </div>
+        )}
+
+        <button 
+          className="save-btn" 
+          onClick={() => saveContent()}
+        >
+          Save Announcement
+        </button>
       </div>
 
       {/* Hero Slider */}
       <div className="content-section">
         <h3>Hero Slider</h3>
-        <div className="form-group">
-          <input type="text" placeholder="Title" className="form-input" />
-        </div>
-        <div className="form-group">
-          <textarea placeholder="Description" className="form-textarea">The wait is over! Our most anticipated collection is finally here.</textarea>
-        </div>
-        <div className="form-group">
-          <input type="text" placeholder="CTA Text" className="form-input" />
-        </div>
-        <div className="form-group">
-          <input type="text" placeholder="CTA Link" className="form-input" />
-        </div>
-        <div className="form-group">
-          <input type="file" className="form-input" />
-          <label>Background Image</label>
-        </div>
+        {contentData.heroSlides.map((slide, index) => (
+          <div key={index} className="slide-item">
+            <h4>Slide {index + 1}</h4>
+            <div className="form-group">
+              <input 
+                type="text" 
+                placeholder="Title" 
+                className="form-input"
+                value={slide.title}
+                onChange={(e) => handleHeroSlideChange(index, 'title', e.target.value)}
+              />
+            </div>
+            <div className="form-group">
+              <textarea 
+                placeholder="Description" 
+                className="form-textarea"
+                value={slide.description || ''}
+                onChange={(e) => handleHeroSlideChange(index, 'description', e.target.value)}
+              />
+            </div>
+            <div className="form-group">
+              <input 
+                type="text" 
+                placeholder="CTA Text" 
+                className="form-input"
+                value={slide.ctaText}
+                onChange={(e) => handleHeroSlideChange(index, 'ctaText', e.target.value)}
+              />
+            </div>
+            <div className="form-group">
+              <input 
+                type="text" 
+                placeholder="CTA Link" 
+                className="form-input"
+                value={slide.ctaLink}
+                onChange={(e) => handleHeroSlideChange(index, 'ctaLink', e.target.value)}
+              />
+            </div>
+            <div className="form-group">
+              <input 
+                type="file" 
+                className="form-input"
+                onChange={(e) => {
+                  const file = e.target.files[0];
+                  if (file) {
+                    const reader = new FileReader();
+                    reader.onload = (e) => handleHeroSlideChange(index, 'imagePreview', e.target.result);
+                    reader.readAsDataURL(file);
+                  }
+                }}
+              />
+              <label>Background Image</label>
+              {slide.imagePreview && (
+                <div className="image-preview">
+                  <img src={slide.imagePreview} alt="Slide preview" />
+                </div>
+              )}
+            </div>
+            {contentData.heroSlides.length > 1 && (
+              <button 
+                className="remove-btn" 
+                onClick={() => removeHeroSlide(index)}
+              >
+                Remove Slide
+              </button>
+            )}
+          </div>
+        ))}
         <div className="form-actions">
-          <button className="remove-btn">Remove Slide</button>
-          <button className="add-btn"><FiPlus /> Add Slide</button>
-          <button className="save-btn">Save Slider Settings</button>
+          <button className="add-btn" onClick={addHeroSlide}><FiPlus /> Add Slide</button>
+          <button className="save-btn" onClick={() => saveContent()}>Save Slider Settings</button>
         </div>
       </div>
 
@@ -3471,42 +4034,96 @@ const Admin = () => {
       <div className="content-section">
         <h3>Promotional Banner</h3>
         <div className="form-group">
-          <input type="text" placeholder="Title" className="form-input" />
+          <label>
+            <input 
+              type="checkbox" 
+              checked={contentData.promotionalBanner.enabled}
+              onChange={(e) => handlePromotionalBannerChange('enabled', e.target.checked)}
+            />
+            Enable Banner
+          </label>
         </div>
         <div className="form-group">
-          <input type="text" placeholder="CTA Text" className="form-input" />
+          <input 
+            type="text" 
+            placeholder="Title" 
+            className="form-input"
+            value={contentData.promotionalBanner.title}
+            onChange={(e) => handlePromotionalBannerChange('title', e.target.value)}
+          />
         </div>
-        <button className="save-btn">Save Banner</button>
+        <div className="form-group">
+          <input 
+            type="text" 
+            placeholder="CTA Text" 
+            className="form-input"
+            value={contentData.promotionalBanner.ctaText}
+            onChange={(e) => handlePromotionalBannerChange('ctaText', e.target.value)}
+          />
+        </div>
+        <button className="save-btn" onClick={() => saveContent()}>Save Banner</button>
       </div>
 
       {/* Static Pages */}
       <div className="content-section">
         <h3>Static Pages</h3>
-        <button className="add-btn"><FiPlus /> Add New Page</button>
+        <button className="add-btn" onClick={addStaticPage}><FiPlus /> Add New Page</button>
         <div className="table-container">
           <table className="admin-table">
             <thead>
               <tr>
                 <th>Page Title</th>
+                <th>Slug</th>
+                <th>Status</th>
                 <th>Actions</th>
               </tr>
             </thead>
             <tbody>
-              <tr>
-                <td>About Us</td>
-                <td className="actions">
-                  <button className="action-btn edit"><FiEdit /></button>
-                </td>
-              </tr>
-              <tr>
-                <td>Contact Us</td>
-                <td className="actions">
-                  <button className="action-btn edit"><FiEdit /></button>
-                </td>
-              </tr>
+              {contentData.staticPages.map((page, index) => (
+                <tr key={index}>
+                  <td>
+                    <input 
+                      type="text" 
+                      className="form-input inline-input"
+                      value={page.title}
+                      onChange={(e) => handleStaticPageChange(index, 'title', e.target.value)}
+                      placeholder="Page Title"
+                    />
+                  </td>
+                  <td>
+                    <input 
+                      type="text" 
+                      className="form-input inline-input"
+                      value={page.slug}
+                      onChange={(e) => handleStaticPageChange(index, 'slug', e.target.value)}
+                      placeholder="page-slug"
+                    />
+                  </td>
+                  <td>
+                    <label>
+                      <input 
+                        type="checkbox" 
+                        checked={page.published}
+                        onChange={(e) => handleStaticPageChange(index, 'published', e.target.checked)}
+                      />
+                      Published
+                    </label>
+                  </td>
+                  <td className="actions">
+                    <button className="action-btn edit"><FiEdit /></button>
+                    <button 
+                      className="action-btn delete"
+                      onClick={() => removeStaticPage(index)}
+                    >
+                      <FiTrash2 />
+                    </button>
+                  </td>
+                </tr>
+              ))}
             </tbody>
           </table>
         </div>
+        <button className="save-btn" onClick={() => saveContent()}>Save Pages</button>
       </div>
     </div>
   );
@@ -3514,6 +4131,8 @@ const Admin = () => {
   const renderSettings = () => (
     <div className="admin-settings">
       <h1>Settings</h1>
+      
+
       
              <div className="settings-tabs">
          <button className={`tab-btn ${settingsTab === 'general' ? 'active' : ''}`} onClick={() => setSettingsTab('general')}>
@@ -3544,21 +4163,52 @@ const Admin = () => {
            <h3>General Settings</h3>
           <div className="form-group">
             <label>Store Name</label>
-            <input type="text" className="form-input" defaultValue="EastEdge" />
+            <input 
+              type="text" 
+              className="form-input" 
+              value={settingsData.general.storeName}
+              onChange={(e) => handleSettingsChange('general', 'storeName', e.target.value)}
+            />
           </div>
           <div className="form-group">
             <label>Contact Email</label>
-            <input type="email" className="form-input" defaultValue="info@eastedge.in" />
+            <input 
+              type="email" 
+              className="form-input" 
+              value={settingsData.general.contactEmail}
+              onChange={(e) => handleSettingsChange('general', 'contactEmail', e.target.value)}
+            />
           </div>
           <div className="form-group">
             <label>Phone Number</label>
-            <input type="tel" className="form-input" defaultValue="+91 6302244544" />
+            <input 
+              type="tel" 
+              className="form-input" 
+              value={settingsData.general.phoneNumber}
+              onChange={(e) => handleSettingsChange('general', 'phoneNumber', e.target.value)}
+            />
           </div>
           <div className="form-group">
             <label>Store Logo</label>
-            <input type="file" className="form-input" />
+            <input 
+              type="file" 
+              className="form-input"
+              onChange={(e) => {
+                const file = e.target.files[0];
+                if (file) {
+                  const reader = new FileReader();
+                  reader.onload = (e) => handleSettingsChange('general', 'logoPreview', e.target.result);
+                  reader.readAsDataURL(file);
+                }
+              }}
+            />
+            {settingsData.general.logoPreview && (
+              <div className="image-preview">
+                <img src={settingsData.general.logoPreview} alt="Logo preview" />
+              </div>
+            )}
           </div>
-          <button className="save-btn">Save General Settings</button>
+          <button className="save-btn" onClick={() => saveSettings('general')}>Save General Settings</button>
         </div>
       )}
 
@@ -3567,13 +4217,48 @@ const Admin = () => {
            <h3>Store Settings</h3>
           <div className="form-group">
             <label>Business Address</label>
-            <textarea className="form-textarea" defaultValue="Malkajgiri, Hyderabad, Telangana, India"></textarea>
+            <textarea 
+              className="form-textarea" 
+              value={settingsData.store.businessAddress}
+              onChange={(e) => handleSettingsChange('store', 'businessAddress', e.target.value)}
+            />
           </div>
           <div className="form-group">
             <label>Tax Rate (%)</label>
-            <input type="number" className="form-input" defaultValue="18" />
+            <input 
+              type="number" 
+              className="form-input" 
+              value={settingsData.store.taxRate}
+              onChange={(e) => handleSettingsChange('store', 'taxRate', e.target.value)}
+            />
           </div>
-          <button className="save-btn">Save Store Settings</button>
+          <div className="form-group">
+            <label>Currency</label>
+            <select 
+              className="form-input"
+              value={settingsData.store.currency}
+              onChange={(e) => handleSettingsChange('store', 'currency', e.target.value)}
+            >
+              <option value="₹">₹ (INR)</option>
+              <option value="$">$ (USD)</option>
+              <option value="€">€ (EUR)</option>
+              <option value="£">£ (GBP)</option>
+            </select>
+          </div>
+          <div className="form-group">
+            <label>Timezone</label>
+            <select 
+              className="form-input"
+              value={settingsData.store.timezone}
+              onChange={(e) => handleSettingsChange('store', 'timezone', e.target.value)}
+            >
+              <option value="Asia/Kolkata">Asia/Kolkata (IST)</option>
+              <option value="UTC">UTC</option>
+              <option value="America/New_York">America/New_York (EST)</option>
+              <option value="Europe/London">Europe/London (GMT)</option>
+            </select>
+          </div>
+          <button className="save-btn" onClick={() => saveSettings('store')}>Save Store Settings</button>
         </div>
       )}
 
@@ -3581,16 +4266,37 @@ const Admin = () => {
          <div className="settings-content">
            <h3>Shipping Cost Settings</h3>
           <div className="form-group">
-            <label>Free Shipping Threshold (₹)</label>
-            <input type="number" className="form-input" placeholder="Orders above this amount will have free shipping" />
+            <label>Free Shipping Threshold ({settingsData.store.currency})</label>
+            <input 
+              type="number" 
+              className="form-input" 
+              placeholder="Orders above this amount will have free shipping"
+              value={settingsData.shipping.freeShippingThreshold}
+              onChange={(e) => handleSettingsChange('shipping', 'freeShippingThreshold', e.target.value)}
+            />
+          </div>
+          <div className="form-group">
+            <label>Default Shipping Cost ({settingsData.store.currency})</label>
+            <input 
+              type="number" 
+              className="form-input" 
+              placeholder="Default shipping cost for orders below threshold"
+              value={settingsData.shipping.defaultShippingCost}
+              onChange={(e) => handleSettingsChange('shipping', 'defaultShippingCost', e.target.value)}
+            />
           </div>
           <div className="form-group">
             <label>
-              <input type="checkbox" /> Force Paid Shipping
+              <input 
+                type="checkbox" 
+                checked={settingsData.shipping.forcePaidShipping}
+                onChange={(e) => handleSettingsChange('shipping', 'forcePaidShipping', e.target.checked)}
+              />
+              Force Paid Shipping
             </label>
             <small>If enabled, free shipping threshold will be ignored.</small>
           </div>
-          <button className="save-btn">Save Shipping Settings</button>
+          <button className="save-btn" onClick={() => saveSettings('shipping')}>Save Shipping Settings</button>
         </div>
       )}
 
@@ -3599,20 +4305,49 @@ const Admin = () => {
            <h3>Payment Gateways</h3>
           <div className="form-group">
             <label>
-              <input type="checkbox" defaultChecked /> Enable Razorpay
+              <input 
+                type="checkbox" 
+                checked={settingsData.payment.razorpay}
+                onChange={(e) => handleSettingsChange('payment', 'razorpay', e.target.checked)}
+              />
+              Enable Razorpay
             </label>
+            <small>Secure online payments via Razorpay gateway</small>
           </div>
           <div className="form-group">
             <label>
-              <input type="checkbox" defaultChecked /> Enable Cash on Delivery (COD)
+              <input 
+                type="checkbox" 
+                checked={settingsData.payment.cod}
+                onChange={(e) => handleSettingsChange('payment', 'cod', e.target.checked)}
+              />
+              Enable Cash on Delivery (COD)
             </label>
+            <small>Allow customers to pay when they receive their order</small>
           </div>
           <div className="form-group">
             <label>
-              <input type="checkbox" /> Enable Cashfree
+              <input 
+                type="checkbox" 
+                checked={settingsData.payment.cashfree}
+                onChange={(e) => handleSettingsChange('payment', 'cashfree', e.target.checked)}
+              />
+              Enable Cashfree
             </label>
+            <small>Alternative payment gateway for online transactions</small>
           </div>
-          <button className="save-btn">Save Payment Settings</button>
+          <div className="form-group">
+            <label>Test Mode</label>
+            <label>
+              <input 
+                type="checkbox" 
+                defaultChecked
+              />
+              Enable Test Mode
+            </label>
+            <small>Use test credentials for development and testing</small>
+          </div>
+          <button className="save-btn" onClick={() => saveSettings('payment')}>Save Payment Settings</button>
         </div>
       )}
 
@@ -3621,34 +4356,141 @@ const Admin = () => {
            <h3>Email Notifications</h3>
           <div className="form-group">
             <label>
-              <input type="checkbox" defaultChecked /> Send Order Confirmation to Customer
+              <input 
+                type="checkbox" 
+                checked={settingsData.email.orderConfirmation}
+                onChange={(e) => handleSettingsChange('email', 'orderConfirmation', e.target.checked)}
+              />
+              Send Order Confirmation to Customer
             </label>
+            <small>Automatically send confirmation emails when orders are placed</small>
           </div>
           <div className="form-group">
             <label>
-              <input type="checkbox" defaultChecked /> Notify Admin on New Order
+              <input 
+                type="checkbox" 
+                checked={settingsData.email.adminNotification}
+                onChange={(e) => handleSettingsChange('email', 'adminNotification', e.target.checked)}
+              />
+              Notify Admin on New Order
             </label>
+            <small>Send notification emails to admin when new orders arrive</small>
           </div>
           <div className="form-group">
             <label>
-              <input type="checkbox" defaultChecked /> Enable Shipping Updates
+              <input 
+                type="checkbox" 
+                checked={settingsData.email.shippingUpdates}
+                onChange={(e) => handleSettingsChange('email', 'shippingUpdates', e.target.checked)}
+              />
+              Enable Shipping Updates
             </label>
+            <small>Send shipping status updates to customers</small>
           </div>
-          <button className="save-btn">Save Email Settings</button>
+          <div className="form-group">
+            <label>SMTP Settings</label>
+            <input 
+              type="text" 
+              className="form-input" 
+              placeholder="SMTP Host (e.g., smtp.gmail.com)"
+              value={settingsData.email.smtpHost}
+              onChange={(e) => handleSettingsChange('email', 'smtpHost', e.target.value)}
+            />
+            <input 
+              type="text" 
+              className="form-input" 
+              placeholder="SMTP Port (e.g., 587)"
+              value={settingsData.email.smtpPort}
+              onChange={(e) => handleSettingsChange('email', 'smtpPort', e.target.value)}
+            />
+            <input 
+              type="email" 
+              className="form-input" 
+              placeholder="Email Address"
+              value={settingsData.email.smtpEmail}
+              onChange={(e) => handleSettingsChange('email', 'smtpEmail', e.target.value)}
+            />
+            <input 
+              type="password" 
+              className="form-input" 
+              placeholder="Email Password/App Password"
+              value={settingsData.email.smtpPassword}
+              onChange={(e) => handleSettingsChange('email', 'smtpPassword', e.target.value)}
+            />
+          </div>
+          <button className="save-btn" onClick={() => saveSettings('email')}>Save Email Settings</button>
         </div>
       )}
 
              {settingsTab === 'appearance' && (
          <div className="settings-content">
-           <h3>Appearance</h3>
-          <p>Appearance settings will be available in a future update.</p>
+           <h3>Appearance & Theme</h3>
+          <div className="form-group">
+            <label>Primary Color</label>
+            <input 
+              type="color" 
+              className="form-input color-input" 
+              value={settingsData.appearance.primaryColor}
+              onChange={(e) => handleSettingsChange('appearance', 'primaryColor', e.target.value)}
+            />
+            <small>Main brand color used throughout the site</small>
+          </div>
+          <div className="form-group">
+            <label>Secondary Color</label>
+            <input 
+              type="color" 
+              className="form-input color-input" 
+              value={settingsData.appearance.secondaryColor}
+              onChange={(e) => handleSettingsChange('appearance', 'secondaryColor', e.target.value)}
+            />
+            <small>Secondary color for accents and highlights</small>
+          </div>
+          <div className="form-group">
+            <label>Theme Mode</label>
+            <select 
+              className="form-input"
+              value={settingsData.appearance.themeMode}
+              onChange={(e) => handleSettingsChange('appearance', 'themeMode', e.target.value)}
+            >
+              <option value="light">Light Theme</option>
+              <option value="dark">Dark Theme</option>
+              <option value="auto">Auto (Follow System)</option>
+            </select>
+          </div>
+          <div className="form-group">
+            <label>Font Family</label>
+            <select 
+              className="form-input"
+              value={settingsData.appearance.fontFamily}
+              onChange={(e) => handleSettingsChange('appearance', 'fontFamily', e.target.value)}
+            >
+              <option value="Inter">Inter (Modern)</option>
+              <option value="Roboto">Roboto (Clean)</option>
+              <option value="Open Sans">Open Sans (Readable)</option>
+              <option value="Poppins">Poppins (Friendly)</option>
+            </select>
+          </div>
+          <div className="form-group">
+            <label>Border Radius</label>
+            <select 
+              className="form-input"
+              value={settingsData.appearance.borderRadius}
+              onChange={(e) => handleSettingsChange('appearance', 'borderRadius', e.target.value)}
+            >
+              <option value="0">Sharp (0px)</option>
+              <option value="4">Slightly Rounded (4px)</option>
+              <option value="8">Rounded (8px)</option>
+              <option value="12">Very Rounded (12px)</option>
+            </select>
+          </div>
+          <button className="save-btn" onClick={() => saveSettings('appearance')}>Save Appearance Settings</button>
         </div>
       )}
 
              {settingsTab === 'admin' && (
          <div className="settings-content">
            <h3>User Role Management</h3>
-          <button className="add-btn"><FiPlus /> Add User</button>
+          <button className="add-btn" onClick={addAdminUser}><FiPlus /> Add User</button>
           <div className="table-container">
             <table className="admin-table">
               <thead>
@@ -3660,25 +4502,55 @@ const Admin = () => {
                 </tr>
               </thead>
               <tbody>
-                                 <tr>
-                   <td>Admin User</td>
-                   <td>info@eastedge.in</td>
-                   <td>Super Admin</td>
-                   <td className="actions">
-                     <button className="action-btn edit"><FiEdit /></button>
-                   </td>
-                 </tr>
-                 <tr>
-                   <td>Editor User</td>
-                   <td>editor@eastedge.in</td>
-                   <td>Editor</td>
-                   <td className="actions">
-                     <button className="action-btn edit"><FiEdit /></button>
-                   </td>
-                 </tr>
+                {settingsData.admin.users.map(user => (
+                  <tr key={user.id}>
+                    <td>
+                      <input 
+                        type="text" 
+                        className="form-input inline-input"
+                        value={user.name}
+                        onChange={(e) => handleAdminUserChange(user.id, 'name', e.target.value)}
+                        placeholder="User Name"
+                      />
+                    </td>
+                    <td>
+                      <input 
+                        type="email" 
+                        className="form-input inline-input"
+                        value={user.email}
+                        onChange={(e) => handleAdminUserChange(user.id, 'email', e.target.value)}
+                        placeholder="user@example.com"
+                      />
+                    </td>
+                    <td>
+                      <select 
+                        className="form-input inline-input"
+                        value={user.role}
+                        onChange={(e) => handleAdminUserChange(user.id, 'role', e.target.value)}
+                      >
+                        <option value="Super Admin">Super Admin</option>
+                        <option value="Admin">Admin</option>
+                        <option value="Editor">Editor</option>
+                        <option value="Viewer">Viewer</option>
+                      </select>
+                    </td>
+                    <td className="actions">
+                      <button className="action-btn edit"><FiEdit /></button>
+                      {user.role !== 'Super Admin' && (
+                        <button 
+                          className="action-btn delete"
+                          onClick={() => removeAdminUser(user.id)}
+                        >
+                          <FiTrash2 />
+                        </button>
+                      )}
+                    </td>
+                  </tr>
+                ))}
               </tbody>
             </table>
           </div>
+          <button className="save-btn" onClick={() => saveSettings('admin')}>Save User Settings</button>
         </div>
       )}
     </div>
@@ -3810,6 +4682,16 @@ const Admin = () => {
                   <div className="info-item">
                     <strong>Email:</strong> 
                     <span className="order-value">{orderData.customerEmail}</span>
+                  </div>
+                  <div className="info-item">
+                    <strong>Order Date:</strong> 
+                    <span className="order-value">{new Date(orderData.orderDate).toLocaleString('en-US', {
+                      year: 'numeric',
+                      month: 'long',
+                      day: 'numeric',
+                      hour: '2-digit',
+                      minute: '2-digit'
+                    })}</span>
                   </div>
                 </div>
               </div>
@@ -4006,7 +4888,13 @@ const Admin = () => {
                   <div className="info-item">
                     <strong>Last Order:</strong> 
                     <span className="order-value">
-                      {stats.lastOrderDate ? new Date(stats.lastOrderDate).toLocaleDateString() : 'No orders'}
+                      {stats.lastOrderDate ? new Date(stats.lastOrderDate).toLocaleString('en-US', {
+                        year: 'numeric',
+                        month: 'short',
+                        day: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit'
+                      }) : 'No orders'}
                     </span>
                   </div>
                 </div>
@@ -4031,7 +4919,13 @@ const Admin = () => {
                       {orders.map((order) => (
                         <tr key={order._id}>
                           <td>#{order._id.slice(-6)}</td>
-                          <td>{new Date(order.createdAt).toLocaleDateString()}</td>
+                          <td>{new Date(order.createdAt).toLocaleString('en-US', {
+                            year: 'numeric',
+                            month: 'short',
+                            day: 'numeric',
+                            hour: '2-digit',
+                            minute: '2-digit'
+                          })}</td>
                           <td>
                             <span className={`status-badge ${order.status}`}>
                               {order.status}
@@ -4067,29 +4961,7 @@ const Admin = () => {
     );
   };
 
-  // Fetch reviews
-  const fetchReviews = async (page = 1, status = 'all', search = '') => {
-    try {
-      setReviewsLoading(true);
-      const params = new URLSearchParams({
-        page: page.toString(),
-        limit: '10',
-        status: status,
-        search: search
-      });
-      
-      const response = await api.get(`/api/reviews/admin?${params}`);
-      if (response.data.success) {
-        setReviews(response.data.reviews);
-        setReviewStats(response.data.analytics);
-        setReviewsPagination(response.data.pagination);
-      }
-    } catch (error) {
-      console.error('Error fetching reviews:', error);
-    } finally {
-      setReviewsLoading(false);
-    }
-  };
+
 
   // Reply to a review
   const handleReply = async () => {
@@ -4227,17 +5099,10 @@ const Admin = () => {
           ]
         },
         {
-          name: "Fashion and Apparel",
+          name: "Apparel",
           description: "Clothing, shoes, and fashion accessories",
           subCategories: [
             "Men's Clothing", "Women's Clothing", "Kids' Clothing", "Shoes", "Bags", "Jewelry", "Watches"
-          ]
-        },
-        {
-          name: "Food and Beverages",
-          description: "Food products and beverages",
-          subCategories: [
-            "Snacks", "Beverages", "Organic Food", "Gourmet", "Health Food", "Beverages"
           ]
         },
         {
@@ -4272,7 +5137,9 @@ const Admin = () => {
           name: "Toys and Hobbies",
           description: "Toys, games, and hobby supplies",
           subCategories: [
-            "Board Games", "Puzzles", "Educational Toys", "Arts & Crafts", "Sports Equipment", "Collectibles"
+            "Outdoor Toys",
+            "Board Games & Puzzles",
+            "Arts & Crafts Supplies"
           ]
         }
       ];
@@ -4410,12 +5277,36 @@ const Admin = () => {
   const handleDeleteDiscount = async (discountId) => {
     if (window.confirm('Are you sure you want to delete this discount?')) {
       try {
-        await api.delete(`/api/discounts/${discountId}`);
-        setDiscounts(discounts.filter(d => d._id !== discountId));
+        console.log('🗑️ Deleting discount with ID:', discountId);
+        console.log('📊 Current discounts before deletion:', discounts);
+        
+        const response = await api.delete(`/api/discounts/${discountId}`);
+        console.log('✅ Delete response:', response);
+        
+        // Update local state
+        const updatedDiscounts = discounts.filter(d => d._id !== discountId);
+        console.log('🔄 Updated discounts array:', updatedDiscounts);
+        
+        setDiscounts(updatedDiscounts);
+        
+        // Show success message
+        alert('Discount deleted successfully!');
+        
       } catch (error) {
-        console.error('Error deleting discount:', error);
+        console.error('❌ Error deleting discount:', error);
+        console.error('❌ Error details:', {
+          message: error.message,
+          response: error.response?.data,
+          status: error.response?.status
+        });
+        alert(`Error deleting discount: ${error.response?.data?.message || error.message}`);
       }
     }
+  };
+
+  const refreshDiscounts = async () => {
+    console.log('🔄 Refreshing discounts...');
+    await fetchDiscounts();
   };
 
   const resetDiscountForm = () => {

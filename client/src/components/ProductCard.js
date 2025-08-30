@@ -112,8 +112,8 @@ const ProductCard = ({ product }) => {
       return null;
     }
     
-    // Try to get image from product.image first
-    if (product.image && typeof product.image === 'string') {
+    // Priority 1: Main product image (product.image)
+    if (product.image && typeof product.image === 'string' && product.image.trim() !== '') {
       let imageUrl;
       // If it's already an absolute URL, use it as is
       if (product.image.startsWith('http')) {
@@ -127,14 +127,14 @@ const ProductCard = ({ product }) => {
       else {
         imageUrl = `${window.location.origin}/${product.image}`;
       }
-      console.log('Using product.image:', imageUrl);
+      console.log('✅ Using main product.image (Priority 1):', imageUrl);
       return imageUrl;
     }
     
-    // Try to get image from product.images array
+    // Priority 2: First image from product.images array
     if (Array.isArray(product.images) && product.images.length > 0) {
       const firstImage = product.images[0];
-      if (typeof firstImage === 'string') {
+      if (typeof firstImage === 'string' && firstImage.trim() !== '') {
         let imageUrl;
         if (firstImage.startsWith('http')) {
           imageUrl = firstImage;
@@ -143,12 +143,26 @@ const ProductCard = ({ product }) => {
         } else {
           imageUrl = `${window.location.origin}/${firstImage}`;
         }
-        console.log('Using product.images[0]:', imageUrl);
+        console.log('✅ Using product.images[0] (Priority 2):', imageUrl);
         return imageUrl;
       }
     }
     
-    console.log('No image found for product:', product.name);
+    // Priority 3: Check for any other image fields
+    if (product.imagePreview && typeof product.imagePreview === 'string' && product.imagePreview.trim() !== '') {
+      let imageUrl;
+      if (product.imagePreview.startsWith('http')) {
+        imageUrl = product.imagePreview;
+      } else if (product.imagePreview.startsWith('/')) {
+        imageUrl = `${window.location.origin}${product.imagePreview}`;
+      } else {
+        imageUrl = `${window.location.origin}/${product.imagePreview}`;
+      }
+      console.log('✅ Using imagePreview (Priority 3):', imageUrl);
+      return imageUrl;
+    }
+    
+    console.log('❌ No image found for product:', product.name);
     return null;
   };
 

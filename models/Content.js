@@ -1,0 +1,65 @@
+const mongoose = require('mongoose');
+
+const contentSchema = new mongoose.Schema({
+  // Top Bar Announcement
+  announcement: {
+    text: { type: String, default: '' },
+    link: { type: String, default: '' },
+    linkType: { type: String, enum: ['none', 'internal', 'external'], default: 'none' },
+    buttonText: { type: String, default: 'Learn More' },
+    targetPage: { type: String, default: '' },
+    enabled: { type: Boolean, default: false }
+  },
+
+  // Hero Slider
+  heroSlides: [{
+    title: { type: String, required: true },
+    description: { type: String, required: true },
+    ctaText: { type: String, default: '' },
+    ctaLink: { type: String, default: '' },
+    image: { type: String, default: '' },
+    imagePreview: { type: String, default: '' },
+    order: { type: Number, default: 0 },
+    active: { type: Boolean, default: true }
+  }],
+
+  // Promotional Banner
+  promotionalBanner: {
+    title: { type: String, default: '' },
+    ctaText: { type: String, default: '' },
+    enabled: { type: Boolean, default: false }
+  },
+
+  // Static Pages
+  staticPages: [{
+    title: { type: String, required: true },
+    slug: { type: String, required: true, unique: true },
+    content: { type: String, default: '' },
+    published: { type: Boolean, default: false },
+    metaDescription: { type: String, default: '' },
+    metaKeywords: { type: String, default: '' }
+  }],
+
+  // Site Settings
+  siteSettings: {
+    siteName: { type: String, default: 'EastEdge' },
+    siteDescription: { type: String, default: '' },
+    contactEmail: { type: String, default: '' },
+    phoneNumber: { type: String, default: '' },
+    address: { type: String, default: '' },
+    socialMedia: {
+      facebook: { type: String, default: '' },
+      twitter: { type: String, default: '' },
+      instagram: { type: String, default: '' },
+      linkedin: { type: String, default: '' }
+    }
+  }
+}, {
+  timestamps: true
+});
+
+// Create indexes
+contentSchema.index({ 'staticPages.slug': 1 });
+contentSchema.index({ 'heroSlides.order': 1 });
+
+module.exports = mongoose.model('Content', contentSchema); 
