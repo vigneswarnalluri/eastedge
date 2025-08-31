@@ -1,7 +1,6 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { FiAward, FiUsers, FiGlobe, FiHeart, FiTrendingUp, FiShield } from 'react-icons/fi';
-import ContentDisplay from '../components/ContentDisplay';
 import './AboutUs.css';
 import { Link } from 'react-router-dom'; // Added Link import
 
@@ -88,9 +87,6 @@ const AboutUs = () => {
 
   return (
     <div className="about-us-page">
-      {/* Content Display - Shows saved content from admin */}
-      <ContentDisplay />
-      
       {/* Hero Section with New Background */}
       <section className="hero-section geometric-bg geometric-bg-dark geometric-bg-xl">
         <div className="hero-image">

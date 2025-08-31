@@ -95,7 +95,10 @@ export const AuthProvider = ({ children }) => {
     try {
       const res = await api.post('/api/users/login', { email, password });
       dispatch({ type: 'LOGIN_SUCCESS', payload: res.data });
-      return { success: true };
+      return { 
+        success: true, 
+        isAdmin: res.data.isAdmin || false 
+      };
     } catch (error) {
       dispatch({ type: 'LOGIN_FAIL' });
       return { success: false, message: error.response?.data?.message || 'Login failed' };

@@ -391,6 +391,48 @@
   transform: translateY(-2px);
 }
 
+/* Content page specific add button styling */
+.admin-content .add-btn {
+  background-color: #059669 !important;
+  color: #ffffff !important;
+  border: 2px solid #059669;
+  padding: 14px 28px;
+  border-radius: 8px;
+  font-size: 16px;
+  font-weight: 600;
+  box-shadow: 0 2px 8px rgba(5, 150, 105, 0.3);
+}
+
+.admin-content .add-btn:hover {
+  background-color: #047857 !important;
+  border-color: #047857;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(5, 150, 105, 0.4);
+}
+
+/* Ensure all content page buttons are visible */
+.admin-content .save-btn {
+  background-color: #3b82f6 !important;
+  color: #ffffff !important;
+  border: 2px solid #3b82f6;
+  box-shadow: 0 2px 8px rgba(59, 130, 246, 0.3);
+}
+
+.admin-content .save-btn:hover {
+  background-color: #2563eb !important;
+  border-color: #2563eb;
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
+}
+
+/* Content page form actions styling */
+.admin-content .form-actions {
+  background-color: #1a1a1a;
+  padding: 20px;
+  border-radius: 8px;
+  border: 1px solid #333333;
+  margin-top: 20px;
+}
+
 .export-btn {
   background-color: #333333;
   color: #ffffff;
@@ -1002,9 +1044,79 @@
 .form-group label {
   display: block;
   margin-bottom: 12px;
-  color: #ffffff;
+  color: #ffffff !important;
   font-weight: 600;
   font-size: 18px;
+}
+
+/* Checkbox labels should display inline with the checkbox */
+.form-group label:has(input[type="checkbox"]),
+.form-group label input[type="checkbox"] {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.form-group label:has(input[type="checkbox"]) {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+/* Alternative approach for better browser compatibility */
+.form-group label input[type="checkbox"] {
+  margin-right: 10px;
+  width: 18px;
+  height: 18px;
+  accent-color: #ffffff;
+}
+
+/* Ensure checkbox labels are properly styled */
+.form-group label:has(input[type="checkbox"]) {
+  cursor: pointer;
+  user-select: none;
+}
+
+/* Content page specific checkbox styling */
+.admin-content .form-group label:has(input[type="checkbox"]) {
+  display: flex !important;
+  align-items: center !important;
+  gap: 10px !important;
+  flex-direction: row !important;
+}
+
+.admin-content .form-group label input[type="checkbox"] {
+  order: -1;
+  flex-shrink: 0;
+}
+
+/* Ensure all content page labels are visible */
+.admin-content .form-group label {
+  color: #ffffff !important;
+  font-weight: 600;
+  font-size: 18px;
+}
+
+.admin-content h3 {
+  color: #ffffff !important;
+  font-weight: 600;
+  font-size: 20px;
+  margin-bottom: 20px;
+}
+
+/* Ensure all text elements in content area are visible */
+.admin-content * {
+  color: inherit;
+}
+
+.admin-content .form-group label,
+.admin-content .form-group input,
+.admin-content .form-group select,
+.admin-content .form-group textarea,
+.admin-content h3,
+.admin-content h4 {
+  color: #ffffff !important;
 }
 
 .form-input,
@@ -1014,7 +1126,7 @@
   background-color: #222222;
   border: 1px solid #444444;
   border-radius: 8px;
-  color: #ffffff;
+  color: #ffffff !important;
   font-size: 18px;
   transition: border-color 0.3s ease;
 }
@@ -1023,6 +1135,28 @@
 .form-textarea:focus {
   outline: none;
   border-color: #ffffff;
+}
+
+/* Form select styling */
+.form-select {
+  width: 100%;
+  padding: 16px 20px;
+  background-color: #222222;
+  border: 1px solid #444444;
+  border-radius: 8px;
+  color: #ffffff !important;
+  font-size: 18px;
+  transition: border-color 0.3s ease;
+}
+
+.form-select:focus {
+  outline: none;
+  border-color: #ffffff;
+}
+
+.form-select option {
+  background-color: #222222;
+  color: #ffffff;
 }
 
 .form-input:disabled,
@@ -1407,15 +1541,38 @@
   background-color: #7f1d1d;
   color: #ffffff;
   border: none;
-  padding: 10px 20px;
-  border-radius: 6px;
+  padding: 16px 32px;
+  border-radius: 8px;
   cursor: pointer;
-  font-size: 14px;
+  font-size: 16px;
+  font-weight: 600;
   transition: background-color 0.3s ease;
+  min-width: 120px;
+  min-height: 50px;
 }
 
 .remove-btn:hover {
   background-color: #991b1b;
+  transform: scale(1.02);
+}
+
+/* Responsive sizing for remove button */
+@media (max-width: 768px) {
+  .remove-btn {
+    padding: 14px 24px;
+    font-size: 15px;
+    min-width: 100px;
+    min-height: 45px;
+  }
+}
+
+@media (max-width: 480px) {
+  .remove-btn {
+    padding: 12px 20px;
+    font-size: 14px;
+    min-width: 90px;
+    min-height: 40px;
+  }
 }
 
 /* Category Management */
@@ -2181,7 +2338,7 @@
 
 .modal-body {
   padding: 25px;
-  background: white;
+  background: #1a1a1a;
   min-height: 400px;
 }
 
@@ -2204,11 +2361,11 @@
 }
 
 .order-section {
-  background: #ffffff;
+  background: #1a1a1a;
   padding: 20px;
   border-radius: 8px;
-  border: 2px solid #e9ecef;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  border: 2px solid #333333;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
   min-height: 200px;
 }
 
@@ -2219,7 +2376,7 @@
 
 .order-section h3 {
   margin: 0 0 15px 0;
-  color: #1a1a1a;
+  color: #ffffff;
   font-size: 1.2rem;
   font-weight: 600;
   border-bottom: 3px solid #007bff;
@@ -2244,13 +2401,13 @@
 }
 
 .info-item strong {
-  color: #2c3e50;
+  color: #ffffff;
   min-width: 120px;
   font-weight: 600;
 }
 
 .info-item span {
-  color: #1a1a1a;
+  color: #cccccc;
   font-weight: 500;
 }
 
@@ -2492,14 +2649,42 @@
   display: flex;
   gap: 15px;
   align-items: center;
+  background: transparent !important;
+  background-color: transparent !important;
 }
 
 /* Reviews Section Specific Styling */
 .admin-reviews .search-filter-container {
-  background-color: #1a1a1a;
+  background-color: transparent;
   padding: 15px;
   border-radius: 8px;
-  border: 1px solid #333333;
+  border: none;
+}
+
+/* Remove any remaining white backgrounds from reviews section */
+.admin-reviews * {
+  background-color: transparent !important;
+  background: transparent !important;
+}
+
+.admin-reviews .section-header,
+.admin-reviews .header-actions,
+.admin-reviews .search-filter-container,
+.admin-reviews .search-section,
+.admin-reviews .filter-section {
+  background: transparent !important;
+  background-color: transparent !important;
+  border: none !important;
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+.admin-reviews .search-input,
+.admin-reviews .status-filter,
+.admin-reviews .migrate-btn {
+  background-color: #222222 !important;
+  color: #ffffff !important;
+  border: 1px solid #444444 !important;
 }
 
 .admin-reviews .search-input {
@@ -2558,7 +2743,8 @@
   border-radius: 8px;
   font-size: 14px;
   min-width: 250px;
-  background: white;
+  background: transparent !important;
+  background-color: transparent !important;
   color: #333;
 }
 
@@ -2578,12 +2764,12 @@
 }
 
 .stat-card {
-  background: white;
+  background: transparent;
   padding: 20px;
   border-radius: 12px;
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+  box-shadow: none;
   text-align: center;
-  border: 1px solid #f0f0f0;
+  border: none;
 }
 
 .stat-card h3 {
@@ -2757,11 +2943,11 @@
 
 .admin-products .category-filter {
   padding: 10px 15px;
-  border: 1px solid #ddd;
+  border: 1px solid #444444;
   border-radius: 8px;
   font-size: 14px;
-  background: white;
-  color: #333;
+  background: #222222;
+  color: #ffffff;
   cursor: pointer;
   min-width: 150px;
 }
@@ -3020,6 +3206,1012 @@
   width: 100%;
   overflow-x: hidden;
   padding: 20px;
+  background-color: transparent;
+}
+
+/* Remove any white backgrounds from orders section */
+.admin-orders {
+  background-color: transparent !important;
+}
+
+.admin-orders .section-header {
+  background-color: transparent !important;
+  border-bottom: 2px solid #444444;
+}
+
+.admin-orders .table-container {
+  background-color: #111111 !important;
+  border: 1px solid #333333;
+}
+
+.admin-orders .header-actions {
+  background-color: transparent !important;
+}
+
+.admin-orders .header-actions select,
+.admin-orders .header-actions button {
+  background-color: #333333 !important;
+  color: #ffffff !important;
+  border: 1px solid #444444;
+}
+
+/* Force remove all white backgrounds from orders section */
+.admin-orders * {
+  background-color: transparent !important;
+}
+
+.admin-orders .section-header,
+.admin-orders .table-container,
+.admin-orders .pagination {
+  background-color: transparent !important;
+}
+
+.admin-orders .table-container {
+  background-color: #111111 !important;
+}
+
+.admin-orders .admin-table {
+  background-color: #111111 !important;
+}
+
+.admin-orders .admin-table th {
+  background-color: #222222 !important;
+}
+
+.admin-orders .admin-table td {
+  background-color: transparent !important;
+}
+
+.admin-orders .admin-table tr:hover {
+  background-color: #1a1a1a !important;
+}
+
+/* Force remove all white backgrounds from dashboard section */
+.admin-dashboard * {
+  background-color: transparent !important;
+}
+
+.admin-dashboard .section-header {
+  background-color: transparent !important;
+}
+
+.admin-dashboard .filter-dropdowns {
+  background-color: transparent !important;
+  border: none;
+  box-shadow: none;
+  padding: 0;
+}
+
+.admin-dashboard .header-actions {
+  background-color: transparent !important;
+}
+
+.admin-dashboard .stats-grid {
+  background-color: transparent !important;
+}
+
+.admin-dashboard .stat-card {
+  background-color: #1a1a1a !important;
+  border: 1px solid #333333;
+}
+
+.admin-dashboard .recent-orders {
+  background-color: transparent !important;
+}
+
+.admin-dashboard .revenue-details {
+  background-color: transparent !important;
+}
+
+/* Global override to remove any remaining white backgrounds */
+.admin-dashboard .section-header,
+.admin-dashboard .header-actions,
+.admin-dashboard .filter-dropdowns,
+.admin-dashboard .recent-orders,
+.admin-dashboard .revenue-details,
+.admin-dashboard .table-container {
+  background: transparent !important;
+  background-color: transparent !important;
+}
+
+/* Remove white borders/outlines around filter elements */
+.admin-dashboard .filter-dropdowns,
+.admin-dashboard .header-actions,
+.admin-dashboard .section-header,
+.admin-dashboard .recent-orders,
+.admin-dashboard .revenue-details {
+  border: none !important;
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+/* Remove borders from individual filter elements */
+.admin-dashboard .status-filter,
+.admin-dashboard .export-btn,
+.admin-dashboard .date-input,
+.admin-dashboard .clear-btn {
+  border: none !important;
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+/* Remove white backgrounds from products section */
+.admin-products .section-header,
+.admin-products .header-actions,
+.admin-products .search-filter-container,
+.admin-products .search-section,
+.admin-products .filter-section {
+  background: transparent !important;
+  background-color: transparent !important;
+  border: none !important;
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+/* Remove borders from individual product elements */
+.admin-products .search-input,
+.admin-products .status-filter,
+.admin-products .add-btn {
+  border: none !important;
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+/* Remove white backgrounds from logout button and admin header */
+.admin-header,
+.admin-header .header-content,
+.admin-header .logout-btn {
+  background: transparent !important;
+  background-color: transparent !important;
+  border: none !important;
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+/* Ensure logout button has proper styling without white backgrounds */
+.logout-btn {
+  background-color: #8b5cf6 !important;
+  color: #ffffff !important;
+  border: none !important;
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+/* Target the actual admin button classes used in the admin panel */
+.admin-btn,
+.admin-header .admin-btn,
+.admin-header button {
+  background: transparent !important;
+  background-color: transparent !important;
+  border: none !important;
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+/* Override the existing admin-btn gradient and box-shadow */
+.admin-btn {
+  background: #8b5cf6 !important;
+  background-color: #8b5cf6 !important;
+  background-image: none !important;
+  box-shadow: none !important;
+  color: #ffffff !important;
+}
+
+/* Force remove any white backgrounds from admin header area */
+.admin-header *,
+.admin-header .header-content *,
+.admin-header button * {
+  background: transparent !important;
+  background-color: transparent !important;
+}
+
+/* Fix form modal header text visibility */
+.form-modal .modal-header h3 {
+  color: #ffffff !important;
+  font-size: 1.5rem !important;
+  font-weight: 600 !important;
+  margin: 0 !important;
+  text-shadow: none !important;
+  background: transparent !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+}
+
+.form-modal .modal-header {
+  background: #1a1a1a !important;
+  border-bottom: 2px solid #333333 !important;
+  padding: 20px 25px !important;
+}
+
+/* Fix form labels visibility in product form */
+.form-modal .form-group label {
+  color: #ffffff !important;
+  font-weight: 600 !important;
+  font-size: 16px !important;
+  margin-bottom: 8px !important;
+  display: block !important;
+  text-shadow: none !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+}
+
+.form-modal .form-input,
+.form-modal .form-textarea,
+.form-modal .form-select {
+  background-color: #222222 !important;
+  border: 1px solid #444444 !important;
+  color: #ffffff !important;
+  padding: 12px 16px !important;
+  border-radius: 6px !important;
+  font-size: 14px !important;
+}
+
+.form-modal .form-input:focus,
+.form-modal .form-textarea:focus,
+.form-modal .form-select:focus {
+  outline: none !important;
+  border-color: #059669 !important;
+  box-shadow: 0 0 0 2px rgba(5, 150, 105, 0.2) !important;
+}
+
+/* Remove white borders from orders section filters */
+.admin-orders .section-header,
+.admin-orders .header-actions,
+.admin-orders .filter-dropdowns,
+.admin-orders .status-filter,
+.admin-orders .export-btn,
+.admin-orders .migrate-btn {
+  border: none !important;
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+/* Ensure orders filter elements have proper styling without borders */
+.admin-orders .status-filter,
+.admin-orders .export-btn,
+.admin-orders .migrate-btn {
+  background-color: #333333 !important;
+  color: #ffffff !important;
+}
+
+/* Remove white backgrounds from customer section filters */
+.admin-customers .section-header,
+.admin-customers .header-actions,
+.admin-customers .search-filter-container,
+.admin-customers .search-section,
+.admin-customers .filter-section {
+  background: transparent !important;
+  background-color: transparent !important;
+  border: none !important;
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+/* Remove borders from individual customer filter elements */
+.admin-customers .search-input,
+.admin-customers .status-filter,
+.admin-customers .migrate-btn {
+  border: none !important;
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+/* Ensure customer filter elements have proper styling without white backgrounds */
+.admin-customers .search-input,
+.admin-customers .status-filter,
+.admin-customers .migrate-btn {
+  background-color: #333333 !important;
+  color: #ffffff !important;
+}
+
+/* Force remove ALL white backgrounds from customer section with aggressive overrides */
+.admin-customers * {
+  background-color: transparent !important;
+  background: transparent !important;
+}
+
+.admin-customers .section-header,
+.admin-customers .header-actions,
+.admin-customers .search-filter-container,
+.admin-customers .search-section,
+.admin-customers .filter-section,
+.admin-customers .search-input,
+.admin-customers .status-filter,
+.admin-customers .migrate-btn {
+  background: transparent !important;
+  background-color: transparent !important;
+  background-image: none !important;
+  border: none !important;
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+/* Target any potential wrapper classes that might have white backgrounds */
+.admin-customers .form-group,
+.admin-customers .input-group,
+.admin-customers .button-group,
+.admin-customers .controls-container,
+.admin-customers .filters-wrapper {
+  background: transparent !important;
+  background-color: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+
+/* Override any general modal/form styles that might have white backgrounds */
+.admin-customers .modal-header,
+.admin-customers .form-group,
+.admin-customers .form-input,
+.admin-customers .form-select,
+.admin-customers .form-textarea {
+  background: transparent !important;
+  background-color: transparent !important;
+  background-image: none !important;
+}
+
+/* Force override any remaining white backgrounds with highest specificity */
+.admin-customers .section-header *,
+.admin-customers .header-actions *,
+.admin-customers .search-filter-container *,
+.admin-customers .search-section *,
+.admin-customers .filter-section * {
+  background: transparent !important;
+  background-color: transparent !important;
+  background-image: none !important;
+}
+
+/* Ultimate override for any remaining white backgrounds */
+.admin-customers,
+.admin-customers *,
+.admin-customers *::before,
+.admin-customers *::after {
+  background: transparent !important;
+  background-color: transparent !important;
+  background-image: none !important;
+}
+
+/* Specific override for the search and filter area */
+.admin-customers .header-actions,
+.admin-customers .search-filter-container,
+.admin-customers .search-section,
+.admin-customers .filter-section {
+  background: transparent !important;
+  background-color: transparent !important;
+  background-image: none !important;
+  border: none !important;
+  box-shadow: none !important;
+  padding: 0 !important;
+  margin: 0 !important;
+}
+
+/* Fix the actual customer section that uses admin-section class */
+.admin-section .search-filter-container {
+  background: transparent !important;
+  background-color: transparent !important;
+  background-image: none !important;
+  border: none !important;
+  box-shadow: none !important;
+  padding: 0 !important;
+  margin: 0 !important;
+}
+
+.admin-section .search-input {
+  background: #333333 !important;
+  background-color: #333333 !important;
+  color: #ffffff !important;
+  border: 1px solid #444444 !important;
+}
+
+.admin-section .status-filter {
+  background: #333333 !important;
+  background-color: #333333 !important;
+  color: #ffffff !important;
+  border: 1px solid #444444 !important;
+}
+
+.admin-section .migrate-btn {
+  background: #333333 !important;
+  background-color: #333333 !important;
+  color: #ffffff !important;
+  border: 1px solid #444444 !important;
+}
+
+/* Ultimate override for any remaining white backgrounds - target everything */
+.admin-section,
+.admin-section *,
+.admin-section *::before,
+.admin-section *::after {
+  background: transparent !important;
+  background-color: transparent !important;
+  background-image: none !important;
+}
+
+/* Specific override for the header actions area */
+.admin-section .header-actions,
+.admin-section .header-actions * {
+  background: transparent !important;
+  background-color: transparent !important;
+  background-image: none !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+
+/* Override any potential wrapper divs */
+.admin-section > div,
+.admin-section .section-header > div,
+.admin-section .header-actions > div {
+  background: transparent !important;
+  background-color: transparent !important;
+  background-image: none !important;
+}
+
+/* Nuclear option - override everything with maximum specificity */
+.admin-section .header-actions .search-filter-container,
+.admin-section .header-actions .search-filter-container *,
+.admin-section .header-actions .search-filter-container *::before,
+.admin-section .header-actions .search-filter-container *::after {
+  background: transparent !important;
+  background-color: transparent !important;
+  background-image: none !important;
+  border: none !important;
+  box-shadow: none !important;
+  outline: none !important;
+}
+
+/* Force override any external CSS that might be loaded */
+.admin-section .header-actions,
+.admin-section .header-actions *,
+.admin-section .header-actions *::before,
+.admin-section .header-actions *::after {
+  background: transparent !important;
+  background-color: transparent !important;
+  background-image: none !important;
+  border: none !important;
+  box-shadow: none !important;
+  outline: none !important;
+}
+
+/* Fix the white background in dropdown options */
+.admin-section .status-filter option,
+.admin-section select option,
+.admin-section .search-filter-container select option {
+  background-color: #333333 !important;
+  color: #ffffff !important;
+  border: none !important;
+}
+
+/* Fix dropdown when opened */
+.admin-section .status-filter:focus,
+.admin-section .status-filter:active,
+.admin-section .status-filter:hover {
+  background-color: #333333 !important;
+  color: #ffffff !important;
+}
+
+/* Target the actual dropdown list */
+.admin-section .status-filter option:hover,
+.admin-section .status-filter option:checked,
+.admin-section .status-filter option:selected {
+  background-color: #444444 !important;
+  color: #ffffff !important;
+}
+
+/* Fix customer details modal text visibility */
+.modal .modal-body h3,
+.modal .modal-body h4,
+.modal .modal-body .section-title,
+.modal .modal-body .customer-info h3,
+.modal .modal-body .customer-stats h3 {
+  color: #ffffff !important;
+  font-weight: 600 !important;
+  font-size: 18px !important;
+  margin-bottom: 15px !important;
+  text-shadow: none !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+}
+
+/* Fix customer details modal labels and values */
+.modal .modal-body .detail-group label,
+.modal .modal-body .info-item label,
+.modal .modal-body .customer-info label,
+.modal .modal-body .customer-stats label {
+  color: #ffffff !important;
+  font-weight: 600 !important;
+  font-size: 14px !important;
+  margin-bottom: 5px !important;
+}
+
+.modal .modal-body .detail-group span,
+.modal .modal-body .info-item span,
+.modal .modal-body .customer-info span,
+.modal .modal-body .customer-stats span {
+  color: #cccccc !important;
+  font-size: 14px !important;
+}
+
+/* Ensure all text in customer modal body is visible */
+.modal .modal-body * {
+  color: inherit;
+}
+
+.modal .modal-body .customer-info,
+.modal .modal-body .customer-stats {
+  background-color: #1a1a1a !important;
+  padding: 20px !important;
+  border-radius: 8px !important;
+  border: 1px solid #333333 !important;
+  margin-bottom: 20px !important;
+}
+
+/* Fix customer details modal text visibility - target actual classes used */
+.modal .modal-body .order-section h3 {
+  color: #ffffff !important;
+  font-weight: 600 !important;
+  font-size: 20px !important;
+  margin-bottom: 20px !important;
+  text-shadow: none !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+  border-bottom: 3px solid #007bff !important;
+  padding-bottom: 10px !important;
+}
+
+.modal .modal-body .info-item strong {
+  color: #ffffff !important;
+  font-weight: 600 !important;
+  font-size: 14px !important;
+  margin-right: 10px !important;
+}
+
+.modal .modal-body .info-item .order-value {
+  color: #cccccc !important;
+  font-size: 14px !important;
+  font-weight: 500 !important;
+}
+
+.modal .modal-body .order-section {
+  background: #1a1a1a !important;
+  padding: 20px !important;
+  border-radius: 8px !important;
+  border: 2px solid #333333 !important;
+  margin-bottom: 20px !important;
+}
+
+.modal .modal-body .info-grid {
+  display: grid !important;
+  gap: 12px !important;
+}
+
+.modal .modal-body .info-item {
+  display: flex !important;
+  justify-content: space-between !important;
+  padding: 10px 0 !important;
+  border-bottom: 1px solid #333333 !important;
+}
+
+/* Fix visibility for "No orders found" text and other paragraph elements */
+.modal .modal-body p {
+  color: #ffffff !important;
+  font-size: 14px !important;
+  font-weight: 500 !important;
+  margin: 10px 0 !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+}
+
+/* Fix visibility for "Recent Orders" headline */
+.modal .modal-body .order-section.full-width h3 {
+  color: #ffffff !important;
+  font-weight: 600 !important;
+  font-size: 20px !important;
+  margin-bottom: 20px !important;
+  text-shadow: none !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+  border-bottom: 3px solid #007bff !important;
+  padding-bottom: 10px !important;
+}
+
+/* Ensure all text in customer modal is visible */
+.modal .modal-body .order-section *,
+.modal .modal-body .info-grid *,
+.modal .modal-body .info-item * {
+  color: inherit !important;
+}
+
+/* Force visibility for all text elements */
+.modal .modal-body h1,
+.modal .modal-body h2,
+.modal .modal-body h3,
+.modal .modal-body h4,
+.modal .modal-body h5,
+.modal .modal-body h6,
+.modal .modal-body p,
+.modal .modal-body span,
+.modal .modal-body strong,
+.modal .modal-body label {
+  color: #ffffff !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+}
+
+/* Nuclear option for h3 elements - maximum specificity and force override */
+.modal .modal-body h3,
+.modal .modal-body .order-section h3,
+.modal .modal-body .order-section.full-width h3,
+.modal .modal-body .customer-info h3,
+.modal .modal-body .customer-stats h3 {
+  color: #ffffff !important;
+  background-color: transparent !important;
+  background: transparent !important;
+  font-weight: 700 !important;
+  font-size: 22px !important;
+  margin-bottom: 20px !important;
+  text-shadow: none !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+  border-bottom: 3px solid #007bff !important;
+  padding-bottom: 10px !important;
+  text-align: left !important;
+  display: block !important;
+  position: relative !important;
+  z-index: 1000 !important;
+}
+
+/* Force override any inline styles or external CSS */
+.modal .modal-body h3[style*="color"],
+.modal .modal-body h3[style*="background"],
+.modal .modal-body .order-section h3[style*="color"],
+.modal .modal-body .order-section h3[style*="background"] {
+  color: #ffffff !important;
+  background-color: transparent !important;
+  background: transparent !important;
+}
+
+/* Nuclear option for paragraph and all text elements */
+.modal .modal-body p,
+.modal .modal-body .order-section p,
+.modal .modal-body .info-grid p,
+.modal .modal-body .info-item p {
+  color: #ffffff !important;
+  background-color: transparent !important;
+  background: transparent !important;
+  font-size: 16px !important;
+  font-weight: 500 !important;
+  margin: 15px 0 !important;
+  padding: 0 !important;
+  text-shadow: none !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+  display: block !important;
+  position: relative !important;
+  z-index: 1000 !important;
+}
+
+/* Force override for all text elements with maximum specificity */
+.modal .modal-body *,
+.modal .modal-body .order-section *,
+.modal .modal-body .info-grid *,
+.modal .modal-body .info-item * {
+  color: #ffffff !important;
+  background-color: transparent !important;
+  background: transparent !important;
+}
+
+/* Specific override for spans and other text elements */
+.modal .modal-body span,
+.modal .modal-body .order-section span,
+.modal .modal-body .info-grid span,
+.modal .modal-body .info-item span {
+  color: #cccccc !important;
+  background-color: transparent !important;
+  background: transparent !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+}
+
+/* Force override any remaining text elements */
+.modal .modal-body div,
+.modal .modal-body .order-section div,
+.modal .modal-body .info-grid div,
+.modal .modal-body .info-item div {
+  color: #ffffff !important;
+  background-color: transparent !important;
+  background: transparent !important;
+}
+
+/* Specific override for order value spans */
+.modal .modal-body .order-value {
+  color: #ffffff !important;
+}
+
+/* Make ALL text white with maximum force */
+.modal .modal-body,
+.modal .modal-body *,
+.modal .modal-body *::before,
+.modal .modal-body *::after {
+  color: #ffffff !important;
+  background-color: transparent !important;
+  background: transparent !important;
+}
+
+/* Force white text for specific elements */
+.modal .modal-body h1,
+.modal .modal-body h2,
+.modal .modal-body h3,
+.modal .modal-body h4,
+.modal .modal-body h5,
+.modal .modal-body h6,
+.modal .modal-body p,
+.modal .modal-body span,
+.modal .modal-body strong,
+.modal .modal-body label,
+.modal .modal-body div,
+.modal .modal-body td,
+.modal .modal-body th {
+  color: #ffffff !important;
+  background-color: transparent !important;
+  background: transparent !important;
+}
+
+/* Override any remaining text colors */
+.modal .modal-body .order-section,
+.modal .modal-body .info-grid,
+.modal .modal-body .info-item,
+.modal .modal-body .order-value,
+.modal .modal-body .status-badge {
+  color: #ffffff !important;
+  background-color: transparent !important;
+  background: transparent !important;
+}
+
+/* Maximum specificity override to beat any external CSS */
+.admin-section .modal .modal-body,
+.admin-section .modal .modal-body *,
+.admin-section .modal .modal-body *::before,
+.admin-section .modal .modal-body *::after {
+  color: #ffffff !important;
+  background-color: transparent !important;
+  background: transparent !important;
+}
+
+/* Override any Orders.css or other external CSS */
+.admin-section .modal-overlay .modal-content .modal-body,
+.admin-section .modal-overlay .modal-content .modal-body * {
+  color: #ffffff !important;
+  background-color: transparent !important;
+  background: transparent !important;
+}
+
+/* Force override with highest possible specificity */
+.admin-section .modal-overlay .modal-content .modal-body h1,
+.admin-section .modal-overlay .modal-content .modal-body h2,
+.admin-section .modal-overlay .modal-content .modal-body h3,
+.admin-section .modal-overlay .modal-content .modal-body h4,
+.admin-section .modal-overlay .modal-content .modal-body h5,
+.admin-section .modal-overlay .modal-content .modal-body h6,
+.admin-section .modal-overlay .modal-content .modal-body p,
+.admin-section .modal-overlay .modal-content .modal-body span,
+.admin-section .modal-overlay .modal-content .modal-body strong,
+.admin-section .modal-overlay .modal-content .modal-body label,
+.admin-section .modal-overlay .modal-content .modal-body div {
+  color: #ffffff !important;
+  background-color: transparent !important;
+  background: transparent !important;
+}
+
+/* Admin Footer Styling */
+.admin-footer {
+  background-color: #1a1a1a;
+  border-top: 2px solid #333333;
+  padding: 20px;
+  margin-top: auto;
+  text-align: center;
+  position: relative;
+  z-index: 100;
+}
+
+.admin-footer p {
+  color: #888888;
+  font-size: 14px;
+  font-weight: 400;
+  margin: 0;
+  padding: 0;
+  opacity: 0.8;
+  transition: opacity 0.3s ease;
+}
+
+.admin-footer p:hover {
+  opacity: 1;
+  color: #cccccc;
+}
+
+.admin-footer a {
+  color: #007bff;
+  text-decoration: none;
+  font-weight: 500;
+  transition: all 0.3s ease;
+}
+
+.admin-footer a:hover {
+  color: #0056b3;
+  text-decoration: underline;
+  opacity: 1;
+}
+
+/* Ensure footer stays at bottom */
+.admin-main {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+.admin-content-area {
+  flex: 1;
+}
+
+/* Move logout button to the right */
+.admin-header .admin-btn {
+  margin-left: auto !important;
+  margin-right: 0 !important;
+}
+
+.admin-header .header-content {
+  justify-content: space-between !important;
+}
+
+.admin-header .admin-btn {
+  order: 1 !important;
+}
+
+/* Ensure all dashboard elements have proper dark styling */
+.admin-dashboard .status-filter {
+  background-color: #333333 !important;
+  color: #ffffff !important;
+  border: 1px solid #444444;
+}
+
+.admin-dashboard .export-btn {
+  background-color: #333333 !important;
+  color: #ffffff !important;
+  border: 1px solid #444444;
+}
+
+/* Settings page specific styling for better visibility */
+.admin-settings .form-group label {
+  color: #ffffff !important;
+  font-weight: 600;
+  font-size: 16px;
+  margin-bottom: 8px;
+  display: block;
+}
+
+.admin-settings h3 {
+  color: #ffffff !important;
+  font-weight: 600;
+  font-size: 20px;
+  margin-bottom: 20px;
+  border-bottom: 2px solid #444444;
+  padding-bottom: 10px;
+}
+
+.admin-settings .settings-content {
+  background-color: #1a1a1a;
+  padding: 25px;
+  border-radius: 8px;
+  border: 1px solid #333333;
+  margin-bottom: 20px;
+}
+
+/* Settings tabs styling */
+.admin-settings .settings-tabs {
+  background-color: #1a1a1a;
+  padding: 20px;
+  border-radius: 8px;
+  border: 1px solid #333333;
+  margin-bottom: 20px;
+}
+
+.admin-settings .tab-btn {
+  background-color: #333333;
+  color: #ffffff;
+  border: 1px solid #444444;
+  padding: 12px 20px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+  transition: all 0.3s ease;
+  margin-right: 10px;
+}
+
+.admin-settings .tab-btn:hover {
+  background-color: #444444;
+  border-color: #555555;
+}
+
+.admin-settings .tab-btn.active {
+  background-color: #059669;
+  border-color: #059669;
+  color: #ffffff;
+}
+
+/* Settings form inputs styling */
+.admin-settings .form-input,
+.admin-settings .form-textarea,
+.admin-settings .form-select {
+  background-color: #222222 !important;
+  border: 1px solid #444444 !important;
+  color: #ffffff !important;
+  padding: 12px 16px;
+  border-radius: 6px;
+  font-size: 14px;
+  transition: border-color 0.3s ease;
+}
+
+.admin-settings .form-input:focus,
+.admin-settings .form-textarea:focus,
+.admin-settings .form-select:focus {
+  outline: none;
+  border-color: #059669 !important;
+  box-shadow: 0 0 0 2px rgba(5, 150, 105, 0.2);
+}
+
+.admin-settings .form-textarea {
+  min-height: 100px;
+  resize: vertical;
+}
+
+/* Settings header actions styling */
+.admin-settings .header-actions {
+  display: flex;
+  gap: 15px;
+  margin-bottom: 20px;
+  align-items: center;
+}
+
+.admin-settings .sync-btn {
+  background-color: #059669 !important;
+  color: #ffffff !important;
+  border: 2px solid #059669;
+  padding: 12px 20px;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.admin-settings .sync-btn:hover {
+  background-color: #047857 !important;
+  border-color: #047857;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(5, 150, 105, 0.3);
+}
+
+.admin-settings .sync-btn:disabled {
+  background-color: #666666 !important;
+  border-color: #666666;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+.admin-settings .sync-btn .spinning {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 /* Review Management Styles */
@@ -3304,28 +4496,68 @@
 /* Category Management Styles */
 .admin-categories .search-filter-container {
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
   gap: 15px;
   margin-bottom: 20px;
   padding: 20px;
   background: #222222;
   border-radius: 12px;
   border: 1px solid #444444;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+/* Responsive behavior for smaller screens */
+@media (max-width: 768px) {
+  .admin-categories .search-filter-container {
+    flex-direction: column;
+    gap: 15px;
+    align-items: stretch;
+  }
+  
+  .admin-categories .search-section {
+    min-width: 0;
+  }
+  
+  .admin-categories .filter-section {
+    justify-content: center;
+  }
+}
+
+/* For very small screens, stack elements vertically */
+@media (max-width: 480px) {
+  .admin-categories .search-filter-container {
+    gap: 10px;
+  }
+  
+  .admin-categories .search-input {
+    min-width: 0;
+    max-width: none;
+  }
 }
 
 .admin-categories .search-section {
   display: flex;
   gap: 10px;
+  flex: 0 0 auto;
+  min-width: 200px;
+  max-width: 300px;
+}
+
+.admin-categories .search-input {
+  flex: 0 0 auto;
+  min-width: 200px;
+  max-width: 300px;
 }
 
 .admin-categories .search-input {
   flex: 1;
-  padding: 12px 16px;
+  padding: 8px 12px;
   background: #333333;
   border: 1px solid #555555;
-  border-radius: 8px;
+  border-radius: 6px;
   color: #ffffff;
-  font-size: 14px;
+  font-size: 13px;
 }
 
 .admin-categories .search-input::placeholder {
@@ -3334,9 +4566,16 @@
 
 .admin-categories .filter-section {
   display: flex;
+  flex-direction: row;
   gap: 15px;
   align-items: center;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
+  min-width: 0;
+}
+
+/* Make all filter elements flow in a single row */
+.admin-categories .search-filter-container > * {
+  flex: 0 0 auto;
 }
 
 .admin-categories .status-filter {
@@ -3347,6 +4586,7 @@
   color: #ffffff;
   font-size: 14px;
   min-width: 150px;
+  flex-shrink: 0;
 }
 
 .admin-categories .clear-filters-btn {
@@ -3358,6 +4598,7 @@
   font-size: 14px;
   cursor: pointer;
   transition: background-color 0.3s;
+  flex-shrink: 0;
 }
 
 .admin-categories .clear-filters-btn:hover {
@@ -3468,6 +4709,8 @@
   max-height: 90vh;
   overflow-y: auto;
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+  position: relative;
+  z-index: 1001;
 }
 
 .modal-header {
@@ -3476,11 +4719,14 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
+  background: #ffffff;
 }
 
 .modal-header h2 {
   margin: 0;
-  color: #1a1a1a;
+  color: #000000 !important;
+  font-size: 1.5rem;
+  font-weight: 600;
 }
 
 .close-btn {
@@ -3503,6 +4749,44 @@
 
 .modal-form {
   padding: 20px;
+  color: #000000;
+}
+
+/* Specific styling for discount modal headers */
+.modal .modal-header h2 {
+  color: #000000 !important;
+  font-size: 1.5rem;
+  font-weight: 600;
+  text-shadow: none;
+  background: transparent;
+  opacity: 1 !important;
+  visibility: visible !important;
+}
+
+/* Ensure all modal form labels are visible */
+.modal .form-group label,
+.modal .checkbox-group label {
+  color: #000000 !important;
+  font-weight: 500;
+}
+
+/* Ensure all modal text elements are visible */
+.modal * {
+  color: inherit;
+}
+
+.modal .form-group label,
+.modal .checkbox-group label,
+.modal .modal-header h2,
+.modal .form-group input,
+.modal .form-group select,
+.modal .form-group textarea {
+  color: #000000 !important;
+}
+
+.modal .modal-header {
+  background: #ffffff !important;
+  border-bottom: 2px solid #e0e0e0;
 }
 
 .form-row {
@@ -3520,7 +4804,7 @@
   display: block;
   margin-bottom: 8px;
   font-weight: 600;
-  color: #1a1a1a;
+  color: #000000 !important;
 }
 
 .form-group input,
@@ -3560,6 +4844,8 @@
 .checkbox-group label {
   margin: 0;
   cursor: pointer;
+  color: #000000 !important;
+  font-weight: 500;
 }
 
 .input-suffix {

@@ -55,24 +55,7 @@ async function initializeContent() {
         ctaText: 'Shop the Sale',
         enabled: true
       },
-      staticPages: [
-        {
-          title: 'About Us',
-          slug: 'about-us',
-          content: 'Welcome to EastEdge, your trusted source for timeless essentials. We believe in creating products that not only look good but feel good and last long. Founded in 2018, we have been serving customers across India with quality products and exceptional service.',
-          published: true,
-          metaDescription: 'Learn more about EastEdge - your trusted source for timeless essentials',
-          metaKeywords: 'EastEdge, about, company, quality, timeless'
-        },
-        {
-          title: 'Contact Us',
-          slug: 'contact-us',
-          content: 'Get in touch with us for any questions, support, or feedback. Our customer service team is here to help you with all your needs. Reach out to us via email, phone, or visit our store in Hyderabad.',
-          published: true,
-          metaDescription: 'Contact EastEdge for support and inquiries',
-          metaKeywords: 'contact, support, EastEdge, customer service'
-        }
-      ],
+
       siteSettings: {
         siteName: 'EastEdge',
         siteDescription: 'Timeless Essentials for Modern Living',
@@ -94,7 +77,6 @@ async function initializeContent() {
     console.log('   - Top bar announcement');
     console.log('   - 2 hero slides');
     console.log('   - Promotional banner');
-    console.log('   - About Us and Contact Us pages');
     console.log('   - Site settings and contact info');
 
   } catch (error) {

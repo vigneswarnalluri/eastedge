@@ -29,24 +29,7 @@ router.get('/', async (req, res) => {
           ctaText: 'Learn More',
           enabled: false
         },
-        staticPages: [
-          {
-            title: 'About Us',
-            slug: 'about-us',
-            content: 'Welcome to EastEdge, your trusted source for quality products.',
-            published: true,
-            metaDescription: 'Learn more about EastEdge',
-            metaKeywords: 'EastEdge, about, company'
-          },
-          {
-            title: 'Contact Us',
-            slug: 'contact-us',
-            content: 'Get in touch with us for any questions or support.',
-            published: true,
-            metaDescription: 'Contact EastEdge for support',
-            metaKeywords: 'contact, support, EastEdge'
-          }
-        ],
+
         siteSettings: {
           siteName: 'EastEdge',
           siteDescription: 'Timeless Essentials',
@@ -82,8 +65,6 @@ router.get('/section/:section', async (req, res) => {
       res.json({ heroSlides: content.heroSlides.filter(slide => slide.active) });
     } else if (section === 'promotional-banner') {
       res.json({ promotionalBanner: content.promotionalBanner });
-    } else if (section === 'static-pages') {
-      res.json({ staticPages: content.staticPages.filter(page => page.published) });
     } else if (section === 'site-settings') {
       res.json({ siteSettings: content.siteSettings });
     } else {
@@ -95,28 +76,7 @@ router.get('/section/:section', async (req, res) => {
   }
 });
 
-// Get static page by slug (public endpoint)
-router.get('/page/:slug', async (req, res) => {
-  try {
-    const { slug } = req.params;
-    const content = await Content.findOne();
-    
-    if (!content) {
-      return res.status(404).json({ message: 'Content not found' });
-    }
-    
-    const page = content.staticPages.find(p => p.slug === slug && p.published);
-    
-    if (!page) {
-      return res.status(404).json({ message: 'Page not found' });
-    }
-    
-    res.json(page);
-  } catch (error) {
-    console.error('Error fetching static page:', error);
-    res.status(500).json({ message: 'Error fetching static page' });
-  }
-});
+
 
 // Get current content structure (for debugging)
 router.get('/debug', auth, async (req, res) => {
@@ -195,7 +155,7 @@ router.post('/test', auth, async (req, res) => {
 router.put('/', auth, async (req, res) => {
   try {
     console.log('📝 Received content update request:', req.body);
-    const { announcement, heroSlides, promotionalBanner, staticPages, siteSettings } = req.body;
+    const { announcement, heroSlides, promotionalBanner, siteSettings } = req.body;
     
     let content = await Content.findOne();
     
@@ -236,11 +196,7 @@ router.put('/', auth, async (req, res) => {
       content.promotionalBanner = { ...content.promotionalBanner, ...promotionalBanner };
     }
     
-    // Update static pages
-    if (staticPages) {
-      console.log('📄 Updating static pages:', staticPages.length, 'pages');
-      content.staticPages = staticPages;
-    }
+
     
     // Update site settings
     if (siteSettings) {
@@ -306,8 +262,6 @@ router.put('/section/:section', auth, async (req, res) => {
       }));
     } else if (section === 'promotional-banner') {
       content.promotionalBanner = { ...content.promotionalBanner, ...updateData };
-    } else if (section === 'static-pages') {
-      content.staticPages = updateData;
     } else if (section === 'site-settings') {
       content.siteSettings = { ...content.siteSettings, ...updateData };
     } else {

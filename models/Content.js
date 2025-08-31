@@ -30,15 +30,7 @@ const contentSchema = new mongoose.Schema({
     enabled: { type: Boolean, default: false }
   },
 
-  // Static Pages
-  staticPages: [{
-    title: { type: String, required: true },
-    slug: { type: String, required: true, unique: true },
-    content: { type: String, default: '' },
-    published: { type: Boolean, default: false },
-    metaDescription: { type: String, default: '' },
-    metaKeywords: { type: String, default: '' }
-  }],
+
 
   // Site Settings
   siteSettings: {
@@ -59,7 +51,6 @@ const contentSchema = new mongoose.Schema({
 });
 
 // Create indexes
-contentSchema.index({ 'staticPages.slug': 1 });
 contentSchema.index({ 'heroSlides.order': 1 });
 
 module.exports = mongoose.model('Content', contentSchema); 

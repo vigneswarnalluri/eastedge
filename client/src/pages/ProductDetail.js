@@ -1,11 +1,10 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useCart } from '../context/CartContext';
-import { useWishlist } from '../context/WishlistContext';
+
 import { useAuth } from '../context/AuthContext';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
-  FiHeart, 
   FiStar, 
   FiArrowLeft,
   FiCheck
@@ -18,7 +17,7 @@ const ProductDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const { addToCart } = useCart();
-  const { addToWishlist, removeFromWishlist, isInWishlist } = useWishlist();
+
   const { isAuthenticated } = useAuth();
   
   const [product, setProduct] = useState(null);
@@ -28,7 +27,7 @@ const ProductDetail = () => {
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [isWishlisted, setIsWishlisted] = useState(false);
+
   const [showImageModal, setShowImageModal] = useState(false);
 
   const [reviews, setReviews] = useState([]);
@@ -96,7 +95,6 @@ const ProductDetail = () => {
 
   useEffect(() => {
     if (product) {
-      setIsWishlisted(isInWishlist(product._id));
       // Fetch reviews for this product
       fetchReviews(product._id);
       
@@ -107,7 +105,7 @@ const ProductDetail = () => {
         setCurrentImageIndex(0);
       }
     }
-  }, [product, isInWishlist]);
+  }, [product]);
 
 
 
@@ -223,15 +221,7 @@ const ProductDetail = () => {
     }
   }, [product, selectedSize, selectedColor, quantity, navigate, addToCart]); // Add quantity to dependencies
 
-  const handleWishlistToggle = () => {
-    if (isWishlisted) {
-      removeFromWishlist(product._id);
-      setIsWishlisted(false);
-    } else {
-      addToWishlist(product);
-      setIsWishlisted(true);
-    }
-  };
+
 
   const handleThumbnailHover = (index) => {
     setCurrentImageIndex(index);
@@ -412,7 +402,7 @@ const ProductDetail = () => {
                       style={{ color: star <= (product.rating || 0) ? '#ffa41c' : '#ddd' }}
                     />
                   ))}
-                  <span className="rating-text">
+                  <span className="rating-stars">
                     {product.rating || 0} out of 5 stars
                   </span>
                 </div>
@@ -422,23 +412,7 @@ const ProductDetail = () => {
               </div>
             </div>
 
-            {/* Price Section */}
-            <div className="price-section">
-              {product.originalPrice && product.originalPrice > product.price && (
-                <div style={{ marginBottom: '0.5rem' }}>
-                  <span className="original-price">₹{product.originalPrice.toLocaleString()}</span>
-                  <span className="discount-badge">
-                    -{Math.round(((product.originalPrice - product.price) / product.originalPrice) * 100)}%
-                  </span>
-                </div>
-              )}
-              <div className="current-price">₹{product.price.toLocaleString()}</div>
-              <div style={{ fontSize: '0.9rem', color: '#666' }}>
-                Inclusive of all taxes
-              </div>
-            </div>
-
-            {/* Hero Section - Options and Actions Side by Side */}
+            {/* Hero Section - Options and Actions Side by Side - MOVED UP */}
             <div className="product-actions-section hero-actions">
               <div className="hero-layout">
                 {/* Left Side - Product Options */}
@@ -692,8 +666,24 @@ const ProductDetail = () => {
                   </div>
                 </div>
 
-                {/* Right Side - Action Buttons */}
+                {/* Right Side - Price and Action Buttons */}
                 <div className="hero-actions-right">
+                  {/* Price Section - MOVED ABOVE BUTTONS */}
+                  <div className="price-section-inline">
+                    {product.originalPrice && product.originalPrice > product.price && (
+                      <div style={{ marginBottom: '0.5rem' }}>
+                        <span className="original-price">₹{product.originalPrice.toLocaleString()}</span>
+                        <span className="discount-badge">
+                          -{Math.round(((product.originalPrice - product.price) / product.originalPrice) * 100)}%
+                        </span>
+                      </div>
+                    )}
+                    <div className="current-price">₹{product.price.toLocaleString()}</div>
+                    <div style={{ fontSize: '0.9rem', color: '#666' }}>
+                      Inclusive of all taxes
+                    </div>
+                  </div>
+
                   <div className="product-actions">
                     <button 
                       onClick={handleAddToCart}
@@ -710,33 +700,14 @@ const ProductDetail = () => {
                     >
                       Buy Now
                     </button>
-                    
-
-                    
-
                   </div>
-                  
-                  <button 
-                    onClick={handleWishlistToggle}
-                    className={`wishlist-btn ${isWishlisted ? 'active' : ''}`}
-                    title={isWishlisted ? 'Remove from wishlist' : 'Add to wishlist'}
-                  >
-                    <FiHeart style={{ color: isWishlisted ? '#e31b23' : 'inherit' }} />
-                    {isWishlisted ? 'Added to Wish List' : 'Add to Wish List'}
-                  </button>
                 </div>
               </div>
             </div>
 
-            {/* Delivery Section */}
-            <div className="delivery-section">
-              <div className="delivery-info">
-                FREE delivery Thursday, 28 August
-              </div>
-              <div className="delivery-date">
-                Order within 20 hrs 46 mins
-              </div>
-            </div>
+
+
+
 
 
 
@@ -763,12 +734,6 @@ const ProductDetail = () => {
               Specifications
             </button>
             <button 
-              className={`tab-btn ${activeTab === 'reviews' ? 'active' : ''}`}
-              onClick={() => setActiveTab('reviews')}
-            >
-              Reviews ({reviews.length})
-            </button>
-            <button 
               className={`tab-btn ${activeTab === 'shipping' ? 'active' : ''}`}
               onClick={() => setActiveTab('shipping')}
             >
@@ -779,6 +744,12 @@ const ProductDetail = () => {
               onClick={() => setActiveTab('wash-details')}
             >
               Wash Details
+            </button>
+            <button 
+              className={`tab-btn ${activeTab === 'reviews' ? 'active' : ''}`}
+              onClick={() => setActiveTab('reviews')}
+            >
+              Reviews ({reviews.length})
             </button>
           </div>
 

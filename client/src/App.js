@@ -16,6 +16,7 @@ import NewArrivals from './pages/NewArrivals';
 import ContactUs from './pages/ContactUs';
 import AboutUs from './pages/AboutUs';
 import Admin from './pages/Admin';
+import AdminRedirect from './components/AdminRedirect';
 import { CartProvider } from './context/CartContext';
 import { AuthProvider } from './context/AuthContext';
 import { WishlistProvider } from './context/WishlistContext';
@@ -37,28 +38,30 @@ function App() {
                 
                 {/* Main Website - With Header/Footer */}
                 <Route path="*" element={
-                  <div className="App">
-                    {/* Top Bar Announcement - Above Navbar */}
-                    <AnnouncementBar />
-                    <Header />
-                    <main>
-                      <Routes>
-                        <Route path="/" element={<Home />} />
-                        <Route path="/products" element={<Products />} />
-                        <Route path="/products/:id" element={<ProductDetail />} />
-                        <Route path="/cart" element={<Cart />} />
-                        <Route path="/login" element={<Login />} />
-                        <Route path="/register" element={<Register />} />
-                        <Route path="/profile" element={<Profile />} />
-                        <Route path="/orders" element={<Orders />} />
-                        <Route path="/checkout" element={<Checkout />} />
-                        <Route path="/new-arrivals" element={<NewArrivals />} />
-                        <Route path="/contact" element={<ContactUs />} />
-                        <Route path="/about" element={<AboutUs />} />
-                      </Routes>
-                    </main>
-                    <Footer />
-                  </div>
+                  <AdminRedirect>
+                    <div className="App">
+                      {/* Top Bar Announcement - Above Navbar */}
+                      <AnnouncementBar />
+                      <Header />
+                      <main>
+                        <Routes>
+                          <Route path="/" element={<Home />} />
+                          <Route path="/products" element={<Products />} />
+                          <Route path="/products/:id" element={<ProductDetail />} />
+                          <Route path="/cart" element={<Cart />} />
+                          <Route path="/login" element={<Login />} />
+                          <Route path="/register" element={<Register />} />
+                          <Route path="/profile" element={<Profile />} />
+                          <Route path="/orders" element={<Orders />} />
+                          <Route path="/checkout" element={<Checkout />} />
+                          <Route path="/new-arrivals" element={<NewArrivals />} />
+                          <Route path="/contact" element={<ContactUs />} />
+                          <Route path="/about" element={<AboutUs />} />
+                        </Routes>
+                      </main>
+                      <Footer />
+                    </div>
+                  </AdminRedirect>
                 } />
               </Routes>
             </Router>

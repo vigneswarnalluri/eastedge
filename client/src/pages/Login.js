@@ -11,7 +11,7 @@ const Login = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   
-  const { login } = useAuth();
+  const { login, isAuthenticated, isAdmin } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -21,6 +21,13 @@ const Login = () => {
       setError(location.state.message);
     }
   }, [location.state]);
+
+  // Redirect admin users who are already logged in
+  useEffect(() => {
+    if (isAuthenticated && isAdmin) {
+      navigate('/admin');
+    }
+  }, [isAuthenticated, isAdmin, navigate]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -42,9 +49,15 @@ const Login = () => {
     try {
       const result = await login(formData.email, formData.password);
       if (result.success) {
-        // Redirect to checkout if that's where they came from
-        const redirectTo = location.state?.redirectTo || '/';
-        navigate(redirectTo);
+        // Check if user is admin and redirect accordingly
+        if (result.isAdmin) {
+          // Redirect admin users directly to admin panel
+          navigate('/admin');
+        } else {
+          // Redirect regular users to checkout if that's where they came from, otherwise to home
+          const redirectTo = location.state?.redirectTo || '/';
+          navigate(redirectTo);
+        }
       } else {
         setError(result.message);
       }

@@ -99,7 +99,7 @@ const ProductCard = ({ product }) => {
   };
 
   // Function to truncate description
-  const truncateDescription = (text, maxLength = 120) => {
+  const truncateDescription = (text, maxLength = 80) => {
     if (!text || typeof text !== 'string') return "Premium quality product with exceptional design and comfort.";
     if (text.length <= maxLength) return text;
     return text.substring(0, maxLength).trim() + '...';
@@ -270,14 +270,13 @@ const ProductCard = ({ product }) => {
           {truncateDescription(product.description)}
         </p>
 
-        {/* Price Section */}
-        <div className="price-section">
-          <span className="price-label">PRICE</span>
-          <span className="price">₹{typeof product.price === 'number' ? product.price.toLocaleString() : '0'}</span>
-        </div>
-
-        {/* Bottom Row - Buttons */}
-        <div className="product-bottom">
+        {/* Price and Button Row */}
+        <div className="price-button-row">
+          <div className="price-section">
+            <span className="price-label">PRICE</span>
+            <span className="price">₹{typeof product.price === 'number' ? product.price.toLocaleString() : '0'}</span>
+          </div>
+          
           <button 
             className="add-to-cart-btn"
             onClick={handleAddToCart}
@@ -287,11 +286,6 @@ const ProductCard = ({ product }) => {
             <FiShoppingCart />
             {hasVariants ? 'Select Options' : 'Add to Cart'}
           </button>
-          
-          <Link to={`/products/${product._id}`} className="view-btn" onClick={(e) => e.stopPropagation()}>
-            <FiImage />
-            View
-          </Link>
         </div>
       </div>
     </div>

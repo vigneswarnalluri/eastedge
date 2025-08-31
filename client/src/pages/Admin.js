@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useSettings } from '../context/SettingsContext';
 import { scrollToTop } from '../utils/scrollToTop';
-import { FiBarChart2, FiPackage, FiShoppingCart, FiUsers, FiStar, FiTag, FiFileText, FiSettings, FiLogOut, FiPlus, FiEye, FiEdit, FiTrash2, FiDownload, FiUpload, FiDollarSign, FiMessageSquare } from 'react-icons/fi';
+import { FiBarChart2, FiPackage, FiShoppingCart, FiUsers, FiStar, FiTag, FiFileText, FiSettings, FiLogOut, FiPlus, FiEye, FiEdit, FiTrash2, FiDownload, FiUpload, FiDollarSign, FiMessageSquare, FiRefreshCw } from 'react-icons/fi';
 import api from '../services/api';
 import './Admin.css';
 
@@ -20,6 +20,7 @@ const Admin = () => {
     endDate: ''
   });
   const [settingsTab, setSettingsTab] = useState('general');
+  const [syncing, setSyncing] = useState(false);
   
   // Content Manager State
   const [contentData, setContentData] = useState({
@@ -45,11 +46,7 @@ const Admin = () => {
       title: '',
       ctaText: '',
       enabled: false
-    },
-    staticPages: [
-      { title: 'About Us', slug: 'about-us', content: '', published: true },
-      { title: 'Contact Us', slug: 'contact-us', content: '', published: true }
-    ]
+    }
   });
 
   // Settings State
@@ -101,6 +98,7 @@ const Admin = () => {
   const [dataLoading, setDataLoading] = useState(true);
   const [showAddProduct, setShowAddProduct] = useState(false);
   const [editingProduct, setEditingProduct] = useState(null);
+  const [selectedProductCategory, setSelectedProductCategory] = useState('');
   
   // Form states
   const [productForm, setProductForm] = useState({
@@ -905,36 +903,9 @@ const Admin = () => {
     }));
   };
 
-  const handleStaticPageChange = (pageIndex, field, value) => {
-    setContentData(prev => ({
-      ...prev,
-      staticPages: prev.staticPages.map((page, index) => 
-        index === pageIndex 
-          ? { ...page, [field]: value }
-          : page
-      )
-    }));
-  };
 
-  const addStaticPage = () => {
-    const newPage = {
-      title: '',
-      slug: '',
-      content: '',
-      published: false
-    };
-    setContentData(prev => ({
-      ...prev,
-      staticPages: [...prev.staticPages, newPage]
-    }));
-  };
 
-  const removeStaticPage = (pageIndex) => {
-    setContentData(prev => ({
-      ...prev,
-      staticPages: prev.staticPages.filter((page, index) => index !== pageIndex)
-    }));
-  };
+
 
   const saveContent = async () => {
     try {
@@ -947,10 +918,6 @@ const Admin = () => {
         heroSlides: contentData.heroSlides.map(slide => {
           const { id, ...cleanSlide } = slide;
           return cleanSlide;
-        }),
-        staticPages: contentData.staticPages.map(page => {
-          const { id, ...cleanPage } = page;
-          return cleanPage;
         })
       };
       
@@ -999,7 +966,7 @@ const Admin = () => {
       id: `user_${Date.now()}`,
       name: '',
       email: '',
-      role: 'Editor'
+      role: 'User'
     };
     setSettingsData(prev => ({
       ...prev,
@@ -1018,6 +985,83 @@ const Admin = () => {
         users: prev.admin.users.filter(user => user.id !== userId)
       }
     }));
+  };
+
+  const syncUserAccounts = async () => {
+    try {
+      setSyncing(true);
+      console.log('🔄 Syncing user accounts...');
+      
+      // Since there's no direct /api/users endpoint, we'll use the admin customers endpoint
+      // and also check if we can get user data from other sources
+      let allUsers = [];
+      
+      try {
+        // Try to get customers from admin endpoint
+        const customersResponse = await api.get('/api/users/admin/customers');
+        if (customersResponse.data && Array.isArray(customersResponse.data)) {
+          allUsers = customersResponse.data.map(customer => ({
+            _id: customer._id,
+            name: customer.name || 'Unknown User',
+            email: customer.email,
+            isAdmin: customer.isAdmin || false
+          }));
+        }
+      } catch (customerError) {
+        console.log('⚠️ Could not fetch customers, using fallback approach');
+      }
+      
+      // If no users found, create a basic sync with existing data
+      if (allUsers.length === 0) {
+        console.log('📝 No users found from API, using existing admin users data');
+        allUsers = settingsData.admin.users;
+      }
+      
+      console.log('📥 Users data for sync:', allUsers);
+      
+      // Get current admin users
+      const currentAdminUsers = settingsData.admin.users;
+      
+      // Create a map of existing users by email
+      const existingUserMap = new Map();
+      currentAdminUsers.forEach(user => {
+        existingUserMap.set(user.email, user);
+      });
+      
+      // Sync users - preserve existing roles, add new ones with default role
+      const syncedUsers = allUsers.map(dbUser => {
+        if (existingUserMap.has(dbUser.email)) {
+          // User already exists, keep their current role
+          return existingUserMap.get(dbUser.email);
+        } else {
+          // New user, add with default User role
+          return {
+            id: `user_${dbUser._id || Date.now()}`,
+            name: dbUser.name || 'Unknown User',
+            email: dbUser.email,
+            role: dbUser.isAdmin ? 'Admin' : 'User' // Set role based on isAdmin flag
+          };
+        }
+      });
+      
+      // Update the admin users list
+      setSettingsData(prev => ({
+        ...prev,
+        admin: {
+          ...prev.admin,
+          users: syncedUsers
+        }
+      }));
+      
+      console.log('✅ User accounts synced successfully!');
+      alert(`Successfully synced ${syncedUsers.length} user accounts!`);
+      
+    } catch (error) {
+      console.error('❌ Error syncing user accounts:', error);
+      alert('Failed to sync user accounts. Please try again.');
+    } finally {
+      setSyncing(false);
+    }
   };
 
   const saveSettings = async (section) => {
@@ -1463,8 +1507,11 @@ const Admin = () => {
     : orders.filter(order => order.status === selectedStatus);
 
   const filteredProducts = Array.isArray(products) ? products.filter(product => {
-    // Add category filtering logic here if needed
-    return true;
+    // Filter by selected category
+    if (selectedProductCategory && selectedProductCategory !== '') {
+      return product.categoryName === selectedProductCategory;
+    }
+    return true; // Show all products if no category selected
   }) : [];
 
   // Category structure with main categories and sub-categories
@@ -1740,7 +1787,11 @@ const Admin = () => {
       <div className="section-header">
         <h1>Products</h1>
         <div className="header-actions">
-          <select className="category-filter">
+          <select 
+            className="category-filter"
+            value={selectedProductCategory}
+            onChange={(e) => setSelectedProductCategory(e.target.value)}
+          >
             <option value="">All Categories</option>
             
             {/* Main Categories Only */}
@@ -2502,12 +2553,12 @@ const Admin = () => {
                 <tr>
                   <td colSpan="9" className="loading-cell">Loading products...</td>
                 </tr>
-              ) : !Array.isArray(products) || products.length === 0 ? (
+              ) : !Array.isArray(filteredProducts) || filteredProducts.length === 0 ? (
                 <tr>
                   <td colSpan="9" className="no-data">No products found</td>
                 </tr>
               ) : (
-                products.map(product => (
+                filteredProducts.map(product => (
                  <tr key={product._id}>
                    <td className="product-cell">
                      <div className="product-info">
@@ -4064,67 +4115,7 @@ const Admin = () => {
         <button className="save-btn" onClick={() => saveContent()}>Save Banner</button>
       </div>
 
-      {/* Static Pages */}
-      <div className="content-section">
-        <h3>Static Pages</h3>
-        <button className="add-btn" onClick={addStaticPage}><FiPlus /> Add New Page</button>
-        <div className="table-container">
-          <table className="admin-table">
-            <thead>
-              <tr>
-                <th>Page Title</th>
-                <th>Slug</th>
-                <th>Status</th>
-                <th>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {contentData.staticPages.map((page, index) => (
-                <tr key={index}>
-                  <td>
-                    <input 
-                      type="text" 
-                      className="form-input inline-input"
-                      value={page.title}
-                      onChange={(e) => handleStaticPageChange(index, 'title', e.target.value)}
-                      placeholder="Page Title"
-                    />
-                  </td>
-                  <td>
-                    <input 
-                      type="text" 
-                      className="form-input inline-input"
-                      value={page.slug}
-                      onChange={(e) => handleStaticPageChange(index, 'slug', e.target.value)}
-                      placeholder="page-slug"
-                    />
-                  </td>
-                  <td>
-                    <label>
-                      <input 
-                        type="checkbox" 
-                        checked={page.published}
-                        onChange={(e) => handleStaticPageChange(index, 'published', e.target.checked)}
-                      />
-                      Published
-                    </label>
-                  </td>
-                  <td className="actions">
-                    <button className="action-btn edit"><FiEdit /></button>
-                    <button 
-                      className="action-btn delete"
-                      onClick={() => removeStaticPage(index)}
-                    >
-                      <FiTrash2 />
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-        <button className="save-btn" onClick={() => saveContent()}>Save Pages</button>
-      </div>
+
     </div>
   );
 
@@ -4149,9 +4140,6 @@ const Admin = () => {
          </button>
          <button className={`tab-btn ${settingsTab === 'email' ? 'active' : ''}`} onClick={() => setSettingsTab('email')}>
            Email
-         </button>
-         <button className={`tab-btn ${settingsTab === 'appearance' ? 'active' : ''}`} onClick={() => setSettingsTab('appearance')}>
-           Appearance
          </button>
          <button className={`tab-btn ${settingsTab === 'admin' ? 'active' : ''}`} onClick={() => setSettingsTab('admin')}>
            Admin Roles
@@ -4422,75 +4410,18 @@ const Admin = () => {
         </div>
       )}
 
-             {settingsTab === 'appearance' && (
-         <div className="settings-content">
-           <h3>Appearance & Theme</h3>
-          <div className="form-group">
-            <label>Primary Color</label>
-            <input 
-              type="color" 
-              className="form-input color-input" 
-              value={settingsData.appearance.primaryColor}
-              onChange={(e) => handleSettingsChange('appearance', 'primaryColor', e.target.value)}
-            />
-            <small>Main brand color used throughout the site</small>
-          </div>
-          <div className="form-group">
-            <label>Secondary Color</label>
-            <input 
-              type="color" 
-              className="form-input color-input" 
-              value={settingsData.appearance.secondaryColor}
-              onChange={(e) => handleSettingsChange('appearance', 'secondaryColor', e.target.value)}
-            />
-            <small>Secondary color for accents and highlights</small>
-          </div>
-          <div className="form-group">
-            <label>Theme Mode</label>
-            <select 
-              className="form-input"
-              value={settingsData.appearance.themeMode}
-              onChange={(e) => handleSettingsChange('appearance', 'themeMode', e.target.value)}
-            >
-              <option value="light">Light Theme</option>
-              <option value="dark">Dark Theme</option>
-              <option value="auto">Auto (Follow System)</option>
-            </select>
-          </div>
-          <div className="form-group">
-            <label>Font Family</label>
-            <select 
-              className="form-input"
-              value={settingsData.appearance.fontFamily}
-              onChange={(e) => handleSettingsChange('appearance', 'fontFamily', e.target.value)}
-            >
-              <option value="Inter">Inter (Modern)</option>
-              <option value="Roboto">Roboto (Clean)</option>
-              <option value="Open Sans">Open Sans (Readable)</option>
-              <option value="Poppins">Poppins (Friendly)</option>
-            </select>
-          </div>
-          <div className="form-group">
-            <label>Border Radius</label>
-            <select 
-              className="form-input"
-              value={settingsData.appearance.borderRadius}
-              onChange={(e) => handleSettingsChange('appearance', 'borderRadius', e.target.value)}
-            >
-              <option value="0">Sharp (0px)</option>
-              <option value="4">Slightly Rounded (4px)</option>
-              <option value="8">Rounded (8px)</option>
-              <option value="12">Very Rounded (12px)</option>
-            </select>
-          </div>
-          <button className="save-btn" onClick={() => saveSettings('appearance')}>Save Appearance Settings</button>
-        </div>
-      )}
+         
 
              {settingsTab === 'admin' && (
          <div className="settings-content">
            <h3>User Role Management</h3>
-          <button className="add-btn" onClick={addAdminUser}><FiPlus /> Add User</button>
+          <div className="header-actions">
+            <button className="add-btn" onClick={addAdminUser}><FiPlus /> Add User</button>
+            <button className="sync-btn" onClick={syncUserAccounts} disabled={syncing}>
+              <FiRefreshCw className={syncing ? 'spinning' : ''} /> 
+              {syncing ? 'Syncing...' : 'Sync Accounts'}
+            </button>
+          </div>
           <div className="table-container">
             <table className="admin-table">
               <thead>
@@ -4528,15 +4459,13 @@ const Admin = () => {
                         value={user.role}
                         onChange={(e) => handleAdminUserChange(user.id, 'role', e.target.value)}
                       >
-                        <option value="Super Admin">Super Admin</option>
                         <option value="Admin">Admin</option>
-                        <option value="Editor">Editor</option>
-                        <option value="Viewer">Viewer</option>
+                        <option value="User">User</option>
                       </select>
                     </td>
                     <td className="actions">
                       <button className="action-btn edit"><FiEdit /></button>
-                      {user.role !== 'Super Admin' && (
+                      {user.role !== 'Admin' && (
                         <button 
                           className="action-btn delete"
                           onClick={() => removeAdminUser(user.id)}
@@ -5427,6 +5356,11 @@ const Admin = () => {
         <div className="admin-content-area">
           {renderContent()}
         </div>
+        
+        {/* Copyright Footer */}
+        <footer className="admin-footer">
+          <p>© 2025 EastEdge. All rights reserved. Designed by: <a href="https://kitek.agency/" target="_blank" rel="noopener noreferrer">KiTek Group</a></p>
+        </footer>
         
         {/* View Order Modal */}
         {showViewOrder && renderViewOrderModal()}

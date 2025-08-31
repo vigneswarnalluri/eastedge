@@ -15,7 +15,7 @@
 .announcement-bar {
   background: #000000;
   color: white;
-  padding: 4px 0;
+  padding: 8px 0;
   text-align: center;
   position: relative;
   overflow: hidden;
@@ -48,19 +48,23 @@
 }
 
 .announcement-text {
-  font-size: 12px;
+  font-size: 14px;
   font-weight: 500;
+  font-family: 'Georgia', 'Times New Roman', serif;
+  letter-spacing: 0.5px;
 }
 
 .announcement-link {
   color: white;
   text-decoration: none;
   font-weight: 600;
-  padding: 2px 8px;
+  padding: 4px 12px;
   border: 1px solid white;
   border-radius: 12px;
   transition: all 0.3s ease;
-  font-size: 10px;
+  font-size: 12px;
+  font-family: 'Georgia', 'Times New Roman', serif;
+  letter-spacing: 0.3px;
 }
 
 .announcement-link:hover {
