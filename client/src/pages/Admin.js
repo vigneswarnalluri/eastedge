@@ -42,11 +42,13 @@ const Admin = () => {
         imagePreview: ''
       }
     ],
+    heroSlidesEnabled: true,
     promotionalBanner: {
       title: '',
       ctaText: '',
       enabled: false
-    }
+    },
+
   });
 
   // Settings State
@@ -903,6 +905,15 @@ const Admin = () => {
     }));
   };
 
+  const handleHeroSlidesToggle = (enabled) => {
+    setContentData(prev => ({
+      ...prev,
+      heroSlidesEnabled: enabled
+    }));
+  };
+
+
+
 
 
 
@@ -1280,58 +1291,28 @@ const Admin = () => {
   // Function to create all predefined categories
   const createAllPredefinedCategories = async () => {
     try {
-      console.log('Creating all predefined categories...');
+      console.log('Creating predefined clothing categories...');
       
       const allCategories = [
         {
-          name: "Electronics",
-          description: "Electronic devices and gadgets",
+          name: "Men's Clothing",
+          description: "Clothing and fashion items for men",
           subCategories: [
-            "Smartphones", "Laptops", "Tablets", "Headphones", "Speakers", "Cameras", "Gaming Consoles"
+            "T-Shirts", "Shirts", "Pants", "Jeans", "Jackets", "Sweaters", "Formal Wear"
           ]
         },
         {
-          name: "Apparel",
-          description: "Clothing, shoes, and fashion accessories",
+          name: "Women's Clothing",
+          description: "Clothing and fashion items for women",
           subCategories: [
-            "Men's Clothing", "Women's Clothing", "Kids' Clothing", "Shoes", "Bags", "Jewelry", "Watches"
+            "Dresses", "Tops", "Bottoms", "Outerwear", "Lingerie", "Activewear", "Formal Wear"
           ]
         },
         {
-          name: "DIY and Hardware",
-          description: "Do-it-yourself and hardware tools",
+          name: "Special Clothing's",
+          description: "Specialized and unique clothing items",
           subCategories: [
-            "Power Tools", "Hand Tools", "Garden Tools", "Building Materials", "Paint", "Electrical"
-          ]
-        },
-        {
-          name: "Health, Personal Care, and Beauty",
-          description: "Health and beauty products",
-          subCategories: [
-            "Skincare", "Makeup", "Hair Care", "Personal Care", "Vitamins", "Fitness"
-          ]
-        },
-        {
-          name: "Furniture and Home Décor",
-          description: "Furniture and home decoration items",
-          subCategories: [
-            "Living Room", "Bedroom", "Kitchen", "Bathroom", "Outdoor", "Lighting", "Decor"
-          ]
-        },
-        {
-          name: "Media",
-          description: "Books, movies, music, and digital media",
-          subCategories: [
-            "Books", "Movies", "Music", "Magazines", "Digital Downloads", "Audiobooks"
-          ]
-        },
-        {
-          name: "Toys and Hobbies",
-          description: "Toys, games, and hobby supplies",
-          subCategories: [
-            "Outdoor Toys",
-            "Board Games & Puzzles",
-            "Arts & Crafts Supplies"
+            "Costumes", "Traditional Wear", "Vintage Clothing", "Designer Items", "Limited Edition"
           ]
         }
       ];
@@ -1402,27 +1383,28 @@ const Admin = () => {
   const createSampleSubCategories = async () => {
     try {
       const sampleSubCategories = [
-        // Apparel sub-categories
-        { name: 'T-Shirts', parentCategory: 'Apparel', description: 'Casual and formal t-shirts' },
-        { name: 'Hoodies', parentCategory: 'Apparel', description: 'Comfortable hooded sweatshirts' },
-        { name: 'Jeans', parentCategory: 'Apparel', description: 'Classic denim jeans' },
-        { name: 'Shirts', parentCategory: 'Apparel', description: 'Formal and casual shirts' },
-        { name: 'Dresses', parentCategory: 'Apparel', description: 'Elegant dresses for all occasions' },
-        { name: "Men's Clothing", parentCategory: 'Apparel', description: 'Clothing specifically designed for men' },
+        // Men's Clothing sub-categories
+        { name: 'T-Shirts', parentCategory: "Men's Clothing", description: 'Casual and formal t-shirts for men' },
+        { name: 'Hoodies', parentCategory: "Men's Clothing", description: 'Comfortable hooded sweatshirts for men' },
+        { name: 'Jeans', parentCategory: "Men's Clothing", description: 'Classic denim jeans for men' },
+        { name: 'Shirts', parentCategory: "Men's Clothing", description: 'Formal and casual shirts for men' },
+        { name: 'Jackets', parentCategory: "Men's Clothing", description: 'Stylish jackets and outerwear for men' },
+        { name: 'Sweaters', parentCategory: "Men's Clothing", description: 'Warm sweaters and knitwear for men' },
         
-        // Accessories sub-categories
-        { name: 'Watches', parentCategory: 'Accessories', description: 'Stylish timepieces' },
-        { name: 'Bags', parentCategory: 'Accessories', description: 'Handbags and backpacks' },
-        { name: 'Jewelry', parentCategory: 'Accessories', description: 'Necklaces, rings, and earrings' },
-        { name: 'Belts', parentCategory: 'Accessories', description: 'Leather and fabric belts' },
-        { name: 'Sunglasses', parentCategory: 'Accessories', description: 'Trendy eyewear' },
+        // Women's Clothing sub-categories
+        { name: 'Dresses', parentCategory: "Women's Clothing", description: 'Elegant dresses for all occasions' },
+        { name: 'Tops', parentCategory: "Women's Clothing", description: 'Beautiful tops and blouses for women' },
+        { name: 'Bottoms', parentCategory: "Women's Clothing", description: 'Pants, skirts, and shorts for women' },
+        { name: 'Outerwear', parentCategory: "Women's Clothing", description: 'Coats, jackets, and cardigans for women' },
+        { name: 'Activewear', parentCategory: "Women's Clothing", description: 'Comfortable activewear for women' },
+        { name: 'Formal Wear', parentCategory: "Women's Clothing", description: 'Elegant formal clothing for women' },
         
-        // Home Goods sub-categories
-        { name: 'Kitchen', parentCategory: 'Home Goods', description: 'Kitchen appliances and utensils' },
-        { name: 'Bedding', parentCategory: 'Home Goods', description: 'Bed sheets, pillows, and comforters' },
-        { name: 'Decor', parentCategory: 'Home Goods', description: 'Home decoration items' },
-        { name: 'Furniture', parentCategory: 'Home Goods', description: 'Tables, chairs, and storage' },
-        { name: 'Bathroom', parentCategory: 'Home Goods', description: 'Bathroom essentials and accessories' }
+        // Special Clothing's sub-categories
+        { name: 'Costumes', parentCategory: "Special Clothing's", description: 'Unique costumes and themed clothing' },
+        { name: 'Traditional Wear', parentCategory: "Special Clothing's", description: 'Traditional and cultural clothing' },
+        { name: 'Vintage Clothing', parentCategory: "Special Clothing's", description: 'Vintage and retro clothing items' },
+        { name: 'Designer Items', parentCategory: "Special Clothing's", description: 'High-end designer clothing' },
+        { name: 'Limited Edition', parentCategory: "Special Clothing's", description: 'Exclusive limited edition clothing' }
       ];
 
       // Find main categories first
@@ -1514,59 +1496,78 @@ const Admin = () => {
     return true; // Show all products if no category selected
   }) : [];
 
-  // Category structure with main categories and sub-categories
-  const categoryStructure = {
-    "Electronics": [
-      "Smartphones & Accessories",
-      "Laptops & Computers", 
-      "Cameras & Photography",
-      "Wearable Technology",
-      "Gaming Consoles & Accessories",
-      "Smart Home Devices"
-    ],
-    "Apparel": [
-      "Women's Clothing",
-      "Men's Clothing", 
-      "Shoes",
-      "Accessories",
-      "Kids & Baby Clothing"
-    ],
-    "DIY and Hardware": [
-      "Power Tools",
-      "Hand Tools",
-      "Building Materials",
-      "Paint Supplies",
-      "Home Improvement Fixtures"
-    ],
-    "Health, Personal Care, and Beauty": [
-      "Skincare",
-      "Haircare",
-      "Makeup & Cosmetics",
-      "Personal Hygiene",
-      "Health & Wellness Equipment"
-    ],
-    "Furniture and Home Décor": [
-      "Living Room Furniture",
-      "Bedroom Furniture",
-      "Office Furniture",
-      "Lighting Fixtures",
-      "Decorative Accessories"
-    ],
-    "Media": [
-      "Books",
-      "Music",
-      "Movies & TV Shows",
-      "Video Games"
-    ],
-    "Toys and Hobbies": [
-      "Outdoor Toys",
-      "Board Games & Puzzles",
-      "Arts & Crafts Supplies"
-    ]
+  // Helper function to get default subcategories
+  const getDefaultSubCategories = (categoryName) => {
+    const defaults = {
+      "Men's Clothing": ["T-Shirts", "Shirts", "Pants", "Jeans", "Jackets", "Sweaters", "Formal Wear"],
+      "Women's Clothing": ["Dresses", "Tops", "Bottoms", "Outerwear", "Lingerie", "Activewear", "Formal Wear"],
+      "Special Clothing's": ["Costumes", "Traditional Wear", "Vintage Clothing", "Designer Items", "Limited Edition"]
+    };
+    return defaults[categoryName] || [];
   };
+
+  // Category structure with main categories and sub-categories
+  // Build dynamically from fetched categories, but only include clothing categories
+  const categoryStructure = (() => {
+    const clothingCategories = ["Men's Clothing", "Women's Clothing", "Special Clothing's"];
+    
+    // If categories are loaded from backend, use them
+    if (categories.length > 0) {
+      const structure = {};
+      clothingCategories.forEach(catName => {
+        const category = categories.find(cat => cat.name === catName);
+        if (category && category.subCategories) {
+          structure[catName] = category.subCategories;
+        } else {
+          // Fallback to default subcategories if not found in backend
+          structure[catName] = getDefaultSubCategories(catName);
+        }
+      });
+      return structure;
+    }
+    
+    // Fallback to default structure if categories not loaded yet
+    return {
+      "Men's Clothing": [
+        "T-Shirts",
+        "Shirts", 
+        "Pants",
+        "Jeans",
+        "Jackets",
+        "Sweaters",
+        "Formal Wear"
+      ],
+      "Women's Clothing": [
+        "Dresses",
+        "Tops",
+        "Bottoms",
+        "Outerwear",
+        "Lingerie",
+        "Activewear",
+        "Formal Wear"
+      ],
+      "Special Clothing's": [
+        "Costumes",
+        "Traditional Wear",
+        "Vintage Clothing",
+        "Designer Items",
+        "Limited Edition"
+      ]
+    };
+  })();
 
   // Get main categories (parent categories)
   const mainCategories = Object.keys(categoryStructure);
+  
+  // Ensure we always have the clothing categories available
+  const clothingCategories = ["Men's Clothing", "Women's Clothing", "Special Clothing's"];
+  const availableCategories = mainCategories.length > 0 ? mainCategories : clothingCategories;
+  
+  // Debug logging
+  console.log('Categories loaded:', categories);
+  console.log('Category structure:', categoryStructure);
+  console.log('Main categories:', mainCategories);
+  console.log('Available categories for dropdowns:', availableCategories);
   
   // Get sub-categories for a selected main category
   const getSubCategories = (mainCategory) => {
@@ -1794,8 +1795,8 @@ const Admin = () => {
           >
             <option value="">All Categories</option>
             
-            {/* Main Categories Only */}
-            {mainCategories.map(category => (
+            {/* Main Categories Only - Clothing Categories */}
+            {availableCategories.map(category => (
               <option key={category} value={category}>{category}</option>
             ))}
           </select>
@@ -1855,8 +1856,8 @@ const Admin = () => {
                 >
                   <option value="">Select Category</option>
                   
-                  {/* Main Categories Only */}
-                  {mainCategories.map(category => (
+                  {/* Main Categories Only - Clothing Categories */}
+                  {availableCategories.map(category => (
                     <option key={category} value={category}>{category}</option>
                   ))}
                 </select>
@@ -3996,6 +3997,16 @@ const Admin = () => {
       {/* Hero Slider */}
       <div className="content-section">
         <h3>Hero Slider</h3>
+        <div className="form-group">
+          <label>
+            <input 
+              type="checkbox" 
+              checked={contentData.heroSlidesEnabled !== false}
+              onChange={(e) => handleHeroSlidesToggle(e.target.checked)}
+            />
+            Enable Hero Slider (Uncheck to disable all slides)
+          </label>
+        </div>
         {contentData.heroSlides.map((slide, index) => (
           <div key={index} className="slide-item">
             <h4>Slide {index + 1}</h4>
@@ -4114,6 +4125,7 @@ const Admin = () => {
         </div>
         <button className="save-btn" onClick={() => saveContent()}>Save Banner</button>
       </div>
+
 
 
     </div>

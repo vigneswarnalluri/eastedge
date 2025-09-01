@@ -6,11 +6,12 @@ import { useUserPreferences } from '../context/UserPreferencesContext';
 import RazorpayPayment from '../components/RazorpayPayment';
 import { scrollToTop } from '../utils/scrollToTop';
 import api from '../services/api';
+import { formatCurrency, getGSTRateDescription } from '../utils/gstCalculator';
 import './Checkout.css';
 
 const Checkout = () => {
   const navigate = useNavigate();
-  const { items: cartItems, clearCart, getTotalPrice, isInitialized } = useCart();
+  const { items: cartItems, clearCart, getTotalPrice, getGSTBreakdown, isInitialized } = useCart();
   const { user, isAuthenticated } = useAuth();
   
   // All hooks must be called before any conditional returns
@@ -22,10 +23,10 @@ const Checkout = () => {
     email: user?.email || '',
     firstName: user?.name?.split(' ')[0] || '',
     lastName: user?.name?.split(' ')[1] || '',
-    address: user?.address || '',
-    city: '',
-    state: '',
-    zipCode: '',
+    address: (typeof user?.address === 'object' ? user?.address?.street || user?.address?.address || '' : user?.address || ''),
+    city: (typeof user?.address === 'object' ? user?.address?.city || '' : ''),
+    state: (typeof user?.address === 'object' ? user?.address?.state || '' : ''),
+    zipCode: (typeof user?.address === 'object' ? user?.address?.zipCode || '' : ''),
     phone: user?.phone || '',
     paymentMethod: 'razorpay'
   });
@@ -112,6 +113,23 @@ const Checkout = () => {
   useEffect(() => {
     // This effect will trigger re-render when appliedDiscount changes
   }, [appliedDiscount]);
+
+  // Update form data when user data changes
+  useEffect(() => {
+    if (user) {
+      setFormData(prevData => ({
+        ...prevData,
+        email: user.email || '',
+        firstName: user.name?.split(' ')[0] || '',
+        lastName: user.name?.split(' ')[1] || '',
+        address: (typeof user.address === 'object' ? user.address?.street || user.address?.address || '' : user.address || ''),
+        city: (typeof user.address === 'object' ? user.address?.city || '' : ''),
+        state: (typeof user.address === 'object' ? user.address?.state || '' : ''),
+        zipCode: (typeof user.address === 'object' ? user.address?.zipCode || '' : ''),
+        phone: user.phone || ''
+      }));
+    }
+  }, [user]);
 
   // Discount code validation
   const validateDiscountCode = async () => {
@@ -325,21 +343,22 @@ const Checkout = () => {
       if (response.data.success) {
         console.log('✅ Order placed successfully, clearing cart and showing success page');
         
-        // Set order placed state first
-        setOrderPlaced(true);
-        console.log('🎯 orderPlaced state set to true, should show success page now');
-        
-        // Store order success in localStorage as backup
+        // Store order success in localStorage as backup first
         localStorage.setItem('orderPlaced', 'true');
         localStorage.setItem('orderData', JSON.stringify(response.data.order));
         
-        // Small delay before clearing cart to ensure state change takes effect
-        setTimeout(() => {
-          clearCart();
-          console.log('🛒 Cart cleared after state change');
-        }, 100);
+        // Clear cart immediately
+        clearCart();
+        console.log('🛒 Cart cleared');
+        
+        // Set order placed state after clearing cart
+        setOrderPlaced(true);
+        console.log('🎯 orderPlaced state set to true, should show success page now');
         
         setError(null); // Clear any previous errors
+        
+        // Scroll to top to show success page
+        window.scrollTo({ top: 0, behavior: 'smooth' });
       } else {
         console.error('❌ Order response indicates failure:', response.data);
         setErrors({ submit: response.data.message || 'Failed to place order. Please try again.' });
@@ -368,7 +387,7 @@ const Checkout = () => {
     }
   };
 
-  if (!cartItems || cartItems.length === 0 && !orderPlaced) {
+  if ((!cartItems || cartItems.length === 0) && !orderPlaced) {
     return (
       <div className="checkout-page">
         <div className="container">
@@ -623,26 +642,14 @@ const Checkout = () => {
                     <p className="cod-total">Pay ₹{getFinalTotal().toFixed(2)} when you receive your order.</p>
                   </div>
                   
-                  {/* Temporary test button - remove after fixing */}
                   <button 
                     type="button" 
-                    className="btn-secondary"
-                    style={{ marginBottom: '10px', width: '100%' }}
-                    onClick={() => {
-                      console.log('🧪 Test: Manually setting orderPlaced to true');
-                      setOrderPlaced(true);
-                      localStorage.setItem('orderPlaced', 'true');
-                      // Scroll to top when showing success page
-                      window.scrollTo({ top: 0, behavior: 'smooth' });
-                    }}
-                  >
-                    🧪 Test Success Page (Remove After Fix)
-                  </button>
-                  
-                  <button 
-                    type="submit" 
                     className="btn-primary checkout-submit-btn cod-btn"
                     disabled={loading}
+                    onClick={async (e) => {
+                      // Call the actual order placement logic
+                      await handleSubmit(e);
+                    }}
                   >
                     {loading ? 'Processing...' : `Place COD Order - ₹${getFinalTotal().toFixed(2)}`}
                   </button>
@@ -729,30 +736,41 @@ const Checkout = () => {
             </div>
             
             <div className="order-totals">
-              <div className="total-row">
-                <span>Subtotal:</span>
-                <span>₹{(getTotalPrice() || 0).toFixed(2)}</span>
-              </div>
-              <div className="total-row">
-                <span>Shipping:</span>
-                <span>Free</span>
-              </div>
-              {formData.paymentMethod === 'cod' && (
-                <div className="total-row">
-                  <span>COD Charges:</span>
-                  <span>₹50.00</span>
-                </div>
-              )}
-              {appliedDiscount && (
-                <div className="total-row discount-row">
-                  <span>Discount ({appliedDiscount.code}):</span>
-                  <span>-₹{appliedDiscount.discountAmount.toFixed(2)}</span>
-                </div>
-              )}
-              <div className="total-row total-final">
-                <span>Total:</span>
-                <span>₹{getFinalTotal().toFixed(2)}</span>
-              </div>
+              {(() => {
+                const gstBreakdown = getGSTBreakdown();
+                return (
+                  <>
+                    <div className="total-row">
+                      <span>Base Amount:</span>
+                      <span>{formatCurrency(gstBreakdown.baseAmount)}</span>
+                    </div>
+                    <div className="total-row gst-breakdown">
+                      <span>{getGSTRateDescription(gstBreakdown.totalAmount)}:</span>
+                      <span>{formatCurrency(gstBreakdown.gstAmount)}</span>
+                    </div>
+                    <div className="total-row">
+                      <span>Shipping:</span>
+                      <span>Free</span>
+                    </div>
+                    {formData.paymentMethod === 'cod' && (
+                      <div className="total-row">
+                        <span>COD Charges:</span>
+                        <span>₹50.00</span>
+                      </div>
+                    )}
+                    {appliedDiscount && (
+                      <div className="total-row discount-row">
+                        <span>Discount ({appliedDiscount.code}):</span>
+                        <span>-₹{appliedDiscount.discountAmount.toFixed(2)}</span>
+                      </div>
+                    )}
+                    <div className="total-row total-final">
+                      <span>Total (Incl. GST):</span>
+                      <span>₹{getFinalTotal().toFixed(2)}</span>
+                    </div>
+                  </>
+                );
+              })()}
             </div>
           </div>
         </div>

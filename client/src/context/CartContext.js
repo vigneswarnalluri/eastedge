@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useReducer, useEffect, useState, useCallback } from 'react';
 import { useAuth } from './AuthContext';
+import { calculateCartGST, calculateGSTBreakdown } from '../utils/gstCalculator';
 
 const CartContext = createContext();
 
@@ -66,7 +67,7 @@ const cartReducer = (state, action) => {
               ? { ...item, quantity: item.quantity + action.payload.quantity }
               : item
           ),
-          total: sanitizedState.total + ((action.payload.variantPrice || action.payload.price) * action.payload.quantity),
+          total: sanitizedState.total + (action.payload.price * action.payload.quantity),
           itemCount: sanitizedState.itemCount + action.payload.quantity,
           uniqueItemCount: sanitizedState.items.length // Same number of unique items
         };
@@ -75,7 +76,7 @@ const cartReducer = (state, action) => {
         newState = {
           ...sanitizedState,
           items: [...sanitizedState.items, action.payload],
-          total: sanitizedState.total + ((action.payload.variantPrice || action.payload.price) * action.payload.quantity),
+          total: sanitizedState.total + (action.payload.price * action.payload.quantity),
           itemCount: sanitizedState.itemCount + action.payload.quantity,
           uniqueItemCount: sanitizedState.items.length + 1 // One more unique item
         };
@@ -84,7 +85,7 @@ const cartReducer = (state, action) => {
       // Validate new state
       if (newState.total < 0) {
         console.error('Negative total detected, recalculating from items');
-        newState.total = newState.items.reduce((sum, item) => sum + ((item.variantPrice || item.price) * item.quantity), 0);
+        newState.total = newState.items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
       }
       
       console.log('New state after ADD_ITEM:', newState);
@@ -98,7 +99,7 @@ const cartReducer = (state, action) => {
       newState = {
         ...sanitizedState,
         items: sanitizedState.items.filter(item => createItemKey(item) !== action.payload),
-        total: sanitizedState.total - ((itemToRemove?.variantPrice || itemToRemove?.price || 0) * (itemToRemove?.quantity || 0)),
+        total: sanitizedState.total - ((itemToRemove?.price || 0) * (itemToRemove?.quantity || 0)),
         itemCount: sanitizedState.itemCount - (itemToRemove?.quantity || 0),
         uniqueItemCount: sanitizedState.items.length - 1
       };
@@ -106,7 +107,7 @@ const cartReducer = (state, action) => {
       // Validate new state
       if (newState.total < 0) {
         console.error('Negative total detected after removal, recalculating from items');
-        newState.total = newState.items.reduce((sum, item) => sum + ((item.variantPrice || item.price) * item.quantity), 0);
+        newState.total = newState.items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
       }
       
       console.log('New state after REMOVE_ITEM:', newState);
@@ -120,7 +121,7 @@ const cartReducer = (state, action) => {
         return item;
       });
       
-      const newTotal = updatedItems.reduce((sum, item) => sum + ((item.variantPrice || item.price) * item.quantity), 0);
+      const newTotal = updatedItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
       const newItemCount = updatedItems.reduce((sum, item) => sum + item.quantity, 0);
       
       newState = {
@@ -134,7 +135,7 @@ const cartReducer = (state, action) => {
       // Validate new state
       if (newState.total < 0) {
         console.error('Negative total detected after quantity update, recalculating from items');
-        newState.total = newState.items.reduce((sum, item) => sum + ((item.variantPrice || item.price) * item.quantity), 0);
+        newState.total = newState.items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
       }
       
       console.log('New state after UPDATE_QUANTITY:', newState);
@@ -164,7 +165,7 @@ const cartReducer = (state, action) => {
       const loadedItemCount = typeof action.payload.itemCount === 'number' && action.payload.itemCount >= 0 ? action.payload.itemCount : 0;
       
       // Recalculate total from items if loaded total is invalid
-      const calculatedTotal = loadedItems.reduce((sum, item) => sum + ((item.variantPrice || item.price || 0) * (item.quantity || 0)), 0);
+      const calculatedTotal = loadedItems.reduce((sum, item) => sum + ((item.price || 0) * (item.quantity || 0)), 0);
       const calculatedItemCount = loadedItems.reduce((sum, item) => sum + (item.quantity || 0), 0);
       
       newState = {
@@ -238,7 +239,7 @@ export const CartProvider = ({ children }) => {
             const validatedCart = {
               items: parsedCart.items,
               total: typeof parsedCart.total === 'number' ? parsedCart.total : 
-                     parsedCart.items.reduce((sum, item) => sum + ((item.variantPrice || item.price || 0) * (item.quantity || 1)), 0),
+                     parsedCart.items.reduce((sum, item) => sum + ((item.price || 0) * (item.quantity || 1)), 0),
               itemCount: typeof parsedCart.itemCount === 'number' ? parsedCart.itemCount : 
                         parsedCart.items.reduce((sum, item) => sum + (item.quantity || 1), 0)
             };
@@ -354,7 +355,6 @@ export const CartProvider = ({ children }) => {
           category: product.category,
           categoryName: product.categoryName,
           // Add variant-specific information
-          variantPrice: product.variantPrice || product.price,
           variantStock: product.variantStock,
           // Preserve any other variant details
           ...product
@@ -379,7 +379,6 @@ export const CartProvider = ({ children }) => {
           category: product.category,
           categoryName: product.categoryName,
           // Add variant-specific information
-          variantPrice: defaultVariant.price || product.price,
           variantStock: defaultVariant.stock || 0,
           // Preserve any other variant details
           ...product
@@ -425,6 +424,26 @@ export const CartProvider = ({ children }) => {
 
   const getTotalPrice = () => {
     return state.total;
+  };
+
+  // GST calculation methods
+  const getGSTBreakdown = () => {
+    return calculateCartGST(state.items);
+  };
+
+  const getTotalWithGST = () => {
+    const gstBreakdown = getGSTBreakdown();
+    return gstBreakdown.totalAmount;
+  };
+
+  const getBaseAmount = () => {
+    const gstBreakdown = getGSTBreakdown();
+    return gstBreakdown.baseAmount;
+  };
+
+  const getGSTAmount = () => {
+    const gstBreakdown = getGSTBreakdown();
+    return gstBreakdown.gstAmount;
   };
 
   const saveCartToStorage = () => {
@@ -554,6 +573,10 @@ export const CartProvider = ({ children }) => {
         clearCart,
         getCartItem,
         getTotalPrice,
+        getGSTBreakdown,
+        getTotalWithGST,
+        getBaseAmount,
+        getGSTAmount,
         saveCartToStorage,
         loadCartFromStorage,
         debugCartStorage,

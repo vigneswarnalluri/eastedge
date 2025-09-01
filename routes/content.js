@@ -67,6 +67,8 @@ router.get('/section/:section', async (req, res) => {
       res.json({ promotionalBanner: content.promotionalBanner });
     } else if (section === 'site-settings') {
       res.json({ siteSettings: content.siteSettings });
+    } else if (section === 'legal-pages') {
+      res.json({ legalPages: content.legalPages });
     } else {
       res.status(400).json({ message: 'Invalid section' });
     }
@@ -181,6 +183,12 @@ router.put('/', auth, async (req, res) => {
       content.announcement = { ...defaultAnnouncement, ...content.announcement, ...announcement };
     }
     
+    // Update hero slides enabled flag
+    if (req.body.heroSlidesEnabled !== undefined) {
+      console.log('🖼️ Updating hero slides enabled:', req.body.heroSlidesEnabled);
+      content.heroSlidesEnabled = req.body.heroSlidesEnabled;
+    }
+    
     // Update hero slides
     if (heroSlides) {
       console.log('🖼️ Updating hero slides:', heroSlides.length, 'slides');
@@ -264,6 +272,8 @@ router.put('/section/:section', auth, async (req, res) => {
       content.promotionalBanner = { ...content.promotionalBanner, ...updateData };
     } else if (section === 'site-settings') {
       content.siteSettings = { ...content.siteSettings, ...updateData };
+    } else if (section === 'legal-pages') {
+      content.legalPages = { ...content.legalPages, ...updateData };
     } else {
       return res.status(400).json({ message: 'Invalid section' });
     }

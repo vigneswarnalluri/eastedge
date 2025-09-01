@@ -68,6 +68,14 @@ async function initializeContent() {
           instagram: 'https://instagram.com/eastedge',
           linkedin: 'https://linkedin.com/company/eastedge'
         }
+      },
+      legalPages: {
+        terms: 'Terms and conditions for using our services. By accessing and using this website, you accept and agree to be bound by the terms and provision of this agreement.',
+        privacy: 'Privacy policy regarding your personal information. We are committed to protecting your privacy and ensuring the security of your personal data.',
+        disclaimer: 'Disclaimer about product accuracy and information. While we strive to provide accurate product information, we cannot guarantee that all details are completely accurate.',
+        shipping: 'Information about shipping and delivery policies. We offer various shipping options to meet your delivery needs.',
+        returns: 'Our refund and returns policy. We want you to be completely satisfied with your purchase.',
+        jurisdiction: 'Legal jurisdiction and applicable laws. This website is governed by the laws of India and any disputes will be resolved in the courts of Hyderabad.'
       }
     });
 
@@ -78,6 +86,7 @@ async function initializeContent() {
     console.log('   - 2 hero slides');
     console.log('   - Promotional banner');
     console.log('   - Site settings and contact info');
+    console.log('   - Legal pages (Terms, Privacy, Disclaimer, Shipping, Returns, Jurisdiction)');
 
   } catch (error) {
     console.error('❌ Error initializing content:', error);

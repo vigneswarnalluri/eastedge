@@ -1,0 +1,246 @@
+/* Legal Pages Links */
+.legal-pages-links {
+  margin-bottom: 0;
+}
+
+.legal-link-btn {
+  background: none;
+  border: none;
+  color: #ccc;
+  text-decoration: none;
+  transition: color 0.3s ease;
+  font-size: 14px;
+  cursor: pointer;
+  padding: 0;
+  text-align: left;
+  width: 100%;
+}
+
+.legal-link-btn:hover {
+  color: white;
+}
+
+/* Legal Popup Overlay */
+.legal-popup-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  padding: 20px;
+}
+
+/* Legal Popup */
+.legal-popup {
+  background: white;
+  border-radius: 12px;
+  max-width: 800px;
+  width: 100%;
+  max-height: 90vh;
+  overflow: hidden;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  animation: popupSlideIn 0.3s ease-out;
+}
+
+@keyframes popupSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-20px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* Popup Header */
+.legal-popup-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 24px 30px 20px;
+  border-bottom: 1px solid #e9ecef;
+  background: #f8f9fa;
+}
+
+.legal-popup-header h2 {
+  margin: 0;
+  color: #333;
+  font-size: 1.5rem;
+  font-weight: 600;
+}
+
+.legal-popup-actions {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+/* Popup Content */
+.legal-popup-content {
+  padding: 30px;
+  max-height: calc(90vh - 120px);
+  overflow-y: auto;
+}
+
+/* View Mode */
+.view-mode {
+  line-height: 1.6;
+  color: #333;
+  font-size: 15px;
+}
+
+/* Edit Mode */
+.edit-mode {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.edit-mode textarea {
+  width: 100%;
+  min-height: 300px;
+  padding: 16px;
+  border: 2px solid #e9ecef;
+  border-radius: 8px;
+  font-family: inherit;
+  font-size: 14px;
+  line-height: 1.6;
+  resize: vertical;
+  transition: border-color 0.3s ease;
+}
+
+.edit-mode textarea:focus {
+  outline: none;
+  border-color: #059669;
+}
+
+.edit-actions {
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+}
+
+/* Buttons */
+.edit-btn {
+  background: #059669;
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.edit-btn:hover {
+  background: #047857;
+  transform: translateY(-1px);
+}
+
+.save-btn {
+  background: #059669;
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.save-btn:hover {
+  background: #047857;
+  transform: translateY(-1px);
+}
+
+.cancel-btn {
+  background: #6c757d;
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.cancel-btn:hover {
+  background: #5a6268;
+  transform: translateY(-1px);
+}
+
+.close-btn {
+  background: none;
+  border: none;
+  font-size: 24px;
+  color: #666;
+  cursor: pointer;
+  padding: 0;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  transition: all 0.3s ease;
+}
+
+.close-btn:hover {
+  background: #f0f0f0;
+  color: #333;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .legal-popup {
+    max-width: 95vw;
+    margin: 10px;
+  }
+  
+  .legal-popup-header {
+    padding: 20px 20px 15px;
+  }
+  
+  .legal-popup-content {
+    padding: 20px;
+  }
+  
+  .legal-popup-header h2 {
+    font-size: 1.3rem;
+  }
+  
+  .edit-actions {
+    flex-direction: column;
+  }
+  
+  .edit-actions button {
+    width: 100%;
+  }
+}
+
+@media (max-width: 480px) {
+  .legal-popup-overlay {
+    padding: 10px;
+  }
+  
+  .legal-popup {
+    max-height: 95vh;
+  }
+  
+  .legal-popup-header {
+    padding: 16px 16px 12px;
+  }
+  
+  .legal-popup-content {
+    padding: 16px;
+  }
+} 

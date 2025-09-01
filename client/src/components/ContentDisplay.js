@@ -65,7 +65,9 @@ const ContentDisplay = () => {
     return <div className="content-error">No content available</div>;
   }
 
-  const activeSlides = content.heroSlides ? content.heroSlides.filter(slide => slide.active).sort((a, b) => a.order - b.order) : [];
+  const activeSlides = content.heroSlides && content.heroSlidesEnabled !== false 
+    ? content.heroSlides.filter(slide => slide.active).sort((a, b) => a.order - b.order) 
+    : [];
 
   return (
     <div className="content-display">

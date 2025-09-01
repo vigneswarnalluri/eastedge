@@ -261,26 +261,7 @@ const ContactUs = () => {
           </div>
         </motion.section>
 
-        {/* Map Section */}
-        <motion.section 
-          className="map-section"
-          initial={{ opacity: 0, y: 30 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, delay: 0.8 }}
-        >
-          <div className="map-header">
-            <h2>Find Us</h2>
-            <p>Visit our store in Malkajgiri, Hyderabad, Telangana.</p>
-          </div>
-          
-          <div className="map-container">
-            <div className="map-placeholder">
-              <FiMapPin className="map-icon" />
-              <p>Interactive Map</p>
-              <small>Malkajgiri, Hyderabad, Telangana, India</small>
-            </div>
-          </div>
-        </motion.section>
+
       </div>
     </div>
   );

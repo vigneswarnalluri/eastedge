@@ -807,6 +807,38 @@
   text-transform: capitalize;
 }
 
+/* Status Select Dropdown */
+.status-select {
+  padding: 6px 12px;
+  border-radius: 6px;
+  border: 1px solid #444;
+  background-color: #2a2a2a !important;
+  color: #ffffff !important;
+  font-size: 12px;
+  font-weight: 500;
+  text-transform: capitalize;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  min-width: 100px;
+}
+
+.status-select:hover {
+  background-color: #3a3a3a !important;
+  border-color: #555;
+}
+
+.status-select:focus {
+  outline: none;
+  border-color: #0066cc;
+  box-shadow: 0 0 0 2px rgba(0, 102, 204, 0.2);
+}
+
+.status-select option {
+  background-color: #2a2a2a !important;
+  color: #ffffff !important;
+  padding: 6px 12px;
+}
+
 .status-badge.approved,
 .status-badge.active,
 .status-badge.delivered,
@@ -839,12 +871,14 @@
 
 .admin-table .actions .action-btn.view,
 .admin-table td.actions .action-btn.view {
-  background-color: #1e40af;
+  background-color: #007bff !important;
+  color: #ffffff !important;
 }
 
 .admin-table .actions .action-btn.view:hover,
 .admin-table td.actions .action-btn.view:hover {
-  background-color: #1d4ed8;
+  background-color: #0056b3 !important;
+  color: #ffffff !important;
 }
 
 .admin-table .actions .action-btn.edit,
@@ -859,12 +893,14 @@
 
 .admin-table .actions .action-btn.delete,
 .admin-table td.actions .action-btn.delete {
-  background-color: #7f1d1d;
+  background-color: #dc3545 !important;
+  color: #ffffff !important;
 }
 
 .admin-table .actions .action-btn.delete:hover,
 .admin-table td.actions .action-btn.delete:hover {
-  background-color: #991b1b;
+  background-color: #c82333 !important;
+  color: #ffffff !important;
 }
 
 .admin-table .actions .action-btn.block,
@@ -1521,6 +1557,41 @@
   color: #ffffff;
   margin-bottom: 20px;
   font-size: 20px;
+}
+
+.section-description {
+  color: #cccccc;
+  margin-bottom: 20px;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+
+
+.form-textarea {
+  width: 100%;
+  min-height: 120px;
+  padding: 12px;
+  border: 1px solid #555555;
+  border-radius: 6px;
+  background: #2a2a2a;
+  color: #ffffff;
+  font-family: inherit;
+  font-size: 14px;
+  line-height: 1.5;
+  resize: vertical;
+  margin-bottom: 15px;
+}
+
+.form-textarea:focus {
+  outline: none;
+  border-color: #059669;
+  box-shadow: 0 0 0 2px rgba(5, 150, 105, 0.2);
+}
+
+.save-btn.small {
+  padding: 8px 16px;
+  font-size: 13px;
 }
 
 .section-list {

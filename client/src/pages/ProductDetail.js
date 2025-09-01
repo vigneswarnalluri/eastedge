@@ -38,6 +38,8 @@ const ProductDetail = () => {
   const [showReviewForm, setShowReviewForm] = useState(false);
   const [submittingReview, setSubmittingReview] = useState(false);
   const [activeTab, setActiveTab] = useState('description');
+  const [relatedProducts, setRelatedProducts] = useState([]);
+  const [loadingRelated, setLoadingRelated] = useState(false);
 
   // Use ref to track current quantity (bypasses React Strict Mode issues)
   const quantityRef = useRef(1);
@@ -51,6 +53,9 @@ const ProductDetail = () => {
     try {
       setLoading(true);
       const response = await api.get(`/api/products/${id}`);
+      
+
+      
       setProduct(response.data);
         
         // Set default selections
@@ -98,6 +103,38 @@ const ProductDetail = () => {
       // Fetch reviews for this product
       fetchReviews(product._id);
       
+      // Fetch related products
+      console.log('🔍 Product data for related products:', {
+        category: product.category,
+        categoryId: product.categoryId,
+        categoryName: product.categoryName,
+        _id: product._id
+      });
+      
+      // Try multiple category field names
+      let categoryToUse = null;
+      if (product.category) categoryToUse = product.category;
+      else if (product.categoryId) categoryToUse = product.categoryId;
+      else if (product.categoryName) categoryToUse = product.categoryName;
+      
+      if (categoryToUse) {
+        console.log('✅ Found category:', categoryToUse);
+        // Try category-based search first with timeout fallback
+        fetchRelatedProducts(categoryToUse, product._id);
+        
+        // Set a timeout to fall back to random products if category search takes too long
+        setTimeout(() => {
+          if (relatedProducts.length === 0 && !loadingRelated) {
+            console.log('⏰ Category search timeout, falling back to random products');
+            fetchRandomProducts(product._id);
+          }
+        }, 3000); // 3 second timeout
+      } else {
+        console.log('❌ No category found for product');
+        // Fetch random products as fallback
+        fetchRandomProducts(product._id);
+      }
+      
       // Reset currentImageIndex when product changes
       if (product.images && Array.isArray(product.images) && product.images.length > 0) {
         setCurrentImageIndex(0);
@@ -117,6 +154,70 @@ const ProductDetail = () => {
       }
     } catch (error) {
       console.error('Error fetching reviews:', error);
+    }
+  };
+
+  const fetchRelatedProducts = async (categoryId, currentProductId) => {
+    try {
+      setLoadingRelated(true);
+      console.log('🔍 Fetching related products for category:', categoryId);
+      
+      const response = await api.get(`/api/products?category=${categoryId}&limit=8`);
+      console.log('📦 Related products API response:', response.data);
+      
+      if (response.data && response.data.products) {
+        // Filter out the current product and limit to 6 products
+        const filtered = response.data.products
+          .filter(product => product._id !== currentProductId)
+          .slice(0, 6);
+        
+        console.log('✅ Filtered related products:', filtered);
+        setRelatedProducts(filtered);
+      } else {
+        console.log('❌ No products found in response');
+        setRelatedProducts([]);
+      }
+    } catch (error) {
+      console.error('❌ Error fetching related products:', error);
+      setRelatedProducts([]);
+    } finally {
+      setLoadingRelated(false);
+    }
+  };
+
+  const fetchRandomProducts = async (currentProductId) => {
+    try {
+      setLoadingRelated(true);
+      console.log('🎲 Fetching random products as fallback');
+      
+      // Try different API endpoints to get products
+      let response;
+      try {
+        response = await api.get('/api/products?limit=20');
+      } catch (error) {
+        console.log('❌ First API call failed, trying without limit');
+        response = await api.get('/api/products');
+      }
+      
+      console.log('📦 Random products API response:', response.data);
+      
+      if (response.data && response.data.products) {
+        // Filter out the current product and limit to 6 products
+        const filtered = response.data.products
+          .filter(product => product._id !== currentProductId)
+          .slice(0, 6);
+        
+        console.log('✅ Filtered random products:', filtered);
+        setRelatedProducts(filtered);
+      } else {
+        console.log('❌ No random products found');
+        setRelatedProducts([]);
+      }
+    } catch (error) {
+      console.error('❌ Error fetching random products:', error);
+      setRelatedProducts([]);
+    } finally {
+      setLoadingRelated(false);
     }
   };
 
@@ -169,18 +270,22 @@ const ProductDetail = () => {
         );
       }
       
-      const cartItem = {
-        ...product,
-        selectedSize,
-        selectedColor,
-        quantity: quantityRef.current, // Use the ref value
-        // Add variant-specific information
-        variantPrice: variantInfo?.price || product.price,
-        variantStock: variantInfo?.stock || 0,
-        // Add category information
-        category: product.category || product.categoryName,
-        categoryName: product.categoryName || product.category
-      };
+      const pricing = getCurrentPricing();
+      
+             const cartItem = {
+         ...product,
+         selectedSize,
+         selectedColor,
+         quantity: quantityRef.current, // Use the ref value
+         // Use only the current price for cart display
+         price: pricing.currentPrice,
+         // Store original price for reference only
+         originalPrice: pricing.originalPrice,
+         variantStock: variantInfo?.stock || 0,
+         // Add category information
+         category: product.category || product.categoryName,
+         categoryName: product.categoryName || product.category
+       };
       addToCart(cartItem);
     } else {
       let missingOptions = [];
@@ -188,7 +293,7 @@ const ProductDetail = () => {
       if (!selectedColor) missingOptions.push('color');
       alert(`Please select ${missingOptions.join(' and ')} before adding to cart`);
     }
-  }, [product, selectedSize, selectedColor, quantity, addToCart]); // Add quantity back to dependencies
+  }, [product, selectedSize, selectedColor, quantity, addToCart]); // Remove getCurrentPricing from dependencies
 
   const handleBuyNow = useCallback(() => {
     if (product && selectedSize && selectedColor) {
@@ -200,18 +305,22 @@ const ProductDetail = () => {
         );
       }
       
-      addToCart({
-        ...product,
-        selectedSize,
-        selectedColor,
-        quantity,
-        // Add variant-specific information
-        variantPrice: variantInfo?.price || product.price,
-        variantStock: variantInfo?.stock || 0,
-        // Add category information
-        category: product.category || product.categoryName,
-        categoryName: product.categoryName || product.category
-      });
+      const pricing = getCurrentPricing();
+      
+             addToCart({
+         ...product,
+         selectedSize,
+         selectedColor,
+         quantity,
+         // Use only the current price for cart display
+         price: pricing.currentPrice,
+         // Store original price for reference only
+         originalPrice: pricing.originalPrice,
+         variantStock: variantInfo?.stock || 0,
+         // Add category information
+         category: product.category || product.categoryName,
+         categoryName: product.categoryName || product.category
+       });
       navigate('/checkout');
     } else {
       let missingOptions = [];
@@ -219,7 +328,7 @@ const ProductDetail = () => {
       if (!selectedColor) missingOptions.push('color');
       alert(`Please select ${missingOptions.join(' and ')} before proceeding`);
     }
-  }, [product, selectedSize, selectedColor, quantity, navigate, addToCart]); // Add quantity to dependencies
+  }, [product, selectedSize, selectedColor, quantity, navigate, addToCart]); // Remove getCurrentPricing from dependencies
 
 
 
@@ -230,6 +339,85 @@ const ProductDetail = () => {
   const handleImageClick = (index) => {
     setCurrentImageIndex(index);
     setShowImageModal(true);
+  };
+
+  // Get current pricing based on selected variant
+  const getCurrentPricing = () => {
+    // If we have variants and both size and color are selected, find the specific variant
+    if (product.variants && Array.isArray(product.variants) && product.variants.length > 0 && selectedSize && selectedColor) {
+      const selectedVariant = product.variants.find(v => 
+        v.size === selectedSize && v.color === selectedColor
+      );
+      
+      if (selectedVariant && selectedVariant.price) {
+        // Use variant price as current price
+        const variantPrice = selectedVariant.price;
+        const basePrice = product.price;
+        const productSalePrice = product.salePrice;
+        
+        // Determine if this variant price is a discount
+        let originalPrice = null;
+        let hasDiscount = false;
+        
+        // Compare variant price with both base price and product sale price
+        if (productSalePrice && variantPrice < productSalePrice) {
+          // Variant is cheaper than product sale price
+          originalPrice = productSalePrice;
+          hasDiscount = true;
+        } else if (variantPrice < basePrice) {
+          // Variant is cheaper than base price
+          originalPrice = basePrice;
+          hasDiscount = true;
+        }
+        
+        return {
+          currentPrice: variantPrice,
+          originalPrice: originalPrice,
+          salePrice: hasDiscount ? variantPrice : null,
+          hasDiscount: hasDiscount
+        };
+      }
+    }
+    
+    // If only size is selected, try to find any variant with that size
+    if (product.variants && Array.isArray(product.variants) && product.variants.length > 0 && selectedSize && !selectedColor) {
+      const sizeVariants = product.variants.filter(v => v.size === selectedSize);
+      if (sizeVariants.length > 0) {
+        // Use the first variant price for this size
+        const variantPrice = sizeVariants[0].price;
+        const basePrice = product.price;
+        const productSalePrice = product.salePrice;
+        
+        // Compare with both base price and product sale price
+        let originalPrice = null;
+        let hasDiscount = false;
+        
+        if (productSalePrice && variantPrice < productSalePrice) {
+          originalPrice = productSalePrice;
+          hasDiscount = true;
+        } else if (variantPrice < basePrice) {
+          originalPrice = basePrice;
+          hasDiscount = true;
+        }
+        
+        return {
+          currentPrice: variantPrice,
+          originalPrice: originalPrice,
+          salePrice: hasDiscount ? variantPrice : null,
+          hasDiscount: hasDiscount
+        };
+      }
+    }
+    
+    // Fallback to product-level pricing - check if there's a sale price
+    const hasProductSale = product.salePrice && product.salePrice < product.price;
+    
+    return {
+      currentPrice: hasProductSale ? product.salePrice : product.price,
+      originalPrice: hasProductSale ? product.price : null,
+      salePrice: hasProductSale ? product.salePrice : null,
+      hasDiscount: hasProductSale
+    };
   };
 
   const getStockStatus = () => {
@@ -472,10 +660,7 @@ const ProductDetail = () => {
                               </button>
                             ))}
                           </div>
-                          {/* Debug info */}
-                          <div style={{ fontSize: '12px', color: '#666', marginTop: '5px' }}>
-                            Available sizes with stock: {sizesToRender.join(', ')}
-                          </div>
+
                         </div>
                       );
                     } else {
@@ -485,9 +670,7 @@ const ProductDetail = () => {
                           <div className="option-selection">
                             No sizes available
                           </div>
-                          <div style={{ fontSize: '12px', color: '#666', marginTop: '5px' }}>
-                            Debug: product.sizes = {JSON.stringify(product.sizes)}, variants = {JSON.stringify(product.variants)}
-                          </div>
+
                         </div>
                       );
                     }
@@ -496,12 +679,18 @@ const ProductDetail = () => {
                   {/* Color Selection */}
                   {(() => {
                     
-                    // Only show colors that have variants with stock
+                    // Only show colors that have variants with stock for the selected size
                     let colorsToRender = [];
                     if (product.variants && Array.isArray(product.variants) && product.variants.length > 0) {
-                      // Get unique colors from variants that have stock
+                      // If a size is selected, only show colors available for that size
+                      let variantsToCheck = product.variants;
+                      if (selectedSize) {
+                        variantsToCheck = product.variants.filter(variant => variant.size === selectedSize);
+                      }
+                      
+                      // Get unique colors from filtered variants that have stock
                       const colorsWithStock = [...new Set(
-                        product.variants
+                        variantsToCheck
                           .filter(variant => variant.stock > 0 && variant.color)
                           .map(variant => variant.color)
                       )];
@@ -575,13 +764,7 @@ const ProductDetail = () => {
                               );
                             })}
                           </div>
-                          {/* Debug info */}
-                          <div style={{ fontSize: '12px', color: '#666', marginTop: '5px' }}>
-                            Available colors with stock: {colorsToRender.map(color => {
-                              if (typeof color === 'string') return color;
-                              return color.name || color.color || color.value || 'Unknown';
-                            }).join(', ')}
-                          </div>
+
                         </div>
                       );
                     } else {
@@ -591,9 +774,7 @@ const ProductDetail = () => {
                           <div className="option-selection">
                             No colors available
                           </div>
-                          <div style={{ fontSize: '12px', color: '#666', marginTop: '5px' }}>
-                            Debug: product.colors = {JSON.stringify(product.colors)}, variants = {JSON.stringify(product.variants)}
-                          </div>
+
                         </div>
                       );
                     }
@@ -668,20 +849,37 @@ const ProductDetail = () => {
 
                 {/* Right Side - Price and Action Buttons */}
                 <div className="hero-actions-right">
-                  {/* Price Section - MOVED ABOVE BUTTONS */}
+                  {/* Price Section - DYNAMIC PRICING */}
                   <div className="price-section-inline">
-                    {product.originalPrice && product.originalPrice > product.price && (
-                      <div style={{ marginBottom: '0.5rem' }}>
-                        <span className="original-price">₹{product.originalPrice.toLocaleString()}</span>
-                        <span className="discount-badge">
-                          -{Math.round(((product.originalPrice - product.price) / product.originalPrice) * 100)}%
-                        </span>
-                      </div>
-                    )}
-                    <div className="current-price">₹{product.price.toLocaleString()}</div>
-                    <div style={{ fontSize: '0.9rem', color: '#666' }}>
-                      Inclusive of all taxes
-                    </div>
+                    {(() => {
+                      const pricing = getCurrentPricing();
+                      
+
+                      
+                      return (
+                        <>
+                          {pricing.hasDiscount && pricing.originalPrice && (
+                            <div style={{ marginBottom: '0.5rem' }}>
+                              <span className="original-price-striked">₹{pricing.originalPrice.toLocaleString()}</span>
+                              <span className="discount-badge">
+                                -{Math.round(((pricing.originalPrice - pricing.currentPrice) / pricing.originalPrice) * 100)}%
+                              </span>
+                            </div>
+                          )}
+                          <div className={`current-price ${pricing.hasDiscount ? 'sale-price' : ''}`}>
+                            ₹{pricing.currentPrice.toLocaleString()}
+                          </div>
+                          <div style={{ fontSize: '0.9rem', color: '#666' }}>
+                            Inclusive of all taxes
+                          </div>
+                          {selectedSize && selectedColor && (
+                            <div style={{ fontSize: '0.8rem', color: '#888', marginTop: '0.25rem' }}>
+                              Price for {selectedSize}, {selectedColor}
+                            </div>
+                          )}
+                        </>
+                      );
+                    })()}
                   </div>
 
                   <div className="product-actions">
@@ -733,12 +931,7 @@ const ProductDetail = () => {
             >
               Specifications
             </button>
-            <button 
-              className={`tab-btn ${activeTab === 'shipping' ? 'active' : ''}`}
-              onClick={() => setActiveTab('shipping')}
-            >
-              Shipping & Returns
-            </button>
+
             <button 
               className={`tab-btn ${activeTab === 'wash-details' ? 'active' : ''}`}
               onClick={() => setActiveTab('wash-details')}
@@ -934,35 +1127,7 @@ const ProductDetail = () => {
                 </motion.div>
               )}
 
-              {activeTab === 'shipping' && (
-                <motion.div
-                  key="shipping"
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -20 }}
-                  transition={{ duration: 0.3 }}
-                  className="tab-panel"
-                >
-                  <h3>Shipping & Returns</h3>
-                  <div className="shipping-info">
-                    <h4>Shipping Information</h4>
-                    <ul>
-                      <li>Free delivery on orders above ₹999</li>
-                      <li>Standard delivery: 3-5 business days</li>
-                      <li>Express delivery available for additional cost</li>
-                      <li>Orders processed within 24 hours</li>
-                    </ul>
-                    
-                    <h4>Return Policy</h4>
-                    <ul>
-                      <li>10 days return policy from delivery date</li>
-                      <li>Full refund for unused items in original packaging</li>
-                      <li>Free returns for defective items</li>
-                      <li>Size exchange available within return period</li>
-                    </ul>
-                  </div>
-                </motion.div>
-              )}
+
 
               {activeTab === 'wash-details' && (
                 <motion.div
@@ -1030,6 +1195,76 @@ const ProductDetail = () => {
             </AnimatePresence>
           </div>
         </div>
+
+        {/* Related Products Section */}
+        <div className="related-products-section">
+          <div className="section-header">
+            <h2>Related Products</h2>
+            <p>You might also like these products</p>
+          </div>
+          
+
+          
+          {relatedProducts.length > 0 ? (
+            <div className="related-products-grid">
+              {relatedProducts.map((relatedProduct) => (
+                <div key={relatedProduct._id} className="related-product-card">
+                  <div className="product-image">
+                    <img 
+                      src={relatedProduct.image || relatedProduct.images?.[0] || '/placeholder-product.png'} 
+                      alt={relatedProduct.name}
+                      onError={(e) => {
+                        e.target.src = '/placeholder-product.png';
+                      }}
+                    />
+                  </div>
+                  
+                  <div className="product-info">
+                    <h3 className="product-name">{relatedProduct.name}</h3>
+                    <div className="product-price">
+                      {relatedProduct.originalPrice && relatedProduct.originalPrice > relatedProduct.price ? (
+                        <>
+                          <span className="current-price">₹{relatedProduct.price.toLocaleString()}</span>
+                          <span className="original-price">₹{relatedProduct.originalPrice.toLocaleString()}</span>
+                        </>
+                      ) : (
+                        <span className="current-price">₹{relatedProduct.price.toLocaleString()}</span>
+                      )}
+                    </div>
+                    
+                    <div className="product-rating">
+                      {[1, 2, 3, 4, 5].map((star) => (
+                        <FiStar 
+                          key={star} 
+                          className={star <= (relatedProduct.rating || 0) ? 'filled' : ''} 
+                          style={{ color: star <= (relatedProduct.rating || 0) ? '#ffa41c' : '#ddd' }}
+                        />
+                      ))}
+                      <span className="rating-text">({relatedProduct.rating || 0})</span>
+                    </div>
+                    
+                    <button 
+                      className="view-product-btn"
+                      onClick={() => navigate(`/products/${relatedProduct._id}`)}
+                    >
+                      View Product
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div style={{ 
+              textAlign: 'center', 
+              padding: '2rem', 
+              color: '#666',
+              fontSize: '16px'
+            }}>
+              {loadingRelated ? 'Loading related products...' : 'No related products found'}
+            </div>
+          )}
+        </div>
+
 
 
       </div>

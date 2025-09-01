@@ -3,6 +3,7 @@ import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { FiShoppingBag, FiPackage, FiTruck, FiCheckCircle, FiXCircle, FiClock, FiMapPin, FiCalendar, FiUser, FiPhone, FiMail } from 'react-icons/fi';
 import { scrollToTop } from '../utils/scrollToTop';
+import { formatCurrency, getGSTRateDescription } from '../utils/gstCalculator';
 import './Orders.css';
 
 const Orders = () => {
@@ -339,12 +340,32 @@ const Orders = () => {
                 <div className="shipping-address-section">
                   <h3><FiMapPin /> Shipping Address</h3>
                   <div className="address-details">
-                    <p><strong>{selectedOrder.shippingAddress?.firstName} {selectedOrder.shippingAddress?.lastName}</strong></p>
-                    <p>{selectedOrder.shippingAddress?.address}</p>
-                    <p>{selectedOrder.shippingAddress?.city}, {selectedOrder.shippingAddress?.state} {selectedOrder.shippingAddress?.zipCode}</p>
-                    <p>{selectedOrder.shippingAddress?.country}</p>
-                    <p><FiPhone /> {selectedOrder.shippingAddress?.phone}</p>
-                    <p><FiMail /> {selectedOrder.shippingAddress?.email}</p>
+                    {/* Debug: Log the order data structure */}
+                    {console.log('🔍 Order data for address:', selectedOrder)}
+                    {console.log('🔍 Shipping data:', selectedOrder.shipping)}
+                    {console.log('🔍 ShippingAddress data:', selectedOrder.shippingAddress)}
+                    
+                    {(selectedOrder.shipping?.firstName || selectedOrder.shippingAddress?.firstName) && (
+                      <p><strong>{selectedOrder.shipping?.firstName || selectedOrder.shippingAddress?.firstName} {selectedOrder.shipping?.lastName || selectedOrder.shippingAddress?.lastName}</strong></p>
+                    )}
+                    
+                    {(selectedOrder.shipping?.address || selectedOrder.shippingAddress?.address) && (
+                      <p>{selectedOrder.shipping?.address || selectedOrder.shippingAddress?.address}</p>
+                    )}
+                    
+                    {(selectedOrder.shipping?.city || selectedOrder.shippingAddress?.city) && (
+                      <p>{selectedOrder.shipping?.city || selectedOrder.shippingAddress?.city}, {selectedOrder.shipping?.state || selectedOrder.shippingAddress?.state} {selectedOrder.shipping?.zipCode || selectedOrder.shippingAddress?.zipCode}</p>
+                    )}
+                    
+                    <p>{selectedOrder.shipping?.country || selectedOrder.shippingAddress?.country || 'India'}</p>
+                    
+                    {(selectedOrder.shipping?.phone || selectedOrder.shippingAddress?.phone) && (
+                      <p><FiPhone /> {selectedOrder.shipping?.phone || selectedOrder.shippingAddress?.phone}</p>
+                    )}
+                    
+                    {(selectedOrder.shipping?.email || selectedOrder.shippingAddress?.email) && (
+                      <p><FiMail /> {selectedOrder.shipping?.email || selectedOrder.shippingAddress?.email}</p>
+                    )}
                   </div>
                 </div>
 
@@ -383,20 +404,45 @@ const Orders = () => {
                 {/* Order Summary */}
                 <div className="order-summary-section">
                   <h3>Order Summary</h3>
-                  <div className="summary-row">
-                    <span>Subtotal:</span>
-                    <span>₹{(selectedOrder.totalPrice - (selectedOrder.shippingPrice || 0)).toFixed(2)}</span>
-                  </div>
-                  {selectedOrder.shippingPrice > 0 && (
-                    <div className="summary-row">
-                      <span>Shipping:</span>
-                      <span>₹{selectedOrder.shippingPrice.toFixed(2)}</span>
-                    </div>
+                  {selectedOrder.gstBreakdown ? (
+                    <>
+                      <div className="summary-row">
+                        <span>Base Amount:</span>
+                        <span>{formatCurrency(selectedOrder.gstBreakdown.baseAmount)}</span>
+                      </div>
+                      <div className="summary-row gst-breakdown">
+                        <span>{getGSTRateDescription(selectedOrder.totalPrice)}:</span>
+                        <span>{formatCurrency(selectedOrder.gstBreakdown.gstAmount)}</span>
+                      </div>
+                      {selectedOrder.shippingPrice > 0 && (
+                        <div className="summary-row">
+                          <span>Shipping:</span>
+                          <span>₹{selectedOrder.shippingPrice.toFixed(2)}</span>
+                        </div>
+                      )}
+                      <div className="summary-row total">
+                        <span>Total (Incl. GST):</span>
+                        <span>₹{selectedOrder.totalPrice.toFixed(2)}</span>
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <div className="summary-row">
+                        <span>Subtotal:</span>
+                        <span>₹{(selectedOrder.totalPrice - (selectedOrder.shippingPrice || 0)).toFixed(2)}</span>
+                      </div>
+                      {selectedOrder.shippingPrice > 0 && (
+                        <div className="summary-row">
+                          <span>Shipping:</span>
+                          <span>₹{selectedOrder.shippingPrice.toFixed(2)}</span>
+                        </div>
+                      )}
+                      <div className="summary-row total">
+                        <span>Total:</span>
+                        <span>₹{selectedOrder.totalPrice.toFixed(2)}</span>
+                      </div>
+                    </>
                   )}
-                  <div className="summary-row total">
-                    <span>Total:</span>
-                    <span>₹{selectedOrder.totalPrice.toFixed(2)}</span>
-                  </div>
                   <div className="summary-row">
                     <span>Payment Method:</span>
                     <span>{selectedOrder.paymentMethod === 'cod' ? 'Cash on Delivery' : 'Online Payment'}</span>

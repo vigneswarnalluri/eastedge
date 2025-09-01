@@ -38,6 +38,10 @@ router.post('/register', async (req, res) => {
       name: savedUser.name,
       email: savedUser.email,
       isAdmin: savedUser.isAdmin,
+      totalOrders: savedUser.totalOrders || 0,
+      totalSpent: savedUser.totalSpent || 0,
+      lastOrderDate: savedUser.lastOrderDate,
+      createdAt: savedUser.createdAt,
       token
     });
   } catch (error) {
@@ -83,6 +87,10 @@ router.post('/login', async (req, res) => {
       name: user.name,
       email: user.email,
       isAdmin: user.isAdmin,
+      totalOrders: user.totalOrders || 0,
+      totalSpent: user.totalSpent || 0,
+      lastOrderDate: user.lastOrderDate,
+      createdAt: user.createdAt,
       token
     });
   } catch (error) {
@@ -114,13 +122,76 @@ router.get('/profile', async (req, res) => {
       return res.status(404).json({ message: 'User not found' });
     }
 
-    console.log('✅ User profile retrieved successfully');
-    res.json(user);
+    // Ensure all necessary fields are included in response
+    const userProfile = {
+      _id: user._id,
+      name: user.name,
+      email: user.email,
+      phone: user.phone,
+      address: user.address,
+      isAdmin: user.isAdmin,
+      isBlocked: user.isBlocked,
+      totalOrders: user.totalOrders || 0,
+      totalSpent: user.totalSpent || 0,
+      lastOrderDate: user.lastOrderDate,
+      createdAt: user.createdAt,
+      updatedAt: user.updatedAt
+    };
+
+    console.log('✅ User profile retrieved successfully with all fields');
+    console.log('📊 User analytics:', {
+      totalOrders: userProfile.totalOrders,
+      totalSpent: userProfile.totalSpent,
+      lastOrderDate: userProfile.lastOrderDate,
+      createdAt: userProfile.createdAt
+    });
+    
+    res.json(userProfile);
   } catch (error) {
     console.error('❌ Profile error:', error);
     res.status(401).json({ message: 'Token is not valid' });
   }
  });
+
+// Change password
+router.put('/change-password', async (req, res) => {
+  try {
+    const token = req.header('Authorization')?.replace('Bearer ', '');
+    if (!token) {
+      return res.status(401).json({ message: 'No token, authorization denied' });
+    }
+
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const user = await User.findById(decoded.userId);
+    
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    const { currentPassword, newPassword } = req.body;
+
+    // Validate current password
+    const isMatch = await user.comparePassword(currentPassword);
+    if (!isMatch) {
+      return res.status(400).json({ message: 'Current password is incorrect' });
+    }
+
+    // Validate new password
+    if (!newPassword || newPassword.length < 6) {
+      return res.status(400).json({ message: 'New password must be at least 6 characters long' });
+    }
+
+    // Update password (the pre-save hook will hash it)
+    user.password = newPassword;
+    await user.save();
+
+    console.log('✅ Password updated successfully for user:', user._id);
+    res.json({ message: 'Password updated successfully' });
+  } catch (error) {
+    console.error('❌ Password change error:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
 
 // Update user profile
 router.put('/profile', async (req, res) => {

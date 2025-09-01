@@ -3,6 +3,7 @@ const router = express.Router();
 const auth = require('../middleware/auth');
 const Order = require('../models/Order');
 const User = require('../models/User');
+const { calculateCartGST } = require('../utils/gstCalculator');
 
 // Create new order - PROTECTED ROUTE
 router.post('/', auth, async (req, res) => {
@@ -55,6 +56,12 @@ router.post('/', auth, async (req, res) => {
       console.error('❌ Database schema does not support variants:', schemaError.message);
       console.log('⚠️ This suggests the database needs migration or the schema is outdated');
       
+      // Calculate GST breakdown
+      const gstBreakdown = calculateCartGST(items.map(item => ({
+        price: item.variantPrice || item.price,
+        quantity: item.quantity
+      })));
+
       // Create order without variant fields (fallback)
       const newOrder = new Order({
         user: req.user._id,
@@ -70,11 +77,33 @@ router.post('/', auth, async (req, res) => {
         paymentMethod,
         totalPrice: total,
         shippingPrice: codCharges || 0,
+        taxPrice: gstBreakdown.gstAmount,
+        gstBreakdown: {
+          baseAmount: gstBreakdown.baseAmount,
+          gstAmount: gstBreakdown.gstAmount,
+          gstRate: gstBreakdown.gstRate,
+          gstPercentage: gstBreakdown.gstPercentage
+        },
         status: 'Pending'
       });
       
       const savedOrder = await newOrder.save();
       console.log('Created order (fallback mode):', savedOrder);
+      
+      // Update user analytics after successful order creation (fallback)
+      try {
+        await User.findByIdAndUpdate(
+          req.user._id,
+          {
+            $inc: { totalOrders: 1, totalSpent: total },
+            $set: { lastOrderDate: new Date() }
+          }
+        );
+        console.log('✅ User analytics updated successfully (fallback)');
+      } catch (analyticsError) {
+        console.error('❌ Failed to update user analytics (fallback):', analyticsError);
+        // Don't fail the order if analytics update fails
+      }
       
       return res.status(201).json({
         success: true,
@@ -84,6 +113,12 @@ router.post('/', auth, async (req, res) => {
       });
     }
     
+    // Calculate GST breakdown
+    const gstBreakdown = calculateCartGST(items.map(item => ({
+      price: item.variantPrice || item.price,
+      quantity: item.quantity
+    })));
+
     // Normal order creation with variants
     const newOrder = new Order({
       user: req.user._id,
@@ -105,6 +140,13 @@ router.post('/', auth, async (req, res) => {
       paymentMethod,
       totalPrice: total,
       shippingPrice: codCharges || 0,
+      taxPrice: gstBreakdown.gstAmount,
+      gstBreakdown: {
+        baseAmount: gstBreakdown.baseAmount,
+        gstAmount: gstBreakdown.gstAmount,
+        gstRate: gstBreakdown.gstRate,
+        gstPercentage: gstBreakdown.gstPercentage
+      },
       status: 'Pending'
     });
     
@@ -114,6 +156,21 @@ router.post('/', auth, async (req, res) => {
     
     const savedOrder = await newOrder.save();
     console.log('Created order:', savedOrder);
+    
+    // Update user analytics after successful order creation
+    try {
+      await User.findByIdAndUpdate(
+        req.user._id,
+        {
+          $inc: { totalOrders: 1, totalSpent: total },
+          $set: { lastOrderDate: new Date() }
+        }
+      );
+      console.log('✅ User analytics updated successfully');
+    } catch (analyticsError) {
+      console.error('❌ Failed to update user analytics:', analyticsError);
+      // Don't fail the order if analytics update fails
+    }
     
     res.status(201).json({
       success: true,

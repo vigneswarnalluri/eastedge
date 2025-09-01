@@ -3,10 +3,11 @@ import { Link } from 'react-router-dom';
 import { useCart } from '../context/CartContext';
 import { motion, AnimatePresence } from 'framer-motion';
 import { FiTrash2, FiPlus, FiMinus, FiShoppingBag, FiArrowLeft, FiCreditCard } from 'react-icons/fi';
+import { formatCurrency, getGSTRateDescription } from '../utils/gstCalculator';
 import './Cart.css';
 
 const Cart = () => {
-  const { items, total, itemCount, uniqueItemCount, updateQuantity, removeFromCart, clearCart } = useCart();
+  const { items, total, itemCount, uniqueItemCount, updateQuantity, removeFromCart, clearCart, getGSTBreakdown } = useCart();
 
   // Create unique key for cart operations
   const createItemKey = (item) => {
@@ -110,31 +111,10 @@ const Cart = () => {
                       </Link>
                     </h3>
                     
-                    {/* Show variant price if available, otherwise show base price */}
+                    {/* Show current price with strikethrough original price if discount exists */}
                     <p className="item-price">
-                      ₹{(item.variantPrice || item.price).toLocaleString()}
-                      {/* Always show original price when variant is selected */}
-                      {item.selectedSize && item.selectedColor && (
-                        <span className="original-price-strike">
-                          <del>₹{item.price.toLocaleString()}</del>
-                        </span>
-                      )}
+                      ₹{item.price.toLocaleString()}
                     </p>
-                    
-                    {/* Show price difference when variant is selected */}
-                    {item.selectedSize && item.selectedColor && item.variantPrice && item.variantPrice !== item.price && (
-                      <div className="price-difference">
-                        {item.variantPrice > item.price ? (
-                          <span className="price-increase">
-                            +₹{(item.variantPrice - item.price).toLocaleString()} extra
-                          </span>
-                        ) : (
-                          <span className="price-savings">
-                            -₹{(item.price - item.variantPrice).toLocaleString()} savings
-                          </span>
-                        )}
-                      </div>
-                    )}
                     
                     {/* Enhanced variant information display */}
                     {(item.selectedSize || item.selectedColor) ? (
@@ -173,13 +153,7 @@ const Cart = () => {
                         </small>
                       </div>
                     )}
-                    
-                    {/* Show product category if available */}
-                    {item.category && (
-                      <p className="item-category">
-                        <small>Category: {item.category}</small>
-                      </p>
-                    )}
+
                   </div>
 
                   <div className="item-quantity">
@@ -203,7 +177,7 @@ const Cart = () => {
 
                   <div className="item-total">
                     <p className="total-amount">
-                      ₹{((item.variantPrice || item.price) * item.quantity).toLocaleString()}
+                      ₹{(item.price * item.quantity).toLocaleString()}
                     </p>
                   </div>
 
@@ -230,53 +204,54 @@ const Cart = () => {
               </div>
               
               <div className="summary-details">
-                <div className="summary-row">
-                  <span>Subtotal</span>
-                  <span>₹{total.toLocaleString()}</span>
-                </div>
-                <div className="summary-row">
-                  <span>Shipping</span>
-                  <span className="free-shipping">Free</span>
-                </div>
-                
-                {/* Show total price difference when variants are selected */}
                 {(() => {
-                  const itemsWithVariants = items.filter(item => item.selectedSize && item.selectedColor && item.variantPrice);
-                  if (itemsWithVariants.length > 0) {
-                    const totalOriginalPrice = itemsWithVariants.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-                    const totalVariantPrice = itemsWithVariants.reduce((sum, item) => sum + ((item.variantPrice || item.price) * item.quantity), 0);
-                    const priceDifference = totalVariantPrice - totalOriginalPrice;
-                    
-                    if (priceDifference !== 0) {
-                      return (
-                        <div className="summary-row price-difference-row">
-                          <span>Variant Price Adjustment</span>
-                          <span className={priceDifference > 0 ? 'price-increase-summary' : 'price-savings-summary'}>
-                            {priceDifference > 0 ? '+' : ''}₹{priceDifference.toLocaleString()}
-                          </span>
-                        </div>
-                      );
-                    }
-                  }
-                  return null;
+                  const gstBreakdown = getGSTBreakdown();
+                  return (
+                    <>
+                      <div className="summary-row">
+                        <span>Base Amount</span>
+                        <span>{formatCurrency(gstBreakdown.baseAmount)}</span>
+                      </div>
+                      <div className="summary-row gst-row">
+                        <span>{getGSTRateDescription(gstBreakdown.totalAmount)}</span>
+                        <span>{formatCurrency(gstBreakdown.gstAmount)}</span>
+                      </div>
+                      <div className="summary-row">
+                        <span>Shipping</span>
+                        <span className="free-shipping">Free</span>
+                      </div>
+                      
+                      {/* Show total savings when original prices are higher */}
+                      {(() => {
+                        const itemsWithDiscounts = items.filter(item => item.originalPrice && item.originalPrice > item.price);
+                        if (itemsWithDiscounts.length > 0) {
+                          const totalSavings = itemsWithDiscounts.reduce((sum, item) => 
+                            sum + ((item.originalPrice - item.price) * item.quantity), 0
+                          );
+                          
+                          if (totalSavings > 0) {
+                            return (
+                              <div className="summary-row savings-row">
+                                <span>Total Savings</span>
+                                <span className="savings-amount">
+                                  -₹{totalSavings.toLocaleString()}
+                                </span>
+                              </div>
+                            );
+                          }
+                        }
+                        return null;
+                      })()}
+                      
+                      <div className="summary-row total">
+                        <span>Total (Incl. GST)</span>
+                        <span>{formatCurrency(gstBreakdown.totalAmount)}</span>
+                      </div>
+                    </>
+                  );
                 })()}
                 
-                <div className="summary-row total">
-                  <span>Total</span>
-                  <span>₹{total.toLocaleString()}</span>
-                </div>
-                
-                {/* Variant information summary */}
-                <div className="summary-variants">
-                  <div className="summary-row variant-info">
-                    <span>Items with variants</span>
-                    <span>{items.filter(item => item.selectedSize || item.selectedColor).length}</span>
-                  </div>
-                  <div className="summary-row variant-info">
-                    <span>Total variants</span>
-                    <span>{items.reduce((sum, item) => sum + (item.selectedSize && item.selectedColor ? 1 : 0), 0)}</span>
-                  </div>
-                </div>
+
               </div>
 
               <div className="summary-actions">

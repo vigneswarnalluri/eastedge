@@ -1,6 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { useSettings } from '../context/SettingsContext';
+import LegalPages from './LegalPages';
 import './Footer.css';
 
 const Footer = () => {
@@ -38,23 +39,11 @@ const Footer = () => {
             <ul className="footer-links">
               <li><Link to="/about">About Us</Link></li>
               <li><Link to="/contact">Contact</Link></li>
-              <li><Link to="/faq">FAQ</Link></li>
-              <li><Link to="/shipping">Shipping & Returns</Link></li>
             </ul>
           </div>
 
           {/* Legal */}
-          <div className="footer-section">
-            <h4>Our Legal Pages</h4>
-            <ul className="footer-links">
-              <li><Link to="/terms">Terms and Conditions</Link></li>
-              <li><Link to="/privacy">Privacy Policy</Link></li>
-              <li><Link to="/disclaimer">Product Accuracy Disclaimer</Link></li>
-              <li><Link to="/shipping">Shipping and Delivery</Link></li>
-              <li><Link to="/returns">Refund and Returns Policy</Link></li>
-              <li><Link to="/jurisdiction">Law and Jurisdiction</Link></li>
-            </ul>
-          </div>
+          <LegalPages />
 
           {/* Contact Information */}
           <div className="footer-section">

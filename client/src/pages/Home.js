@@ -1,18 +1,58 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { motion } from 'framer-motion';
-import ProductCard from '../components/ProductCard';
+import { useCart } from '../context/CartContext';
+import { useAuth } from '../context/AuthContext';
 import ContentDisplay from '../components/ContentDisplay';
+import ProductCard from '../components/ProductCard';
 import api from '../services/api';
 import { scrollToTop } from '../utils/scrollToTop';
 import './Home.css';
 
 const Home = () => {
+  const { addToCart } = useCart();
+  const { user } = useAuth();
+  const [currentSlide, setCurrentSlide] = useState(0);
+  const [loading, setLoading] = useState(true);
   const [featuredProducts, setFeaturedProducts] = useState([]);
   const [newArrivals, setNewArrivals] = useState([]);
   const [trendingProducts, setTrendingProducts] = useState([]);
-  const [loading, setLoading] = useState(true);
   const [categories, setCategories] = useState([]);
+
+  const heroSections = [
+    {
+      title: "TIMELESS.\nESSENTIALS.",
+      subtitle: "Discover our curated selection of black & white designs.",
+      cta: "Shop Now",
+      link: "/products",
+      image: "/accessories.jpg"
+    },
+    {
+      title: "PURE.\nDESIGN.",
+      subtitle: "Experience the beauty of simplicity and form.",
+      cta: "Explore Collection",
+      link: "/products",
+      image: "/puredesign.jpg"
+    },
+    {
+      title: "MEN'S\nSTYLE.",
+      subtitle: "Elevate your wardrobe with premium men's clothing.",
+      cta: "Shop Men's",
+      link: "/products?category=Men's%20Clothing",
+      image: "/MensClothing.jpg"
+    }
+  ];
+
+  // Auto-advance slides
+  useEffect(() => {
+    console.log('Hero sections:', heroSections.length, 'slides');
+    const interval = setInterval(() => {
+      setCurrentSlide((prev) => (prev + 1) % heroSections.length);
+    }, 3000); // Change slide every 3 seconds
+
+    return () => clearInterval(interval);
+  }, [heroSections.length]);
+
+
 
   const fetchProducts = async () => {
     try {
@@ -44,47 +84,25 @@ const Home = () => {
       const response = await api.get('/api/categories');
       const categoriesData = response.data || [];
       
-      // Transform categories data to match our UI structure
+      // Transform categories data to match our UI structure - only include specific clothing categories
       let transformedCategories = categoriesData
         .filter(category => !category.parentCategory) // Only main categories
-        .filter(category => !['Beverages', 'Collectibles'].includes(category.name)) // Exclude unwanted categories
-        .slice(0, 6) // Limit to 6 categories
+        .filter(category => ["Men's Clothing", "Women's Clothing", "Special Clothing's"].includes(category.name)) // Only include specified categories
         .map(category => {
           // Force use of specific uploaded images regardless of database content
           let imagePath;
-          switch (category.name.toLowerCase()) {
-            case 'apparel':
-              imagePath = '/apparel.webp';
-              break;
-            case 'fashion and apparel':
-            case 'fashion & apparel':
-              imagePath = '/fashion and apparel.jpg';
-              break;
-            case "men's clothing":
-              imagePath = '/apparel.webp';
-              break;
-            case 'accessories':
+                     switch (category.name.toLowerCase()) {
+             case "men's clothing":
+               imagePath = "/MensClothing.jpg";
+               break;
+             case "women's clothing":
+               imagePath = "/Women'sClothing.jpg";
+               break;
+            case "special clothing's":
               imagePath = '/accessories.jpg';
               break;
-            case 'furniture':
-              imagePath = '/man-815795.jpg';
-              break;
-            case 'electronics':
-              imagePath = '/electronics.jpg';
-              break;
-            case 'home goods':
-            case 'home & living':
-              imagePath = '/man-1281562.jpg';
-              break;
-            case 'beauty & health':
-            case 'beauty and health':
-              imagePath = '/beauty and health.jpg';
-              break;
-            case 'diy and hardware':
-              imagePath = '/diy and hardware.jpg';
-              break;
             default:
-              imagePath = '/man-1281562.jpg'; // Default fallback
+              imagePath = '/accessories.jpg'; // Default fallback
           }
           
           return {
@@ -95,98 +113,54 @@ const Home = () => {
           };
         });
       
-      // Ensure we have at least 3 categories for a good grid layout
-      if (transformedCategories.length < 3) {
-        // Add fallback categories if we don't have enough
-        const fallbackCategories = [
-          {
-            name: "Apparel",
-            image: "/apparel.webp",
-            link: "/products?category=Apparel"
-          },
-          {
-            name: "Fashion & Apparel",
-            image: "/fashion and apparel.jpg",
-            link: "/products?category=Fashion%20%26%20Apparel"
-          },
-          {
-            name: "Men's Clothing",
-            image: "/apparel.webp",
-            link: "/products?category=Men%27s%20Clothing"
-          },
-          {
-            name: "Accessories",
-            image: "/accessories.jpg",
-            link: "/products?category=Accessories"
-          },
-          {
-            name: "Electronics",
-            image: "/electronics.jpg",
-            link: "/products?category=Electronics"
-          },
-          {
-            name: "Beauty & Health",
-            image: "/beauty and health.jpg",
-            link: "/products?category=Beauty%20%26%20Health"
-          },
-          {
-            name: "DIY & Hardware",
-            image: "/diy and hardware.jpg",
-            link: "/products?category=DIY%20%26%20Hardware"
+      // If we don't have the required categories from API, add them as fallbacks
+      const requiredCategories = ["Men's Clothing", "Women's Clothing", "Special Clothing's"];
+      const existingNames = transformedCategories.map(cat => cat.name);
+      
+      requiredCategories.forEach(categoryName => {
+        if (!existingNames.includes(categoryName)) {
+          let imagePath;
+                     switch (categoryName.toLowerCase()) {
+             case "men's clothing":
+               imagePath = "/MensClothing.jpg";
+               break;
+             case "women's clothing":
+               imagePath = "/Women'sClothing.jpg";
+               break;
+            case "special clothing's":
+              imagePath = '/accessories.jpg';
+              break;
+            default:
+              imagePath = '/accessories.jpg';
           }
-        ];
-        
-        // Merge API categories with fallbacks, avoiding duplicates
-        const existingNames = transformedCategories.map(cat => cat.name.toLowerCase());
-        fallbackCategories.forEach(fallback => {
-          if (!existingNames.includes(fallback.name.toLowerCase())) {
-            transformedCategories.push(fallback);
-          }
-        });
-        
-        // Ensure we have exactly 4 categories (removed beverages and collectibles)
-        transformedCategories = transformedCategories.slice(0, 4);
-      }
+          
+          transformedCategories.push({
+            name: categoryName,
+            image: imagePath,
+            link: `/products?category=${encodeURIComponent(categoryName)}`
+          });
+        }
+      });
       
       setCategories(transformedCategories);
     } catch (error) {
       console.error('Error fetching categories:', error);
-      // Fallback to default categories if API fails
+      // Fallback to required categories if API fails
       setCategories([
+                 {
+           name: "Men's Clothing",
+           image: "/MensClothing.jpg",
+           link: "/products?category=Men%27s%20Clothing"
+         },
         {
-          name: "Apparel",
-          image: "/apparel.webp",
-          link: "/products?category=Apparel"
+          name: "Women's Clothing",
+          image: "/Women'sClothing.jpg",
+          link: "/products?category=Women%27s%20Clothing"
         },
         {
-          name: "Fashion & Apparel",
-          image: "/fashion and apparel.jpg",
-          link: "/products?category=Fashion%20%26%20Apparel"
-        },
-        {
-          name: "Men's Clothing",
-          image: "/apparel.webp",
-          link: "/products?category=Men%27s%20Clothing"
-          },
-        {
-          name: "Accessories",
+          name: "Special Clothing's",
           image: "/accessories.jpg",
-          link: "/products?category=Accessories"
-        },
-        {
-          name: "Electronics",
-          image: "/electronics.jpg",
-          link: "/products?category=Electronics"
-        },
-        {
-          name: "Beauty & Health",
-          image: "/beauty and health.jpg",
-          link: "/products?category=Beauty%20%26%20Health"
-        },
-        {
-          name: "DIY & Hardware",
-          image: "/diy and hardware.jpg",
-          link: "/products?category=DIY%20%26%20Hardware"
+          link: "/products?category=Special%20Clothing%27s"
         }
       ]);
     }
@@ -207,30 +181,6 @@ const Home = () => {
     };
   }, []);
 
-  const heroSections = [
-    {
-      title: "TIMELESS.\nESSENTIALS.",
-      subtitle: "Discover our curated selection of black & white designs.",
-      cta: "Shop Now",
-      link: "/products",
-      image: "/man-1281562.jpg"
-    },
-    {
-      title: "PURE.\nDESIGN.",
-      subtitle: "Experience the beauty of simplicity and form.",
-      cta: "Explore Collection",
-      link: "/products",
-      image: "/man-1281562.jpg"
-    },
-    {
-      title: "ARTISANAL.\nCRAFTSMANSHIP.",
-      subtitle: "Hand-picked items that speak volumes.",
-      cta: "View Details",
-      link: "/products",
-      image: "/man-1281562.jpg"
-    }
-  ];
-
   // Show content even if API fails, but with loading state for products
   if (loading && (featuredProducts.length === 0 && newArrivals.length === 0 && trendingProducts.length === 0)) {
     return (
@@ -244,30 +194,39 @@ const Home = () => {
     <div className="home">
       {/* Hero Section */}
       <section className="hero-section">
-        <div className="hero-image">
-          <img src={heroSections[0].image} alt={heroSections[0].title} />
-        </div>
-        <div className="hero-content">
-          <h1 className="hero-title">
-            {heroSections[0].title}
-          </h1>
-          <p className="hero-subtitle">
-            {heroSections[0].subtitle}
-          </p>
-          {/* Hero CTA Button */}
-          <div className="hero-actions">
-            <Link to="/products" className="btn btn-primary hero-cta">
-              Shop Now
-            </Link>
-            <Link to="/new-arrivals" className="btn btn-secondary hero-cta">
-              New Arrivals
-            </Link>
-          </div>
+        <div className="hero-slider">
+          {heroSections.map((slide, index) => (
+            <div
+              key={index}
+              className={`hero-slide ${index === currentSlide ? 'active' : ''}`}
+              style={{ backgroundImage: `url(${slide.image})` }}
+            >
+              <div className="hero-content">
+                <h1 className="hero-title">
+                  {slide.title}
+                </h1>
+                <p className="hero-subtitle">
+                  {slide.subtitle}
+                </p>
+                {/* Hero CTA Button */}
+                <div className="hero-actions">
+                  <Link to={slide.link} className="btn btn-primary hero-cta">
+                    {slide.cta}
+                  </Link>
+                  <Link to="/new-arrivals" className="btn btn-secondary hero-cta">
+                    New Arrivals
+                  </Link>
+                </div>
+              </div>
+            </div>
+          ))}
+          
+
         </div>
       </section>
 
       {/* Content Display - Shows saved content from admin */}
-      <ContentDisplay />
+      {/* <ContentDisplay /> */}
 
       {/* Featured Categories */}
       <section className="section">
@@ -302,6 +261,29 @@ const Home = () => {
         </div>
       </section>
 
+      {/* Featured Products */}
+      <section className="section">
+        <div className="container">
+          <div className="section-title">
+            <h2>Featured Products</h2>
+          </div>
+          <div className="products-grid">
+            {featuredProducts.length > 0 ? (
+              featuredProducts.map((product, index) => (
+                <ProductCard key={product._id} product={product} />
+              ))
+            ) : (
+              <div className="no-products">
+                <p>Loading featured products...</p>
+                <Link to="/products" className="btn btn-secondary">
+                  View All Products
+                </Link>
+              </div>
+            )}
+          </div>
+        </div>
+      </section>
+
       {/* New Arrivals */}
       <section className="section new-arrivals">
         <div className="container">
@@ -311,11 +293,7 @@ const Home = () => {
           <div className="products-grid">
             {newArrivals.length > 0 ? (
               newArrivals.map((product, index) => (
-                <div
-                  key={product._id}
-                >
-                  <ProductCard product={product} />
-                </div>
+                <ProductCard key={product._id} product={product} />
               ))
             ) : (
               <div className="no-products">
@@ -351,11 +329,7 @@ const Home = () => {
           <div className="products-grid">
             {trendingProducts.length > 0 ? (
               trendingProducts.map((product, index) => (
-                <div
-                  key={product._id}
-                >
-                  <ProductCard product={product} />
-                </div>
+                <ProductCard key={product._id} product={product} />
               ))
             ) : (
               <div className="no-products">

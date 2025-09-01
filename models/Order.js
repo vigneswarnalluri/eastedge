@@ -56,6 +56,25 @@ const orderSchema = new mongoose.Schema({
     required: true,
     default: 0.0
   },
+  // GST breakdown fields
+  gstBreakdown: {
+    baseAmount: {
+      type: Number,
+      default: 0.0
+    },
+    gstAmount: {
+      type: Number,
+      default: 0.0
+    },
+    gstRate: {
+      type: Number,
+      default: 0.0
+    },
+    gstPercentage: {
+      type: Number,
+      default: 0
+    }
+  },
   isPaid: {
     type: Boolean,
     default: false

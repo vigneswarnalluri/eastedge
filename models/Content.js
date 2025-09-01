@@ -12,6 +12,7 @@ const contentSchema = new mongoose.Schema({
   },
 
   // Hero Slider
+  heroSlidesEnabled: { type: Boolean, default: true },
   heroSlides: [{
     title: { type: String, required: true },
     description: { type: String, required: true },
@@ -45,6 +46,16 @@ const contentSchema = new mongoose.Schema({
       instagram: { type: String, default: '' },
       linkedin: { type: String, default: '' }
     }
+  },
+
+  // Legal Pages
+  legalPages: {
+    terms: { type: String, default: 'Terms and conditions for using our services...' },
+    privacy: { type: String, default: 'Privacy policy regarding your personal information...' },
+    disclaimer: { type: String, default: 'Disclaimer about product accuracy and information...' },
+    shipping: { type: String, default: 'Information about shipping and delivery policies...' },
+    returns: { type: String, default: 'Our refund and returns policy...' },
+    jurisdiction: { type: String, default: 'Legal jurisdiction and applicable laws...' }
   }
 }, {
   timestamps: true

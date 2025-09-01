@@ -37,6 +37,16 @@ const Profile = () => {
   });
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState({ type: '', text: '' });
+  
+  // Password change state
+  const [passwordData, setPasswordData] = useState({
+    currentPassword: '',
+    newPassword: '',
+    confirmPassword: ''
+  });
+  const [passwordErrors, setPasswordErrors] = useState({});
+  const [passwordLoading, setPasswordLoading] = useState(false);
+  
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -45,11 +55,11 @@ const Profile = () => {
         name: user.name || '',
         email: user.email || '',
         phone: user.phone || '',
-        address: user.address || '',
-        city: user.city || '',
-        state: user.state || '',
-        zipCode: user.zipCode || '',
-        country: user.country || '',
+        address: (typeof user.address === 'object' ? user.address?.street : user.address) || '',
+        city: (typeof user.address === 'object' ? user.address?.city : user.city) || '',
+        state: (typeof user.address === 'object' ? user.address?.state : user.state) || '',
+        zipCode: (typeof user.address === 'object' ? user.address?.zipCode : user.zipCode) || '',
+        country: (typeof user.address === 'object' ? user.address?.country : user.country) || '',
         dateOfBirth: user.dateOfBirth || '',
         gender: user.gender || '',
         bio: user.bio || ''
@@ -115,11 +125,11 @@ const Profile = () => {
         name: user.name || '',
         email: user.email || '',
         phone: user.phone || '',
-        address: user.address || '',
-        city: user.city || '',
-        state: user.state || '',
-        zipCode: user.zipCode || '',
-        country: user.country || '',
+        address: (typeof user.address === 'object' ? user.address?.street : user.address) || '',
+        city: (typeof user.address === 'object' ? user.address?.city : user.city) || '',
+        state: (typeof user.address === 'object' ? user.address?.state : user.state) || '',
+        zipCode: (typeof user.address === 'object' ? user.address?.zipCode : user.zipCode) || '',
+        country: (typeof user.address === 'object' ? user.address?.country : user.country) || '',
         dateOfBirth: user.dateOfBirth || '',
         gender: user.gender || '',
         bio: user.bio || ''
@@ -146,6 +156,88 @@ const Profile = () => {
       });
     } finally {
       setLoading(false);
+    }
+  };
+
+  // Password change handlers
+  const handlePasswordChange = (e) => {
+    const { name, value } = e.target;
+    setPasswordData(prev => ({
+      ...prev,
+      [name]: value
+    }));
+    
+    // Clear specific field error when user starts typing
+    if (passwordErrors[name]) {
+      setPasswordErrors(prev => ({
+        ...prev,
+        [name]: ''
+      }));
+    }
+  };
+
+  const validatePassword = () => {
+    const errors = {};
+    
+    if (!passwordData.currentPassword) {
+      errors.currentPassword = 'Current password is required';
+    }
+    
+    if (!passwordData.newPassword) {
+      errors.newPassword = 'New password is required';
+    } else if (passwordData.newPassword.length < 6) {
+      errors.newPassword = 'Password must be at least 6 characters long';
+    }
+    
+    if (!passwordData.confirmPassword) {
+      errors.confirmPassword = 'Please confirm your new password';
+    } else if (passwordData.newPassword !== passwordData.confirmPassword) {
+      errors.confirmPassword = 'Passwords do not match';
+    }
+    
+    return errors;
+  };
+
+  const handlePasswordUpdate = async () => {
+    const errors = validatePassword();
+    
+    if (Object.keys(errors).length > 0) {
+      setPasswordErrors(errors);
+      return;
+    }
+    
+    setPasswordLoading(true);
+    setPasswordErrors({});
+    
+    try {
+      const response = await fetch('/api/users/change-password', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        },
+        body: JSON.stringify({
+          currentPassword: passwordData.currentPassword,
+          newPassword: passwordData.newPassword
+        })
+      });
+      
+      const data = await response.json();
+      
+      if (response.ok) {
+        setMessage({ type: 'success', text: 'Password updated successfully!' });
+        setPasswordData({
+          currentPassword: '',
+          newPassword: '',
+          confirmPassword: ''
+        });
+      } else {
+        setPasswordErrors({ currentPassword: data.message || 'Failed to update password' });
+      }
+    } catch (error) {
+      setPasswordErrors({ currentPassword: 'An error occurred while updating password' });
+    } finally {
+      setPasswordLoading(false);
     }
   };
 
@@ -290,7 +382,7 @@ const Profile = () => {
             <div className="profile-content">
               <div className="profile-card">
                 <div className="card-header">
-                  <h3><FiUser /> Personal Information</h3>
+                  <h3>Personal Information</h3>
                 </div>
                 
                 <div className="profile-form">
@@ -300,7 +392,7 @@ const Profile = () => {
                     <div className="form-row">
                       <div className="form-group">
                         <label className="form-label">
-                          <FiUser /> Full Name
+                          Full Name
                         </label>
                         {isEditing ? (
                           <input
@@ -318,7 +410,7 @@ const Profile = () => {
 
                       <div className="form-group">
                         <label className="form-label">
-                          <FiMail /> Email Address
+                          Email Address
                         </label>
                         {isEditing ? (
                           <input
@@ -338,7 +430,7 @@ const Profile = () => {
                     <div className="form-row">
                       <div className="form-group">
                         <label className="form-label">
-                          <FiPhone /> Phone Number
+                          Phone Number
                         </label>
                         {isEditing ? (
                           <input
@@ -356,7 +448,7 @@ const Profile = () => {
 
                       <div className="form-group">
                         <label className="form-label">
-                          <FiCalendar /> Date of Birth
+                          Date of Birth
                         </label>
                         {isEditing ? (
                           <input
@@ -417,7 +509,7 @@ const Profile = () => {
 
                   {/* Address Information */}
                   <div className="form-section">
-                    <h4><FiMapPin /> Address Information</h4>
+                    <h4>Address Information</h4>
                     <div className="form-row">
                       <div className="form-group full-width">
                         <label className="form-label">Street Address</label>
@@ -539,38 +631,21 @@ const Profile = () => {
                   </div>
                   <div className="stat-item">
                     <span className="stat-label">Total Orders</span>
-                    <span className="stat-value">{user.orderCount || 0}</span>
+                    <span className="stat-value">{user.totalOrders || 0}</span>
                   </div>
                   <div className="stat-item">
                     <span className="stat-label">Account Status</span>
                     <span className="stat-value status-active">Active Member</span>
                   </div>
                   <div className="stat-item">
-                    <span className="stat-label">Last Login</span>
+                    <span className="stat-label">Last Order</span>
                     <span className="stat-value">
-                      {user.lastLogin ? new Date(user.lastLogin).toLocaleDateString() : 'Unknown'}
+                      {user.lastOrderDate ? new Date(user.lastOrderDate).toLocaleDateString() : 'No orders yet'}
                     </span>
                   </div>
                 </div>
 
-                <div className="profile-quick-actions">
-                  <h3>Quick Actions</h3>
-                  <button 
-                    className="quick-action-btn"
-                    onClick={() => navigate('/orders')}
-                  >
-                    <FiShoppingBag /> View Orders
-                  </button>
-                  <button 
-                    className="quick-action-btn"
-                    onClick={() => setActiveTab('wishlist')}
-                  >
-                    <FiHeart /> My Wishlist ({getWishlistCount()})
-                  </button>
-                  <button className="quick-action-btn">
-                    <FiSettings /> Account Settings
-                  </button>
-                </div>
+
               </div>
             </div>
           )}
@@ -736,8 +811,74 @@ const Profile = () => {
 
           {activeTab === 'settings' && (
             <div className="tab-panel">
-              <h3>Account Settings</h3>
-              <p>Account settings and preferences will appear here.</p>
+              <div className="profile-card">
+                <div className="card-header">
+                  <h3>Account Settings</h3>
+                </div>
+                
+                <div className="profile-form">
+                  {/* Password Change Section */}
+                  <div className="form-section">
+                    <h4>Change Password</h4>
+                    <div className="password-change-form">
+                      <div className="form-group">
+                        <label className="form-label">Current Password</label>
+                        <input
+                          type="password"
+                          name="currentPassword"
+                          value={passwordData.currentPassword}
+                          onChange={handlePasswordChange}
+                          className="form-input"
+                          placeholder="Enter your current password"
+                        />
+                        {passwordErrors.currentPassword && (
+                          <span className="error-message">{passwordErrors.currentPassword}</span>
+                        )}
+                      </div>
+                      
+                      <div className="form-group">
+                        <label className="form-label">New Password</label>
+                        <input
+                          type="password"
+                          name="newPassword"
+                          value={passwordData.newPassword}
+                          onChange={handlePasswordChange}
+                          className="form-input"
+                          placeholder="Enter new password (min 6 characters)"
+                        />
+                        {passwordErrors.newPassword && (
+                          <span className="error-message">{passwordErrors.newPassword}</span>
+                        )}
+                      </div>
+                      
+                      <div className="form-group">
+                        <label className="form-label">Confirm New Password</label>
+                        <input
+                          type="password"
+                          name="confirmPassword"
+                          value={passwordData.confirmPassword}
+                          onChange={handlePasswordChange}
+                          className="form-input"
+                          placeholder="Confirm your new password"
+                        />
+                        {passwordErrors.confirmPassword && (
+                          <span className="error-message">{passwordErrors.confirmPassword}</span>
+                        )}
+                      </div>
+                      
+                      <div className="form-actions">
+                        <button 
+                          onClick={handlePasswordUpdate}
+                          className="btn-primary"
+                          disabled={passwordLoading}
+                        >
+                          {passwordLoading ? 'Updating...' : 'Update Password'}
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
           )}
         </div>

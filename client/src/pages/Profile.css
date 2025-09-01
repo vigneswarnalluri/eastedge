@@ -204,15 +204,54 @@
 /* Form Sections */
 .form-section {
   margin-bottom: 2.5rem;
+  background: rgba(255, 255, 255, 0.95) !important;
+  padding: 20px;
+  border-radius: 8px;
+  border: 1px solid #e5e7eb;
+}
+
+.form-section * {
+  color: #000000 !important;
+}
+
+.form-section svg,
+.form-section .icon,
+.form-section [class*="icon"],
+.form-section [class*="emoji"] {
+  display: none !important;
+}
+
+/* Remove any potential icon fonts or emoji */
+.form-section h4::before,
+.form-section h4::after,
+.form-section *::before,
+.form-section *::after {
+  content: none !important;
+  display: none !important;
 }
 
 .form-section h4 {
-  color: #374151;
-  font-size: 1.2rem;
-  font-weight: 600;
+  color: #000000 !important;
+  font-size: 1.3rem !important;
+  font-weight: 700 !important;
   margin-bottom: 1.5rem;
   padding-bottom: 0.5rem;
-  border-bottom: 1px solid #e5e7eb;
+  border-bottom: 2px solid #e5e7eb;
+  display: block !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  background: none !important;
+}
+
+.form-section h4::before,
+.form-section h4::after {
+  content: none !important;
+  display: none !important;
+}
+
+.form-section h4 svg,
+.form-section h4 .icon {
+  display: none !important;
 }
 
 .profile-form {

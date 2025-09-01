@@ -16,6 +16,7 @@ import NewArrivals from './pages/NewArrivals';
 import ContactUs from './pages/ContactUs';
 import AboutUs from './pages/AboutUs';
 import Admin from './pages/Admin';
+import LegalPage from './pages/LegalPage';
 import AdminRedirect from './components/AdminRedirect';
 import { CartProvider } from './context/CartContext';
 import { AuthProvider } from './context/AuthContext';
@@ -57,6 +58,12 @@ function App() {
                           <Route path="/new-arrivals" element={<NewArrivals />} />
                           <Route path="/contact" element={<ContactUs />} />
                           <Route path="/about" element={<AboutUs />} />
+                          <Route path="/legal/terms" element={<LegalPage pageType="terms" />} />
+                          <Route path="/legal/privacy" element={<LegalPage pageType="privacy" />} />
+                          <Route path="/legal/disclaimer" element={<LegalPage pageType="disclaimer" />} />
+                          <Route path="/legal/shipping" element={<LegalPage pageType="shipping" />} />
+                          <Route path="/legal/returns" element={<LegalPage pageType="returns" />} />
+                          <Route path="/legal/jurisdiction" element={<LegalPage pageType="jurisdiction" />} />
                         </Routes>
                       </main>
                       <Footer />
