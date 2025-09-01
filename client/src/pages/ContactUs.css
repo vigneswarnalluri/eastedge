@@ -103,7 +103,7 @@
 .contact-action {
   display: inline-block;
   padding: 12px 24px;
-  background: linear-gradient(135deg, #1a1a1a 0%, #333 100%);
+  background: #1a1a1a;
   color: white !important;
   text-decoration: none;
   border-radius: 8px;
@@ -117,7 +117,7 @@
 }
 
 .contact-action:hover {
-  background: linear-gradient(135deg, #333 0%, #555 100%);
+  background: #333;
   color: white !important;
   transform: translateY(-2px);
   box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
@@ -195,7 +195,7 @@
 .submit-btn {
   width: 100%;
   padding: 16px 32px;
-  background: linear-gradient(135deg, #1a1a1a 0%, #333 100%);
+  background: #1a1a1a;
   color: white !important;
   border: none;
   border-radius: 8px;
@@ -208,7 +208,7 @@
 }
 
 .submit-btn:hover:not(:disabled) {
-  background: linear-gradient(135deg, #333 0%, #555 100%);
+  background: #333;
   color: white !important;
   transform: translateY(-2px);
   box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
@@ -330,7 +330,7 @@
 
 .map-placeholder {
   height: 300px;
-  background: linear-gradient(135deg, #f8f8f8 0%, #e8e8e8 100%);
+  background: #f8f8f8;
   display: flex;
   flex-direction: column;
   align-items: center;

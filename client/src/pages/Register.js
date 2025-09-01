@@ -87,7 +87,7 @@ const Register = () => {
     try {
       const result = await register(formData.name.trim(), formData.email.toLowerCase().trim(), formData.password);
       if (result.success) {
-        navigate('/');
+        navigate('/profile');
       } else {
         setErrors({
           submit: result.message || 'Registration failed. Please try again.'

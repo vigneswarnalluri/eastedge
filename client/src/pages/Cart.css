@@ -1,7 +1,7 @@
 .cart-page {
   padding: 40px 0;
   min-height: 100vh;
-  background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+  background: #f8f9fa;
 }
 
 /* Reset any unwanted borders */
@@ -27,7 +27,7 @@
   font-weight: 800;
   color: #1a1a1a;
   margin-bottom: 15px;
-  background: linear-gradient(135deg, #1a1a1a 0%, #333 100%);
+  background: #1a1a1a;
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -605,7 +605,7 @@
 }
 
 .checkout-btn {
-  background: linear-gradient(135deg, #059669 0%, #047857 100%);
+  background: #059669;
   color: white;
   border: none;
   padding: 18px 24px;
@@ -625,7 +625,7 @@
 .checkout-btn:hover {
   transform: translateY(-2px);
   box-shadow: 0 6px 20px rgba(5, 150, 105, 0.4);
-  background: linear-gradient(135deg, #047857 0%, #065f46 100%);
+  background: #047857;
 }
 
 .clear-cart-btn {
@@ -718,7 +718,7 @@
   padding: 18px 32px;
   font-size: 1.1rem;
   font-weight: 600;
-  background: linear-gradient(135deg, #1a1a1a 0%, #333 100%);
+  background: #1a1a1a;
   border: none;
   color: white;
   border-radius: 12px;
@@ -733,7 +733,7 @@
 .start-shopping-btn:hover {
   transform: translateY(-3px);
   box-shadow: 0 8px 25px rgba(26, 26, 26, 0.4);
-  background: linear-gradient(135deg, #333 0%, #1a1a1a 100%);
+  background: #333;
 }
 
 

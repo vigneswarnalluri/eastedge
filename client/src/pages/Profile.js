@@ -107,10 +107,15 @@ const Profile = () => {
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: value
-    }));
+    console.log(`🔄 Field change - ${name}: "${value}"`);
+    setFormData(prev => {
+      const newData = {
+        ...prev,
+        [name]: value
+      };
+      console.log('📝 Updated formData:', newData);
+      return newData;
+    });
   };
 
   const handleEdit = () => {
@@ -143,13 +148,27 @@ const Profile = () => {
     setMessage({ type: '', text: '' });
 
     try {
-      await updateProfile(formData);
-      setIsEditing(false);
-      setMessage({ 
-        type: 'success', 
-        text: 'Profile updated successfully!' 
-      });
+      console.log('🔄 Frontend sending profile data:', formData);
+      console.log('🔍 Gender field value:', formData.gender);
+      console.log('🔍 Gender field type:', typeof formData.gender);
+      console.log('🔍 All form fields:', Object.keys(formData));
+      const result = await updateProfile(formData);
+      console.log('✅ Profile update result:', result);
+      
+      if (result.success) {
+        setIsEditing(false);
+        setMessage({ 
+          type: 'success', 
+          text: 'Profile updated successfully!' 
+        });
+      } else {
+        setMessage({ 
+          type: 'error', 
+          text: result.message || 'Failed to update profile' 
+        });
+      }
     } catch (error) {
+      console.error('❌ Profile update error:', error);
       setMessage({ 
         type: 'error', 
         text: error.message || 'Failed to update profile' 
@@ -470,18 +489,18 @@ const Profile = () => {
                       <div className="form-group">
                         <label className="form-label">Gender</label>
                         {isEditing ? (
-                          <select
-                            name="gender"
-                            value={formData.gender}
-                            onChange={handleChange}
-                            className="form-input"
-                          >
-                            <option value="">Select gender</option>
-                            <option value="male">Male</option>
-                            <option value="female">Female</option>
-                            <option value="other">Other</option>
-                            <option value="prefer-not-to-say">Prefer not to say</option>
-                          </select>
+                                                     <select
+                             name="gender"
+                             value={formData.gender}
+                             onChange={handleChange}
+                             className="form-input"
+                           >
+                             <option value="">Select gender</option>
+                             <option value="Male">Male</option>
+                             <option value="Female">Female</option>
+                             <option value="Other">Other</option>
+                             <option value="Prefer not to say">Prefer not to say</option>
+                           </select>
                         ) : (
                           <div className="form-value">
                             {formData.gender ? formData.gender.charAt(0).toUpperCase() + formData.gender.slice(1) : 'Not provided'}

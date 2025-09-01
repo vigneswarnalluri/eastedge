@@ -37,6 +37,11 @@ router.post('/register', async (req, res) => {
       _id: savedUser._id,
       name: savedUser.name,
       email: savedUser.email,
+      phone: savedUser.phone,
+      dateOfBirth: savedUser.dateOfBirth,
+      gender: savedUser.gender,
+      bio: savedUser.bio,
+      address: savedUser.address,
       isAdmin: savedUser.isAdmin,
       totalOrders: savedUser.totalOrders || 0,
       totalSpent: savedUser.totalSpent || 0,
@@ -86,6 +91,11 @@ router.post('/login', async (req, res) => {
       _id: user._id,
       name: user.name,
       email: user.email,
+      phone: user.phone,
+      dateOfBirth: user.dateOfBirth,
+      gender: user.gender,
+      bio: user.bio,
+      address: user.address,
       isAdmin: user.isAdmin,
       totalOrders: user.totalOrders || 0,
       totalSpent: user.totalSpent || 0,
@@ -128,6 +138,9 @@ router.get('/profile', async (req, res) => {
       name: user.name,
       email: user.email,
       phone: user.phone,
+      dateOfBirth: user.dateOfBirth,
+      gender: user.gender,
+      bio: user.bio,
       address: user.address,
       isAdmin: user.isAdmin,
       isBlocked: user.isBlocked,
@@ -196,6 +209,8 @@ router.put('/change-password', async (req, res) => {
 // Update user profile
 router.put('/profile', async (req, res) => {
   try {
+    console.log('🔄 Profile update request received:', req.body);
+    
     const token = req.header('Authorization')?.replace('Bearer ', '');
     if (!token) {
       return res.status(401).json({ message: 'No token, authorization denied' });
@@ -207,15 +222,87 @@ router.put('/profile', async (req, res) => {
     if (!user) {
       return res.status(404).json({ message: 'User not found' });
     }
+    
+    console.log('👤 User found:', user.email);
+    console.log('📝 Current user data:', {
+      name: user.name,
+      phone: user.phone,
+      dateOfBirth: user.dateOfBirth,
+      gender: user.gender,
+      bio: user.bio,
+      address: user.address
+    });
 
     // Update user fields
     if (req.body.name) user.name = req.body.name;
     if (req.body.email) user.email = req.body.email;
     if (req.body.password) user.password = req.body.password;
-    if (req.body.address) user.address = req.body.address;
     if (req.body.phone) user.phone = req.body.phone;
+    if (req.body.dateOfBirth) user.dateOfBirth = req.body.dateOfBirth;
+    if (req.body.gender) {
+      // Ensure gender is properly capitalized to match enum values
+      const validGenders = ['Male', 'Female', 'Other', 'Prefer not to say'];
+      const normalizedGender = req.body.gender.charAt(0).toUpperCase() + req.body.gender.slice(1).toLowerCase();
+      if (validGenders.includes(normalizedGender)) {
+        user.gender = normalizedGender;
+      } else {
+        return res.status(400).json({ message: `Invalid gender value. Must be one of: ${validGenders.join(', ')}` });
+      }
+    }
+    if (req.body.bio) user.bio = req.body.bio;
+    
+    // Handle address fields
+    if (req.body.address) {
+      if (typeof req.body.address === 'string') {
+        // If address is a string, treat it as street address
+        user.address = { ...user.address, street: req.body.address };
+      } else if (typeof req.body.address === 'object') {
+        // If address is an object, update all address fields
+        user.address = { ...user.address, ...req.body.address };
+      }
+    }
+    
+    // Handle individual address fields
+    if (req.body.street) user.address = { ...user.address, street: req.body.street };
+    if (req.body.city) user.address = { ...user.address, city: req.body.city };
+    if (req.body.state) user.address = { ...user.address, state: req.body.state };
+    if (req.body.zipCode) user.address = { ...user.address, zipCode: req.body.zipCode };
+    if (req.body.country) user.address = { ...user.address, country: req.body.country };
+    
+    console.log('🔄 Fields being updated:', {
+      name: req.body.name,
+      phone: req.body.phone,
+      dateOfBirth: req.body.dateOfBirth,
+      gender: req.body.gender,
+      bio: req.body.bio,
+      address: req.body.address,
+      street: req.body.street,
+      city: req.body.city,
+      state: req.body.state,
+      zipCode: req.body.zipCode,
+      country: req.body.country
+    });
+    
+    console.log('📝 User object before save:', {
+      name: user.name,
+      phone: user.phone,
+      dateOfBirth: user.dateOfBirth,
+      gender: user.gender,
+      bio: user.bio,
+      address: user.address
+    });
 
     const updatedUser = await user.save();
+    console.log('✅ User saved successfully');
+    console.log('📝 Updated user data:', {
+      name: updatedUser.name,
+      phone: updatedUser.phone,
+      dateOfBirth: updatedUser.dateOfBirth,
+      gender: updatedUser.gender,
+      bio: updatedUser.bio,
+      address: updatedUser.address
+    });
+    
     const userResponse = updatedUser.toObject();
     delete userResponse.password;
 
@@ -338,6 +425,10 @@ router.get('/admin/customers', auth, async (req, res) => {
           name: 1,
           email: 1,
           phone: 1,
+          dateOfBirth: 1,
+          gender: 1,
+          bio: 1,
+          address: 1,
           createdAt: 1,
           isBlocked: 1,
           lastOrderStatus: '$lastOrder.status',

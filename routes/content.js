@@ -16,14 +16,7 @@ router.get('/', async (req, res) => {
           link: '',
           enabled: false
         },
-        heroSlides: [{
-          title: 'Welcome to EastEdge',
-          description: 'Discover our amazing collection',
-          ctaText: 'Shop Now',
-          ctaLink: '/products',
-          order: 0,
-          active: true
-        }],
+
         promotionalBanner: {
           title: 'Special Offer!',
           ctaText: 'Learn More',
@@ -61,8 +54,7 @@ router.get('/section/:section', async (req, res) => {
     
     if (section === 'announcement') {
       res.json({ announcement: content.announcement });
-    } else if (section === 'hero-slides') {
-      res.json({ heroSlides: content.heroSlides.filter(slide => slide.active) });
+
     } else if (section === 'promotional-banner') {
       res.json({ promotionalBanner: content.promotionalBanner });
     } else if (section === 'site-settings') {
@@ -90,13 +82,11 @@ router.get('/debug', auth, async (req, res) => {
     
     // Check what fields exist
     const announcementFields = content.announcement ? Object.keys(content.announcement) : [];
-    const heroSlideFields = content.heroSlides && content.heroSlides.length > 0 ? Object.keys(content.heroSlides[0]) : [];
     
     res.json({
       message: 'Content structure debug info',
       hasContent: !!content,
       announcementFields,
-      heroSlideFields,
       content: content
     });
   } catch (error) {
@@ -121,16 +111,7 @@ router.post('/test', auth, async (req, res) => {
         targetPage: '',
         enabled: true
       },
-      heroSlides: [{
-        title: 'Test Slide',
-        description: 'Test Description',
-        ctaText: 'Test CTA',
-        ctaLink: '/test',
-        image: '',
-        imagePreview: '',
-        order: 0,
-        active: true
-      }]
+
     });
     
     console.log('💾 Attempting to save test content...');
@@ -157,7 +138,7 @@ router.post('/test', auth, async (req, res) => {
 router.put('/', auth, async (req, res) => {
   try {
     console.log('📝 Received content update request:', req.body);
-    const { announcement, heroSlides, promotionalBanner, siteSettings } = req.body;
+    const { announcement, promotionalBanner, siteSettings } = req.body;
     
     let content = await Content.findOne();
     
@@ -183,20 +164,7 @@ router.put('/', auth, async (req, res) => {
       content.announcement = { ...defaultAnnouncement, ...content.announcement, ...announcement };
     }
     
-    // Update hero slides enabled flag
-    if (req.body.heroSlidesEnabled !== undefined) {
-      console.log('🖼️ Updating hero slides enabled:', req.body.heroSlidesEnabled);
-      content.heroSlidesEnabled = req.body.heroSlidesEnabled;
-    }
-    
-    // Update hero slides
-    if (heroSlides) {
-      console.log('🖼️ Updating hero slides:', heroSlides.length, 'slides');
-      content.heroSlides = heroSlides.map((slide, index) => ({
-        ...slide,
-        order: index
-      }));
-    }
+
     
     // Update promotional banner
     if (promotionalBanner) {
@@ -263,11 +231,7 @@ router.put('/section/:section', auth, async (req, res) => {
     
     if (section === 'announcement') {
       content.announcement = { ...content.announcement, ...updateData };
-    } else if (section === 'hero-slides') {
-      content.heroSlides = updateData.map((slide, index) => ({
-        ...slide,
-        order: index
-      }));
+
     } else if (section === 'promotional-banner') {
       content.promotionalBanner = { ...content.promotionalBanner, ...updateData };
     } else if (section === 'site-settings') {
@@ -287,16 +251,6 @@ router.put('/section/:section', auth, async (req, res) => {
   }
 });
 
-// Upload image for hero slide (admin only)
-router.post('/upload-image', auth, async (req, res) => {
-  try {
-    // This would typically handle file upload
-    // For now, we'll just return a success message
-    res.json({ message: 'Image upload endpoint - implement file handling here' });
-  } catch (error) {
-    console.error('Error uploading image:', error);
-    res.status(500).json({ message: 'Error uploading image' });
-  }
-});
+
 
 module.exports = router; 

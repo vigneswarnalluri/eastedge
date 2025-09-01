@@ -36,7 +36,7 @@
   width: 120px;
   height: 120px;
   border-radius: 50%;
-  background: linear-gradient(135deg, #667eea, #764ba2);
+  background: #667eea;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -68,7 +68,7 @@
 }
 
 .btn-edit-profile {
-  background: linear-gradient(135deg, #667eea, #764ba2);
+  background: #667eea;
   color: white;
   border: none;
   padding: 12px 24px;
@@ -99,13 +99,13 @@
 }
 
 .message.success {
-  background: linear-gradient(135deg, #d4edda, #c3e6cb);
+  background: #d4edda;
   color: #155724;
   border: 1px solid #c3e6cb;
 }
 
 .message.error {
-  background: linear-gradient(135deg, #f8d7da, #f5c6cb);
+  background: #f8d7da;
   color: #721c24;
   border: 1px solid #f5c6cb;
 }
@@ -142,7 +142,7 @@
 }
 
 .tab-button.active {
-  background: linear-gradient(135deg, #667eea, #764ba2);
+  background: #667eea;
   color: white;
   box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
 }
@@ -350,7 +350,7 @@
 }
 
 .btn-primary {
-  background: linear-gradient(135deg, #667eea, #764ba2);
+  background: #667eea;
   color: white;
   box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
 }

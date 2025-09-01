@@ -32,17 +32,7 @@ const Admin = () => {
       targetPage: '',
       enabled: false
     },
-    heroSlides: [
-      {
-        title: 'Title',
-        description: 'The wait is over! Our most anticipated collection is finally here.',
-        ctaText: 'Shop Now',
-        ctaLink: '/products',
-        image: '',
-        imagePreview: ''
-      }
-    ],
-    heroSlidesEnabled: true,
+
     promotionalBanner: {
       title: '',
       ctaText: '',
@@ -862,38 +852,7 @@ const Admin = () => {
     }));
   };
 
-  const handleHeroSlideChange = (slideIndex, field, value) => {
-    setContentData(prev => ({
-      ...prev,
-      heroSlides: prev.heroSlides.map((slide, index) => 
-        index === slideIndex 
-          ? { ...slide, [field]: value }
-          : slide
-      )
-    }));
-  };
 
-  const addHeroSlide = () => {
-    const newSlide = {
-      title: '',
-      description: '',
-      ctaText: '',
-      ctaLink: '',
-      image: '',
-      imagePreview: ''
-    };
-    setContentData(prev => ({
-      ...prev,
-      heroSlides: [...prev.heroSlides, newSlide]
-    }));
-  };
-
-  const removeHeroSlide = (slideIndex) => {
-    setContentData(prev => ({
-      ...prev,
-      heroSlides: prev.heroSlides.filter((slide, index) => index !== slideIndex)
-    }));
-  };
 
   const handlePromotionalBannerChange = (field, value) => {
     setContentData(prev => ({
@@ -905,12 +864,7 @@ const Admin = () => {
     }));
   };
 
-  const handleHeroSlidesToggle = (enabled) => {
-    setContentData(prev => ({
-      ...prev,
-      heroSlidesEnabled: enabled
-    }));
-  };
+
 
 
 
@@ -923,13 +877,9 @@ const Admin = () => {
       console.log('Save Content button clicked!');
       console.log('Current content data:', contentData);
       
-      // Clean the data before sending - remove client-side IDs
+      // Clean the data before sending
       const cleanContentData = {
-        ...contentData,
-        heroSlides: contentData.heroSlides.map(slide => {
-          const { id, ...cleanSlide } = slide;
-          return cleanSlide;
-        })
+        ...contentData
       };
       
       console.log('Cleaned content data:', cleanContentData);
@@ -2955,8 +2905,10 @@ const Admin = () => {
               <th>Name</th>
               <th>Email</th>
               <th>Phone</th>
+              <th>Gender</th>
+              <th>Location</th>
               <th>Joined</th>
-                  <th>Status</th>
+              <th>Status</th>
               <th>Actions</th>
             </tr>
           </thead>
@@ -2964,9 +2916,11 @@ const Admin = () => {
                 {customers.map((customer) => (
                   <tr key={customer._id}>
                     <td>#{customer._id.slice(-6)}</td>
-                 <td>{customer.name}</td>
-                 <td>{customer.email}</td>
+                    <td>{customer.name}</td>
+                    <td>{customer.email}</td>
                     <td>{customer.phone || 'N/A'}</td>
+                    <td>{customer.gender || 'N/A'}</td>
+                    <td>{customer.address?.city || 'N/A'}</td>
                     <td>{new Date(customer.createdAt).toLocaleDateString()}</td>
                     <td>
                       <span className={`status-badge ${getStatusClass(customer.lastOrderStatus || 'No Orders')}`}>
@@ -3994,92 +3948,7 @@ const Admin = () => {
         </button>
       </div>
 
-      {/* Hero Slider */}
-      <div className="content-section">
-        <h3>Hero Slider</h3>
-        <div className="form-group">
-          <label>
-            <input 
-              type="checkbox" 
-              checked={contentData.heroSlidesEnabled !== false}
-              onChange={(e) => handleHeroSlidesToggle(e.target.checked)}
-            />
-            Enable Hero Slider (Uncheck to disable all slides)
-          </label>
-        </div>
-        {contentData.heroSlides.map((slide, index) => (
-          <div key={index} className="slide-item">
-            <h4>Slide {index + 1}</h4>
-            <div className="form-group">
-              <input 
-                type="text" 
-                placeholder="Title" 
-                className="form-input"
-                value={slide.title}
-                onChange={(e) => handleHeroSlideChange(index, 'title', e.target.value)}
-              />
-            </div>
-            <div className="form-group">
-              <textarea 
-                placeholder="Description" 
-                className="form-textarea"
-                value={slide.description || ''}
-                onChange={(e) => handleHeroSlideChange(index, 'description', e.target.value)}
-              />
-            </div>
-            <div className="form-group">
-              <input 
-                type="text" 
-                placeholder="CTA Text" 
-                className="form-input"
-                value={slide.ctaText}
-                onChange={(e) => handleHeroSlideChange(index, 'ctaText', e.target.value)}
-              />
-            </div>
-            <div className="form-group">
-              <input 
-                type="text" 
-                placeholder="CTA Link" 
-                className="form-input"
-                value={slide.ctaLink}
-                onChange={(e) => handleHeroSlideChange(index, 'ctaLink', e.target.value)}
-              />
-            </div>
-            <div className="form-group">
-              <input 
-                type="file" 
-                className="form-input"
-                onChange={(e) => {
-                  const file = e.target.files[0];
-                  if (file) {
-                    const reader = new FileReader();
-                    reader.onload = (e) => handleHeroSlideChange(index, 'imagePreview', e.target.result);
-                    reader.readAsDataURL(file);
-                  }
-                }}
-              />
-              <label>Background Image</label>
-              {slide.imagePreview && (
-                <div className="image-preview">
-                  <img src={slide.imagePreview} alt="Slide preview" />
-                </div>
-              )}
-            </div>
-            {contentData.heroSlides.length > 1 && (
-              <button 
-                className="remove-btn" 
-                onClick={() => removeHeroSlide(index)}
-              >
-                Remove Slide
-              </button>
-            )}
-          </div>
-        ))}
-        <div className="form-actions">
-          <button className="add-btn" onClick={addHeroSlide}><FiPlus /> Add Slide</button>
-          <button className="save-btn" onClick={() => saveContent()}>Save Slider Settings</button>
-        </div>
-      </div>
+
 
       {/* Homepage Sections */}
       <div className="content-section">
@@ -4792,6 +4661,20 @@ const Admin = () => {
                     <span className="order-value">{customer.phone || 'N/A'}</span>
                   </div>
                   <div className="info-item">
+                    <strong>Date of Birth:</strong> 
+                    <span className="order-value">
+                      {customer.dateOfBirth ? new Date(customer.dateOfBirth).toLocaleDateString() : 'Not provided'}
+                    </span>
+                  </div>
+                  <div className="info-item">
+                    <strong>Gender:</strong> 
+                    <span className="order-value">{customer.gender || 'Not provided'}</span>
+                  </div>
+                  <div className="info-item">
+                    <strong>Bio:</strong> 
+                    <span className="order-value">{customer.bio || 'No bio added yet'}</span>
+                  </div>
+                  <div className="info-item">
                     <strong>Joined:</strong> 
                     <span className="order-value">{new Date(customer.createdAt).toLocaleDateString()}</span>
                   </div>
@@ -4807,6 +4690,33 @@ const Admin = () => {
                       <span className="order-value">{customer.blockReason}</span>
                     </div>
                   )}
+                </div>
+              </div>
+
+              {/* Address Information */}
+              <div className="order-section">
+                <h3>Address Information</h3>
+                <div className="info-grid">
+                  <div className="info-item">
+                    <strong>Street Address:</strong> 
+                    <span className="order-value">{customer.address?.street || 'Not provided'}</span>
+                  </div>
+                  <div className="info-item">
+                    <strong>City:</strong> 
+                    <span className="order-value">{customer.address?.city || 'Not provided'}</span>
+                  </div>
+                  <div className="info-item">
+                    <strong>State/Province:</strong> 
+                    <span className="order-value">{customer.address?.state || 'Not provided'}</span>
+                  </div>
+                  <div className="info-item">
+                    <strong>Zip Code:</strong> 
+                    <span className="order-value">{customer.address?.zipCode || 'Not provided'}</span>
+                  </div>
+                  <div className="info-item">
+                    <strong>Country:</strong> 
+                    <span className="order-value">{customer.address?.country || 'Not provided'}</span>
+                  </div>
                 </div>
               </div>
 

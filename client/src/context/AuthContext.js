@@ -122,10 +122,13 @@ export const AuthProvider = ({ children }) => {
 
   const updateProfile = async (profileData) => {
     try {
+      console.log('🔄 AuthContext sending profile data:', profileData);
       const res = await api.put('/api/users/profile', profileData);
+      console.log('✅ AuthContext received response:', res.data);
       dispatch({ type: 'USER_LOADED', payload: res.data });
       return { success: true };
     } catch (error) {
+      console.error('❌ AuthContext profile update error:', error);
       return { success: false, message: error.response?.data?.message || 'Update failed' };
     }
   };

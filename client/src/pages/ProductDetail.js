@@ -144,6 +144,12 @@ const ProductDetail = () => {
     }
   }, [product]);
 
+  // Add effect to update stock status when variants are selected
+  useEffect(() => {
+    // This will trigger a re-render when selectedSize or selectedColor changes
+    // The getStockStatus function will be called again with the new selections
+  }, [selectedSize, selectedColor]);
+
 
 
   const fetchReviews = async (productId) => {
@@ -421,9 +427,49 @@ const ProductDetail = () => {
   };
 
   const getStockStatus = () => {
-    // Check if we have variants with stock
+    console.log('🔍 getStockStatus called with:', { selectedSize, selectedColor, variants: product.variants });
+    
+    // If both size and color are selected, show stock for that specific variant
+    if (selectedSize && selectedColor && product.variants && Array.isArray(product.variants) && product.variants.length > 0) {
+      const selectedVariant = product.variants.find(v => 
+        v.size === selectedSize && v.color === selectedColor
+      );
+      
+      console.log('✅ Found selected variant:', selectedVariant);
+      
+      if (selectedVariant) {
+        const variantStock = selectedVariant.stock || 0;
+        console.log('📦 Variant stock:', variantStock);
+        if (variantStock <= 0) {
+          return { status: 'out-of-stock', text: 'Out of Stock' };
+        } else if (variantStock <= 10) {
+          return { status: 'low-stock', text: `Low Stock (${variantStock} available)` };
+        } else {
+          return { status: 'in-stock', text: `In Stock (${variantStock} available)` };
+        }
+      }
+    }
+    
+    // If only size is selected, show total stock for that size across all colors
+    if (selectedSize && !selectedColor && product.variants && Array.isArray(product.variants) && product.variants.length > 0) {
+      const sizeVariants = product.variants.filter(v => v.size === selectedSize);
+      const totalStockForSize = sizeVariants.reduce((sum, variant) => sum + (variant.stock || 0), 0);
+      
+      console.log('📏 Size variants for', selectedSize, ':', sizeVariants, 'Total stock:', totalStockForSize);
+      
+      if (totalStockForSize <= 0) {
+        return { status: 'out-of-stock', text: 'Out of Stock' };
+      } else if (totalStockForSize <= 10) {
+        return { status: 'low-stock', text: `Low Stock (${totalStockForSize} available)` };
+      } else {
+        return { status: 'in-stock', text: `In Stock (${totalStockForSize} available)` };
+      }
+    }
+    
+    // If no variants or no selection, show total stock across all variants
     if (product.variants && Array.isArray(product.variants) && product.variants.length > 0) {
       const totalStock = product.variants.reduce((sum, variant) => sum + (variant.stock || 0), 0);
+      console.log('📦 Total stock across all variants:', totalStock);
       if (totalStock <= 0) {
         return { status: 'out-of-stock', text: 'Out of Stock' };
       } else if (totalStock <= 10) {
@@ -578,6 +624,16 @@ const ProductDetail = () => {
                 <div className="stock-status-inline">
                   <span className="stock-indicator"></span>
                   {stockStatus.text}
+                  {selectedSize && selectedColor && product.variants && Array.isArray(product.variants) && product.variants.length > 0 && (
+                    <div className="variant-stock-info">
+                      <span className="variant-stock-detail">
+                        Stock for {selectedSize}, {selectedColor}: {(() => {
+                          const variant = product.variants.find(v => v.size === selectedSize && v.color === selectedColor);
+                          return variant ? variant.stock || 0 : 0;
+                        })()} units
+                      </span>
+                    </div>
+                  )}
                 </div>
               </div>
               
@@ -590,13 +646,9 @@ const ProductDetail = () => {
                       style={{ color: star <= (product.rating || 0) ? '#ffa41c' : '#ddd' }}
                     />
                   ))}
-                  <span className="rating-stars">
-                    {product.rating || 0} out of 5 stars
-                  </span>
+
                 </div>
-                <Link to="#reviews" className="review-count">
-                  {reviews.length} ratings
-                </Link>
+
               </div>
             </div>
 
@@ -635,30 +687,47 @@ const ProductDetail = () => {
                             {selectedSize ? `Selected: ${selectedSize}` : 'Select a size'}
                           </div>
                           <div className="size-options">
-                            {sizesToRender.map(size => (
-                              <button
-                                key={size}
-                                className={`size-option ${selectedSize === size ? 'selected' : ''}`}
-                                onClick={() => {
-                                  setSelectedSize(size);
-                                }}
-                                style={{
-                                  padding: '12px 20px',
-                                  fontSize: '16px',
-                                  fontWeight: '600',
-                                  border: selectedSize === size ? '2px solid #059669' : '2px solid #ddd',
-                                  backgroundColor: selectedSize === size ? '#059669' : 'white',
-                                  color: selectedSize === size ? 'white' : '#333',
-                                  borderRadius: '8px',
-                                  cursor: 'pointer',
-                                  transition: 'all 0.3s ease',
-                                  minWidth: '50px',
-                                  textAlign: 'center'
-                                }}
-                              >
-                                {size}
-                              </button>
-                            ))}
+                            {sizesToRender.map(size => {
+                              // Get total stock for this size across all colors
+                              let totalStockForSize = 0;
+                              if (product.variants && Array.isArray(product.variants)) {
+                                const sizeVariants = product.variants.filter(v => v.size === size);
+                                totalStockForSize = sizeVariants.reduce((sum, variant) => sum + (variant.stock || 0), 0);
+                              }
+                              
+                              return (
+                                <button
+                                  key={size}
+                                  className={`size-option ${selectedSize === size ? 'selected' : ''}`}
+                                  onClick={() => {
+                                    setSelectedSize(size);
+                                  }}
+                                  style={{
+                                    padding: '12px 20px',
+                                    fontSize: '16px',
+                                    fontWeight: '600',
+                                    border: selectedSize === size ? '2px solid #059669' : '2px solid #ddd',
+                                    backgroundColor: selectedSize === size ? '#059669' : 'white',
+                                    color: selectedSize === size ? 'white' : '#333',
+                                    borderRadius: '8px',
+                                    cursor: 'pointer',
+                                    transition: 'all 0.3s ease',
+                                    minWidth: '50px',
+                                    textAlign: 'center',
+                                    position: 'relative'
+                                  }}
+                                  title={`${size} - ${totalStockForSize} in stock`}
+                                >
+                                  {size}
+                                  {totalStockForSize <= 10 && totalStockForSize > 0 && (
+                                    <span className="low-stock-badge">Low</span>
+                                  )}
+                                  {totalStockForSize === 0 && (
+                                    <span className="out-of-stock-badge">Out</span>
+                                  )}
+                                </button>
+                              );
+                            })}
                           </div>
 
                         </div>
@@ -676,7 +745,7 @@ const ProductDetail = () => {
                     }
                   })()}
 
-                  {/* Color Selection */}
+                                    {/* Color Selection */}
                   {(() => {
                     
                     // Only show colors that have variants with stock for the selected size
@@ -728,6 +797,15 @@ const ProductDetail = () => {
                                 colorValue = '#808080'; // Default gray
                               }
                               
+                              // Get stock for this specific color and size combination
+                              let stockInfo = '';
+                              if (selectedSize && product.variants && Array.isArray(product.variants)) {
+                                const variant = product.variants.find(v => v.size === selectedSize && v.color === colorName);
+                                if (variant) {
+                                  stockInfo = ` (${variant.stock || 0} in stock)`;
+                                }
+                              }
+                              
                               return (
                               <button
                                   key={colorName}
@@ -745,7 +823,7 @@ const ProductDetail = () => {
                                     cursor: 'pointer',
                                     position: 'relative'
                                   }}
-                                  title={colorName}
+                                  title={`${colorName}${stockInfo}`}
                               >
                                 {selectedColor === colorName && (
                                   <FiCheck 
@@ -756,7 +834,7 @@ const ProductDetail = () => {
                                       transform: 'translate(-50%, -50%)',
                                       color: 'white',
                                       fontSize: '16px',
-                                      filter: 'drop-shadow(1px 1px 1px rgba(0,0,0,0.8))'
+                                      filter: 'drop-shadow(1px 1px 1px rgba(0,0,0,0.8))' 
                                     }} 
                                   />
                                 )}
@@ -804,6 +882,18 @@ const ProductDetail = () => {
                         className="quantity-input"
                         min="1"
                         max={(() => {
+                          // If both size and color are selected, use that variant's stock
+                          if (selectedSize && selectedColor && product.variants && Array.isArray(product.variants) && product.variants.length > 0) {
+                            const variant = product.variants.find(v => v.size === selectedSize && v.color === selectedColor);
+                            return variant ? (variant.stock || 0) : 0;
+                          }
+                          // If only size is selected, use total stock for that size
+                          if (selectedSize && !selectedColor && product.variants && Array.isArray(product.variants) && product.variants.length > 0) {
+                            const sizeVariants = product.variants.filter(v => v.size === selectedSize);
+                            const totalStockForSize = sizeVariants.reduce((sum, variant) => sum + (variant.stock || 0), 0);
+                            return totalStockForSize || 0;
+                          }
+                          // Fallback to total stock across all variants
                           if (product.variants && Array.isArray(product.variants) && product.variants.length > 0) {
                             const totalStock = product.variants.reduce((sum, variant) => sum + (variant.stock || 0), 0);
                             return totalStock || 99;
@@ -818,6 +908,18 @@ const ProductDetail = () => {
                         }}
                         className="quantity-btn"
                         disabled={(() => {
+                          // If both size and color are selected, use that variant's stock
+                          if (selectedSize && selectedColor && product.variants && Array.isArray(product.variants) && product.variants.length > 0) {
+                            const variant = product.variants.find(v => v.size === selectedSize && v.color === selectedColor);
+                            return variant ? (variant.stock || 0) && quantity >= (variant.stock || 0) : true;
+                          }
+                          // If only size is selected, use total stock for that size
+                          if (selectedSize && !selectedColor && product.variants && Array.isArray(product.variants) && product.variants.length > 0) {
+                            const sizeVariants = product.variants.filter(v => v.size === selectedSize);
+                            const totalStockForSize = sizeVariants.reduce((sum, variant) => sum + (variant.stock || 0), 0);
+                            return totalStockForSize && quantity >= totalStockForSize;
+                          }
+                          // Fallback to total stock across all variants
                           if (product.variants && Array.isArray(product.variants) && product.variants.length > 0) {
                             const totalStock = product.variants.reduce((sum, variant) => sum + (variant.stock || 0), 0);
                             return totalStock && quantity >= totalStock;
@@ -829,77 +931,62 @@ const ProductDetail = () => {
                       </button>
                     </div>
 
-                    {(() => {
-                      if (product.variants && Array.isArray(product.variants) && product.variants.length > 0) {
-                        const totalStock = product.variants.reduce((sum, variant) => sum + (variant.stock || 0), 0);
-                        return totalStock > 0 ? (
-                          <div className="max-quantity">
-                            Max: {totalStock}
-                          </div>
-                        ) : null;
-                      }
-                      return product.stockQuantity ? (
-                        <div className="max-quantity">
-                          Max: {product.stockQuantity}
-                        </div>
-                      ) : null;
-                    })()}
                   </div>
                 </div>
 
-                {/* Right Side - Price and Action Buttons */}
-                <div className="hero-actions-right">
-                  {/* Price Section - DYNAMIC PRICING */}
-                  <div className="price-section-inline">
+                {/* Variant Price Box */}
+                {selectedSize && selectedColor && product.variants && Array.isArray(product.variants) && product.variants.length > 0 && (
+                  <div className="variant-price-box">
                     {(() => {
+                      const variant = product.variants.find(v => v.size === selectedSize && v.color === selectedColor);
                       const pricing = getCurrentPricing();
                       
-
-                      
-                      return (
-                        <>
-                          {pricing.hasDiscount && pricing.originalPrice && (
-                            <div style={{ marginBottom: '0.5rem' }}>
-                              <span className="original-price-striked">₹{pricing.originalPrice.toLocaleString()}</span>
-                              <span className="discount-badge">
-                                -{Math.round(((pricing.originalPrice - pricing.currentPrice) / pricing.originalPrice) * 100)}%
-                              </span>
+                      if (variant && pricing.hasDiscount && pricing.originalPrice) {
+                        return (
+                          <>
+                            <div className="original-price-striked">₹{pricing.originalPrice.toLocaleString()}</div>
+                            <div className="discount-badge">
+                              -{Math.round(((pricing.originalPrice - pricing.currentPrice) / pricing.originalPrice) * 100)}%
                             </div>
-                          )}
-                          <div className={`current-price ${pricing.hasDiscount ? 'sale-price' : ''}`}>
-                            ₹{pricing.currentPrice.toLocaleString()}
-                          </div>
-                          <div style={{ fontSize: '0.9rem', color: '#666' }}>
-                            Inclusive of all taxes
-                          </div>
-                          {selectedSize && selectedColor && (
-                            <div style={{ fontSize: '0.8rem', color: '#888', marginTop: '0.25rem' }}>
-                              Price for {selectedSize}, {selectedColor}
-                            </div>
-                          )}
-                        </>
-                      );
+                            <div className="current-price-sale">₹{pricing.currentPrice.toLocaleString()}</div>
+                            <div className="taxes-info">Inclusive of all taxes</div>
+                            <div className="variant-info-text">Price for {selectedSize}, {selectedColor}</div>
+                          </>
+                        );
+                      } else if (variant) {
+                        return (
+                          <>
+                            <div className="current-price-regular">₹{pricing.currentPrice.toLocaleString()}</div>
+                            <div className="taxes-info">Inclusive of all taxes</div>
+                            <div className="variant-info-text">Price for {selectedSize}, {selectedColor}</div>
+                          </>
+                        );
+                      }
+                      return null;
                     })()}
-                  </div>
-
-                  <div className="product-actions">
-                    <button 
-                      onClick={handleAddToCart}
-                      className="add-to-cart-btn"
-                      disabled={stockStatus.status === 'out-of-stock'}
-                    >
-                      Add to Cart
-                    </button>
                     
-                    <button 
-                      onClick={handleBuyNow}
-                      className="buy-now-btn"
-                      disabled={stockStatus.status === 'out-of-stock'}
-                    >
-                      Buy Now
-                    </button>
+                    {/* Action Buttons Below Price */}
+                    <div className="variant-action-buttons">
+                      <button 
+                        onClick={handleAddToCart}
+                        className="add-to-cart-btn variant-btn"
+                        disabled={stockStatus.status === 'out-of-stock'}
+                      >
+                        Add to Cart
+                      </button>
+                      
+                      <button 
+                        onClick={handleBuyNow}
+                        className="buy-now-btn variant-btn"
+                        disabled={stockStatus.status === 'out-of-stock'}
+                      >
+                        Buy Now
+                      </button>
+                    </div>
                   </div>
-                </div>
+                )}
+
+
               </div>
             </div>
 

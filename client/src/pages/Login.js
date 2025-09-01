@@ -54,8 +54,8 @@ const Login = () => {
           // Redirect admin users directly to admin panel
           navigate('/admin');
         } else {
-          // Redirect regular users to checkout if that's where they came from, otherwise to home
-          const redirectTo = location.state?.redirectTo || '/';
+          // Redirect regular users to profile page, unless they were trying to access a specific page
+          const redirectTo = location.state?.redirectTo || '/profile';
           navigate(redirectTo);
         }
       } else {

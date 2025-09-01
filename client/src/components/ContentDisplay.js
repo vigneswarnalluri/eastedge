@@ -5,24 +5,10 @@ import './ContentDisplay.css';
 const ContentDisplay = () => {
   const [content, setContent] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [currentSlide, setCurrentSlide] = useState(0);
 
   useEffect(() => {
     loadContent();
   }, []);
-
-  // Auto-slide effect
-  useEffect(() => {
-    if (content && content.heroSlides && content.heroSlides.length > 1) {
-      const interval = setInterval(() => {
-        setCurrentSlide(prev => 
-          prev === content.heroSlides.filter(slide => slide.active).length - 1 ? 0 : prev + 1
-        );
-      }, 3000); // Change slide every 3 seconds
-
-      return () => clearInterval(interval);
-    }
-  }, [content]);
 
   const loadContent = async () => {
     try {
@@ -35,28 +21,6 @@ const ContentDisplay = () => {
     }
   };
 
-  const goToSlide = (index) => {
-    setCurrentSlide(index);
-  };
-
-  const goToNextSlide = () => {
-    if (content && content.heroSlides) {
-      const activeSlides = content.heroSlides.filter(slide => slide.active);
-      setCurrentSlide(prev => 
-        prev === activeSlides.length - 1 ? 0 : prev + 1
-      );
-    }
-  };
-
-  const goToPrevSlide = () => {
-    if (content && content.heroSlides) {
-      const activeSlides = content.heroSlides.filter(slide => slide.active);
-      setCurrentSlide(prev => 
-        prev === 0 ? activeSlides.length - 1 : prev - 1
-      );
-    }
-  };
-
   if (loading) {
     return <div className="content-loading">Loading content...</div>;
   }
@@ -65,48 +29,24 @@ const ContentDisplay = () => {
     return <div className="content-error">No content available</div>;
   }
 
-  const activeSlides = content.heroSlides && content.heroSlidesEnabled !== false 
-    ? content.heroSlides.filter(slide => slide.active).sort((a, b) => a.order - b.order) 
-    : [];
-
   return (
     <div className="content-display">
-      {/* Hero Slider */}
-      {activeSlides.length > 0 && (
-        <div className="hero-slider">
-          {activeSlides.map((slide, index) => (
-            <div 
-              key={index} 
-              className={`hero-slide ${index === currentSlide ? 'active' : ''}`}
-            >
-              <div className="slide-content">
-                <h1 className="slide-title">{slide.title}</h1>
-                <p className="slide-description">{slide.description}</p>
-                {slide.ctaText && slide.ctaLink && (
-                  <a href={slide.ctaLink} className="slide-cta">
-                    {slide.ctaText}
-                  </a>
-                )}
-              </div>
-              {slide.imagePreview && (
-                <div className="slide-image">
-                  <img src={slide.imagePreview} alt={slide.title} />
-                </div>
-              )}
-            </div>
-          ))}
-          
-          {/* Navigation Arrows */}
-          {activeSlides.length > 1 && (
-            <>
-              <button className="slide-nav prev" onClick={goToPrevSlide}>
-                ‹
-              </button>
-              <button className="slide-nav next" onClick={goToNextSlide}>
-                ›
-              </button>
-            </>
-          )}
+      {/* Announcement Bar */}
+      {content.announcement && content.announcement.enabled && content.announcement.text && (
+        <div className="announcement-bar">
+          <div className="announcement-content">
+            <span className="announcement-text">{content.announcement.text}</span>
+            {content.announcement.link && (
+              <a 
+                href={content.announcement.link} 
+                className="announcement-link"
+                target={content.announcement.linkType === 'external' ? '_blank' : '_self'}
+                rel={content.announcement.linkType === 'external' ? 'noopener noreferrer' : ''}
+              >
+                {content.announcement.buttonText || 'Learn More'}
+              </a>
+            )}
+          </div>
         </div>
       )}
 
@@ -120,6 +60,27 @@ const ContentDisplay = () => {
                 {content.promotionalBanner.ctaText}
               </button>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* Site Info */}
+      {content.siteSettings && (
+        <div className="site-info">
+          <div className="container">
+            <h2>{content.siteSettings.siteName}</h2>
+            <p className="site-description">{content.siteSettings.siteDescription}</p>
+            <div className="contact-info">
+              {content.siteSettings.contactEmail && (
+                <p>Email: {content.siteSettings.contactEmail}</p>
+              )}
+              {content.siteSettings.phoneNumber && (
+                <p>Phone: {content.siteSettings.phoneNumber}</p>
+              )}
+              {content.siteSettings.address && (
+                <p>Address: {content.siteSettings.address}</p>
+              )}
+            </div>
           </div>
         </div>
       )}

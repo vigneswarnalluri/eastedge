@@ -11,18 +11,7 @@ const contentSchema = new mongoose.Schema({
     enabled: { type: Boolean, default: false }
   },
 
-  // Hero Slider
-  heroSlidesEnabled: { type: Boolean, default: true },
-  heroSlides: [{
-    title: { type: String, required: true },
-    description: { type: String, required: true },
-    ctaText: { type: String, default: '' },
-    ctaLink: { type: String, default: '' },
-    image: { type: String, default: '' },
-    imagePreview: { type: String, default: '' },
-    order: { type: Number, default: 0 },
-    active: { type: Boolean, default: true }
-  }],
+
 
   // Promotional Banner
   promotionalBanner: {
@@ -62,6 +51,5 @@ const contentSchema = new mongoose.Schema({
 });
 
 // Create indexes
-contentSchema.index({ 'heroSlides.order': 1 });
 
 module.exports = mongoose.model('Content', contentSchema); 

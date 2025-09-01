@@ -28,28 +28,7 @@ async function initializeContent() {
         targetPage: '/products',
         enabled: true
       },
-      heroSlides: [
-        {
-          title: 'Timeless Essentials',
-          description: 'Discover our curated collection of quality products that stand the test of time.',
-          ctaText: 'Shop Now',
-          ctaLink: '/products',
-          image: '',
-          imagePreview: '',
-          order: 0,
-          active: true
-        },
-        {
-          title: 'New Arrivals',
-          description: 'Fresh styles and innovative designs just arrived. Be the first to explore!',
-          ctaText: 'Explore New',
-          ctaLink: '/new-arrivals',
-          image: '',
-          imagePreview: '',
-          order: 1,
-          active: true
-        }
-      ],
+
       promotionalBanner: {
         title: '🎯 Special Offer: 20% Off on Selected Items',
         ctaText: 'Shop the Sale',
@@ -83,7 +62,6 @@ async function initializeContent() {
     console.log('✅ Default content created successfully!');
     console.log('📝 Content includes:');
     console.log('   - Top bar announcement');
-    console.log('   - 2 hero slides');
     console.log('   - Promotional banner');
     console.log('   - Site settings and contact info');
     console.log('   - Legal pages (Terms, Privacy, Disclaimer, Shipping, Returns, Jurisdiction)');
