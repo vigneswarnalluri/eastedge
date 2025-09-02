@@ -250,7 +250,7 @@ const ProductDetail = () => {
       });
       
       if (response.data.success && response.data.message === 'Review submitted successfully') {
-        alert('Review submitted successfully!');
+        alert('Review submitted successfully! It will appear after admin approval.');
         setReviewForm({ rating: 5, comment: '' });
         setShowReviewForm(false);
         // Refresh reviews and product data

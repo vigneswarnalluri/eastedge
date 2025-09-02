@@ -131,41 +131,8 @@ router.delete('/:id', async (req, res) => {
   }
 });
 
-// Add product review
-router.post('/:id/reviews', auth, async (req, res) => {
-  try {
-    const { rating, comment } = req.body;
-    
-    if (!rating || rating < 1 || rating > 5) {
-      return res.status(400).json({ message: 'Please provide a valid rating (1-5)' });
-    }
-    
-    const product = await Product.findById(req.params.id);
-    if (!product) {
-      return res.status(404).json({ message: 'Product not found' });
-    }
-    
-    const review = {
-      user: req.user._id, // Use _id instead of id
-      name: req.user.name,
-      rating: parseInt(rating),
-      comment
-    };
-    
-    product.reviews.push(review);
-    
-    // Update product rating
-    const totalRating = product.reviews.reduce((sum, review) => sum + review.rating, 0);
-    product.rating = totalRating / product.reviews.length;
-    product.numReviews = product.reviews.length;
-    
-    await product.save();
-    
-    res.status(201).json({ message: 'Review added successfully', product });
-  } catch (error) {
-    res.status(500).json({ message: error.message });
-  }
-});
+// Note: Product reviews are now handled through the /api/reviews endpoint
+// which includes admin approval functionality
 
 // Clear database (for testing)
 router.delete('/clear', async (req, res) => {

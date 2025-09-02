@@ -2382,7 +2382,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 9999;
+  z-index: 99999;
   padding: 20px;
 }
 
@@ -2395,7 +2395,7 @@
   overflow-y: auto;
   box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
   position: relative;
-  z-index: 10000;
+  z-index: 100000;
   color: #000000;
 }
 
@@ -4652,6 +4652,25 @@
 .admin-reviews .migrate-btn svg {
   width: 16px;
   height: 16px;
+}
+
+/* Reply Modal Textarea Placeholder */
+textarea::placeholder {
+  color: #666666 !important;
+  opacity: 1 !important;
+  font-weight: 400 !important;
+}
+
+/* Ensure reply modal textarea is visible */
+.modal-content textarea {
+  background-color: #ffffff !important;
+  color: #000000 !important;
+  border: 2px solid #007bff !important;
+}
+
+.modal-content textarea::placeholder {
+  color: #666666 !important;
+  opacity: 1 !important;
 }
 
 /* Reply Modal Styles */

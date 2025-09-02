@@ -277,26 +277,8 @@ router.delete('/admin/:id', auth, async (req, res) => {
     // Delete the review
     await Review.findByIdAndDelete(id);
 
-    // Update product rating and review count
-    const product = await Product.findById(review.product);
-    if (product) {
-      // Remove this review from product reviews array
-      product.reviews = product.reviews.filter(r => 
-        !(r.user.toString() === review.user.toString() && r.comment === review.comment)
-      );
-      
-      // Recalculate average rating
-      if (product.reviews.length > 0) {
-        const totalRating = product.reviews.reduce((sum, r) => sum + r.rating, 0);
-        product.rating = totalRating / product.reviews.length;
-        product.numReviews = product.reviews.length;
-      } else {
-        product.rating = 0;
-        product.numReviews = 0;
-      }
-      
-      await product.save();
-    }
+    // Update product rating based on remaining approved reviews
+    await updateProductRating(review.product);
 
     res.json({
       success: true,
@@ -307,6 +289,39 @@ router.delete('/admin/:id', auth, async (req, res) => {
     res.status(500).json({ success: false, message: 'Failed to delete review' });
   }
 });
+
+// Helper function to update product rating based on approved reviews
+const updateProductRating = async (productId) => {
+  try {
+    // Get all approved reviews for this product
+    const approvedReviews = await Review.find({
+      product: productId,
+      status: 'approved'
+    });
+
+    const product = await Product.findById(productId);
+    if (!product) {
+      console.error('Product not found for rating update:', productId);
+      return;
+    }
+
+    if (approvedReviews.length > 0) {
+      // Calculate average rating from approved reviews only
+      const totalRating = approvedReviews.reduce((sum, review) => sum + review.rating, 0);
+      product.rating = totalRating / approvedReviews.length;
+      product.numReviews = approvedReviews.length;
+    } else {
+      // No approved reviews
+      product.rating = 0;
+      product.numReviews = 0;
+    }
+
+    await product.save();
+    console.log(`✅ Updated product ${productId} rating: ${product.rating} (${product.numReviews} reviews)`);
+  } catch (error) {
+    console.error('Error updating product rating:', error);
+  }
+};
 
 // Update review status (ADMIN ONLY)
 router.put('/admin/:id/status', auth, async (req, res) => {
@@ -328,8 +343,14 @@ router.put('/admin/:id/status', auth, async (req, res) => {
       return res.status(404).json({ success: false, message: 'Review not found' });
     }
 
+    const oldStatus = review.status;
     review.status = status;
     await review.save();
+
+    // Update product rating when status changes to/from approved
+    if (oldStatus !== status && (status === 'approved' || oldStatus === 'approved')) {
+      await updateProductRating(review.product);
+    }
 
     res.json({
       success: true,
@@ -339,6 +360,45 @@ router.put('/admin/:id/status', auth, async (req, res) => {
   } catch (error) {
     console.error('Error updating review status:', error);
     res.status(500).json({ success: false, message: 'Failed to update review status' });
+  }
+});
+
+// Recalculate all product ratings based on approved reviews (ADMIN ONLY)
+router.post('/admin/recalculate-ratings', auth, async (req, res) => {
+  try {
+    // Check if user is admin
+    if (!req.user.isAdmin) {
+      return res.status(403).json({ success: false, message: 'Access denied. Admin only.' });
+    }
+
+    console.log('🔄 Starting product rating recalculation...');
+
+    // Get all products
+    const products = await Product.find({});
+    let updatedCount = 0;
+    let errorCount = 0;
+
+    for (const product of products) {
+      try {
+        await updateProductRating(product._id);
+        updatedCount++;
+      } catch (error) {
+        console.error(`❌ Error updating rating for product ${product._id}:`, error);
+        errorCount++;
+      }
+    }
+
+    console.log(`✅ Rating recalculation completed: ${updatedCount} products updated, ${errorCount} errors`);
+
+    res.json({
+      success: true,
+      message: `Product ratings recalculated successfully! ${updatedCount} products updated.`,
+      updatedCount,
+      errorCount
+    });
+  } catch (error) {
+    console.error('❌ Rating recalculation error:', error);
+    res.status(500).json({ success: false, message: 'Failed to recalculate ratings' });
   }
 });
 

@@ -3009,6 +3009,9 @@ const Admin = () => {
           <button className="migrate-btn" onClick={handleMigrateReviews}>
             <FiUpload /> Migrate Reviews
           </button>
+          <button className="migrate-btn" onClick={handleRecalculateRatings}>
+            <FiRefreshCw /> Recalculate Ratings
+          </button>
         </div>
       </div>
 
@@ -3045,85 +3048,106 @@ const Admin = () => {
       ) : (
         <>
           <div className="table-container">
-            <table className="admin-table">
+            <table className="admin-table" style={{ tableLayout: 'fixed', width: '100%', borderSpacing: '0', borderCollapse: 'collapse' }}>
               <thead>
                 <tr>
-                  <th>Product</th>
-                  <th>Customer</th>
-                  <th>Rating</th>
-                  <th>Review</th>
-                  <th>Status</th>
-                  <th>Admin Reply</th>
-                  <th>Actions</th>
+                  <th style={{ width: '22%' }}>Product</th>
+                  <th style={{ width: '22%' }}>Customer</th>
+                  <th style={{ width: '8%' }}>Rating</th>
+                  <th style={{ width: '20%' }}>Review</th>
+                  <th style={{ width: '8%' }}>Status</th>
+                  <th style={{ width: '20%' }}>Actions</th>
                 </tr>
               </thead>
               <tbody>
                 {reviews.map((review) => (
                   <tr key={review._id}>
-                    <td>
-                      <div className="product-info">
+                    <td style={{ padding: '6px 2px', margin: '0', border: 'none', verticalAlign: 'top' }}>
+                      <div className="product-info" style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
                         <img 
                           src={review.product?.image || '/placeholder.png'} 
                           alt={review.product?.name || 'Product'} 
                           className="product-thumbnail"
+                          style={{ width: '25px', height: '25px', objectFit: 'cover', borderRadius: '3px' }}
                         />
-                        <span>{review.product?.name || 'N/A'}</span>
+                        <span style={{ fontSize: '11px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                          {(review.product?.name || 'N/A').length > 18 
+                            ? (review.product?.name || 'N/A').substring(0, 18) + '...' 
+                            : (review.product?.name || 'N/A')
+                          }
+                        </span>
                       </div>
                     </td>
-                    <td>
-                      <div className="customer-info">
-                        <span className="customer-name">{review.name}</span>
-                        <span className="customer-email">{review.user?.email || 'N/A'}</span>
+                    <td style={{ padding: '6px 2px', margin: '0', border: 'none', verticalAlign: 'top' }}>
+                      <div className="customer-info" style={{ display: 'flex', flexDirection: 'column', gap: '1px' }}>
+                        <span className="customer-name" style={{ fontSize: '11px', fontWeight: 'bold' }}>{review.name}</span>
+                        <span className="customer-email" style={{ fontSize: '9px', color: '#666' }}>
+                          {review.user?.email || 'N/A'}
+                        </span>
                       </div>
                     </td>
-                    <td>
-                      <div className="rating-display">
-                        {[...Array(5)].map((_, i) => (
-                          <span key={i} className={`star ${i < review.rating ? 'filled' : 'empty'}`}>
-                            ★
-                          </span>
-                        ))}
-                        <span className="rating-number">({review.rating})</span>
+                    <td style={{ padding: '6px 2px', textAlign: 'center', margin: '0', border: 'none', verticalAlign: 'top' }}>
+                      <div className="rating-display" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1px' }}>
+                        <div style={{ fontSize: '10px' }}>
+                          {[...Array(5)].map((_, i) => (
+                            <span key={i} className={`star ${i < review.rating ? 'filled' : 'empty'}`} style={{ fontSize: '8px' }}>
+                              ★
+                            </span>
+                          ))}
+                        </div>
+                        <span className="rating-number" style={{ fontSize: '9px' }}>({review.rating})</span>
                       </div>
                     </td>
-                    <td>
-                      <div className="review-comment">
+                    <td style={{ padding: '6px 2px', margin: '0', border: 'none', verticalAlign: 'top' }}>
+                      <div className="review-comment" style={{ fontSize: '11px', lineHeight: '1.2', maxHeight: '35px', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                         {review.comment}
                       </div>
                     </td>
-                    <td>
-                      <span className={`status-badge ${review.status}`}>
+                    <td style={{ padding: '6px 2px', textAlign: 'center', margin: '0', border: 'none', verticalAlign: 'top' }}>
+                      <span className={`status-badge ${review.status}`} style={{ fontSize: '9px', padding: '1px 4px' }}>
                         {review.status.charAt(0).toUpperCase() + review.status.slice(1)}
                       </span>
                     </td>
-                    <td>
-                      <div className="admin-reply">
-                        {review.adminReply ? (
-                          <div className="reply-content">
-                            <p>{review.adminReply}</p>
-                            <small>{new Date(review.adminReplyDate).toLocaleDateString()}</small>
-                          </div>
-                        ) : (
-                          <span className="no-reply">No reply yet</span>
-                        )}
-                      </div>
-                    </td>
-                    <td>
-                      <div className="action-buttons">
-                        <button
-                          className="action-btn reply"
-                          onClick={() => openReplyModal(review)}
-                          title="Reply to Review"
+                    <td style={{ padding: '6px 2px', margin: '0', border: 'none', verticalAlign: 'top' }}>
+                      <div className="action-buttons" style={{ display: 'flex', flexDirection: 'column', gap: '3px', alignItems: 'center' }}>
+                        <select
+                          value={review.status}
+                          onChange={(e) => handleStatusChange(review._id, e.target.value)}
+                          className="status-select"
+                          style={{
+                            padding: '4px 6px',
+                            borderRadius: '4px',
+                            border: '1px solid #ddd',
+                            backgroundColor: 'white',
+                            fontSize: '11px',
+                            cursor: 'pointer',
+                            width: '100%',
+                            minWidth: '70px',
+                            height: '28px'
+                          }}
                         >
-                          <FiMessageSquare />
-                        </button>
-                        <button
-                          className="action-btn delete"
-                          onClick={() => handleDeleteReview(review._id)}
-                          title="Delete Review"
-                        >
-                          <FiTrash2 />
-                        </button>
+                          <option value="pending">Pending</option>
+                          <option value="approved">Approved</option>
+                          <option value="rejected">Rejected</option>
+                        </select>
+                        <div style={{ display: 'flex', gap: '3px' }}>
+                          <button
+                            className="action-btn reply"
+                            onClick={() => openReplyModal(review)}
+                            title="Reply to Review"
+                            style={{ padding: '6px 8px', fontSize: '14px' }}
+                          >
+                            <FiMessageSquare />
+                          </button>
+                          <button
+                            className="action-btn delete"
+                            onClick={() => handleDeleteReview(review._id)}
+                            title="Delete Review"
+                            style={{ padding: '6px 8px', fontSize: '14px' }}
+                          >
+                            <FiTrash2 />
+                          </button>
+                        </div>
                       </div>
                     </td>
                   </tr>
@@ -3157,47 +3181,159 @@ const Admin = () => {
         </>
       )}
 
-      {/* Reply Modal */}
+
+
+      {/* Reply Modal - Nuclear Option */}
       {showReplyModal && (
-        <div className="modal-overlay" onClick={() => setShowReplyModal(false)}>
-          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-            <div className="modal-header">
-              <h3>Reply to Review</h3>
-              <button className="modal-close" onClick={() => setShowReplyModal(false)}>
-                ×
-              </button>
-            </div>
-            <div className="modal-body">
-              <div className="review-summary">
-                <h4>Review by {selectedReview?.name}</h4>
-                <p><strong>Rating:</strong> {selectedReview?.rating}/5</p>
-                <p><strong>Comment:</strong> {selectedReview?.comment}</p>
+        <>
+          <style dangerouslySetInnerHTML={{
+            __html: `
+              .reply-modal-overlay {
+                position: fixed !important;
+                top: 0 !important;
+                left: 0 !important;
+                right: 0 !important;
+                bottom: 0 !important;
+                background-color: rgba(0, 0, 0, 0.95) !important;
+                display: flex !important;
+                align-items: center !important;
+                justify-content: center !important;
+                z-index: 2147483647 !important;
+                padding: 20px !important;
+                width: 100vw !important;
+                height: 100vh !important;
+              }
+              .reply-modal-content {
+                background-color: #ffffff !important;
+                border-radius: 15px !important;
+                max-width: 600px !important;
+                width: 100% !important;
+                padding: 30px !important;
+                box-shadow: 0 25px 50px rgba(0, 0, 0, 0.8) !important;
+                position: relative !important;
+                z-index: 2147483647 !important;
+                border: 3px solid #007bff !important;
+              }
+              .reply-modal-title {
+                margin: 0 0 25px 0 !important;
+                color: #000000 !important;
+                font-size: 24px !important;
+                font-weight: bold !important;
+                text-align: center !important;
+                background-color: transparent !important;
+              }
+              .reply-review-box {
+                background-color: #e3f2fd !important;
+                padding: 20px !important;
+                border-radius: 10px !important;
+                margin-bottom: 25px !important;
+                border: 2px solid #2196f3 !important;
+              }
+              .reply-review-text {
+                margin: 0 0 8px 0 !important;
+                color: #000000 !important;
+                font-size: 16px !important;
+                background-color: transparent !important;
+              }
+              .reply-review-text.bold {
+                font-weight: bold !important;
+              }
+              .reply-review-text.small {
+                font-size: 14px !important;
+              }
+              .reply-label {
+                display: block !important;
+                margin-bottom: 12px !important;
+                color: #000000 !important;
+                font-weight: bold !important;
+                font-size: 16px !important;
+                background-color: transparent !important;
+              }
+              .reply-textarea {
+                width: 100% !important;
+                padding: 15px !important;
+                border: 3px solid #007bff !important;
+                border-radius: 8px !important;
+                font-size: 16px !important;
+                background-color: #ffffff !important;
+                color: #000000 !important;
+                resize: vertical !important;
+                min-height: 120px !important;
+                margin-bottom: 25px !important;
+                box-sizing: border-box !important;
+                font-family: Arial, sans-serif !important;
+                line-height: 1.5 !important;
+              }
+              .reply-textarea::placeholder {
+                color: #666666 !important;
+                opacity: 1 !important;
+              }
+              .reply-buttons {
+                display: flex !important;
+                gap: 15px !important;
+                justify-content: flex-end !important;
+              }
+              .reply-btn {
+                padding: 12px 25px !important;
+                border-radius: 8px !important;
+                cursor: pointer !important;
+                font-size: 16px !important;
+                font-weight: bold !important;
+                border: none !important;
+              }
+              .reply-btn-cancel {
+                background-color: #6c757d !important;
+                color: white !important;
+              }
+              .reply-btn-send {
+                background-color: #007bff !important;
+                color: white !important;
+              }
+            `
+          }} />
+          <div 
+            className="reply-modal-overlay"
+            onClick={() => setShowReplyModal(false)}
+          >
+            <div 
+              className="reply-modal-content"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <h2 className="reply-modal-title">Reply to Review</h2>
+              
+              <div className="reply-review-box">
+                <p className="reply-review-text bold">Review by {selectedReview?.name}</p>
+                <p className="reply-review-text small">Rating: {selectedReview?.rating}/5</p>
+                <p className="reply-review-text small">Comment: {selectedReview?.comment}</p>
               </div>
-              <div className="form-group">
-                <label>Your Reply:</label>
-                <textarea
-                  className="form-input"
-                  value={replyText}
-                  onChange={(e) => setReplyText(e.target.value)}
-                  placeholder="Enter your reply to this review..."
-                  rows="4"
-                />
+              
+              <label className="reply-label">Your Reply:</label>
+              <textarea
+                className="reply-textarea"
+                value={replyText}
+                onChange={(e) => setReplyText(e.target.value)}
+                placeholder="Enter your reply to this review..."
+                rows="5"
+              />
+              
+              <div className="reply-buttons">
+                <button 
+                  className="reply-btn reply-btn-cancel"
+                  onClick={() => setShowReplyModal(false)}
+                >
+                  Cancel
+                </button>
+                <button 
+                  className="reply-btn reply-btn-send"
+                  onClick={handleReply}
+                  disabled={replyLoading || !replyText.trim()}
+                >
+                  {replyLoading ? 'Sending...' : 'Send Reply'}
+                </button>
               </div>
-            </div>
-            <div className="modal-footer">
-              <button 
-                className="btn-primary" 
-                onClick={handleReply}
-                disabled={replyLoading || !replyText.trim()}
-              >
-                {replyLoading ? 'Sending...' : 'Send Reply'}
-              </button>
-              <button className="btn-secondary" onClick={() => setShowReplyModal(false)}>
-                Cancel
-              </button>
             </div>
           </div>
-        </div>
+        </>
       )}
     </div>
   );
@@ -4840,6 +4976,24 @@ const Admin = () => {
     }
   };
 
+  // Handle status change
+  const handleStatusChange = async (reviewId, newStatus) => {
+    try {
+      const response = await api.put(`/api/reviews/admin/${reviewId}/status`, {
+        status: newStatus
+      });
+      
+      if (response.data.success) {
+        alert(`Review status updated to ${newStatus}!`);
+        // Refresh reviews list
+        fetchReviews(reviewsPagination.currentPage, reviewStatusFilter, reviewSearch);
+      }
+    } catch (error) {
+      console.error('Error updating status:', error);
+      alert('Failed to update status');
+    }
+  };
+
   // Delete a review
   const handleDeleteReview = async (reviewId) => {
     if (!window.confirm('Are you sure you want to delete this review? This action cannot be undone.')) {
@@ -4873,9 +5027,11 @@ const Admin = () => {
 
   // Open reply modal
   const openReplyModal = (review) => {
+    console.log('Opening reply modal for review:', review);
     setSelectedReview(review);
     setReplyText(review.adminReply || '');
     setShowReplyModal(true);
+    console.log('Modal should be visible now');
   };
 
   // Migrate existing reviews
@@ -4894,6 +5050,25 @@ const Admin = () => {
     } catch (error) {
       console.error('Error migrating reviews:', error);
       alert('Failed to migrate reviews');
+    }
+  };
+
+  // Recalculate product ratings based on approved reviews
+  const handleRecalculateRatings = async () => {
+    if (!window.confirm('This will recalculate all product ratings based on approved reviews only. Continue?')) {
+      return;
+    }
+    
+    try {
+      const response = await api.post('/api/reviews/admin/recalculate-ratings');
+      if (response.data.success) {
+        alert(`Rating recalculation completed! ${response.data.updatedCount} products updated.`);
+        // Refresh reviews list to show updated stats
+        fetchReviews();
+      }
+    } catch (error) {
+      console.error('Error recalculating ratings:', error);
+      alert('Failed to recalculate ratings');
     }
   };
 
