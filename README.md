@@ -50,7 +50,7 @@ ecommerce/
 ├── package.json           # Backend dependencies
 └── README.md              # This file
 ```
-
+...sx
 ## Installation & Setup
 
 ### Prerequisites
