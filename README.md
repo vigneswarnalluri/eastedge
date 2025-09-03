@@ -208,3 +208,7 @@ For support or questions, please open an issue in the repository.
 ---
 
 **Note**: This is a development version. For production use, ensure proper security measures, environment variables, and database optimization.
+
+
+
+![CodeRabbit Pull Request Reviews](https://img.shields.io/coderabbit/prs/github/vigneswarnalluri/eastedge?utm_source=oss&utm_medium=github&utm_campaign=vigneswarnalluri%2Feastedge&labelColor=171717&color=FF570A&link=https%3A%2F%2Fcoderabbit.ai&label=CodeRabbit+Reviews)
