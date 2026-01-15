@@ -1,9 +1,12 @@
 const express = require('express');
 const router = express.Router();
+const mongoose = require('mongoose');
 const auth = require('../middleware/auth');
 const Order = require('../models/Order');
 const User = require('../models/User');
+const Settings = require('../models/Settings');
 const { calculateCartGST } = require('../utils/gstCalculator');
+const { calculateCartShipping } = require('../utils/shippingCalculator');
 
 // Create new order - PROTECTED ROUTE
 router.post('/', auth, async (req, res) => {
@@ -35,12 +38,41 @@ router.post('/', auth, async (req, res) => {
     
     const { items, shipping, total, paymentMethod, codCharges } = req.body;
     
+    // Get shipping settings
+    let shippingSettings = null;
+    try {
+      const settings = await Settings.findOne();
+      if (settings && settings.shipping) {
+        shippingSettings = settings.shipping;
+        console.log('✅ Shipping settings loaded:', shippingSettings);
+      } else {
+        console.log('⚠️ No shipping settings found, using defaults');
+        shippingSettings = {
+          freeShippingThreshold: 999,
+          forcePaidShipping: false,
+          defaultShippingCost: 0
+        };
+      }
+    } catch (settingsError) {
+      console.error('❌ Error loading shipping settings:', settingsError);
+      // Use default settings
+      shippingSettings = {
+        freeShippingThreshold: 999,
+        forcePaidShipping: false,
+        defaultShippingCost: 0
+      };
+    }
+    
+    // Calculate shipping cost
+    const shippingCalculation = calculateCartShipping(items, shippingSettings);
+    console.log('📦 Shipping calculation:', shippingCalculation);
+    
     // Check if database schema supports variants
     try {
       const testOrder = new Order({
         user: req.user._id,
         orderItems: [{
-          product: req.user._id, // Temporary ID for testing
+          product: new mongoose.Types.ObjectId(), // Use proper ObjectId
           name: 'Test',
           quantity: 1,
           price: 0,
@@ -76,7 +108,7 @@ router.post('/', auth, async (req, res) => {
         shippingAddress: shipping,
         paymentMethod,
         totalPrice: total,
-        shippingPrice: codCharges || 0,
+        shippingPrice: shippingCalculation.shippingCost,
         taxPrice: gstBreakdown.gstAmount,
         gstBreakdown: {
           baseAmount: gstBreakdown.baseAmount,
@@ -139,7 +171,7 @@ router.post('/', auth, async (req, res) => {
       shippingAddress: shipping,
       paymentMethod,
       totalPrice: total,
-      shippingPrice: codCharges || 0,
+      shippingPrice: shippingCalculation.shippingCost,
       taxPrice: gstBreakdown.gstAmount,
       gstBreakdown: {
         baseAmount: gstBreakdown.baseAmount,

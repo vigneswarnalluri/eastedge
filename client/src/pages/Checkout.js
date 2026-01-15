@@ -3,16 +3,20 @@ import { useNavigate } from 'react-router-dom';
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
 import { useUserPreferences } from '../context/UserPreferencesContext';
+import { useSettings } from '../context/SettingsContext';
+import { downloadInvoice } from '../utils/invoiceGenerator';
 import RazorpayPayment from '../components/RazorpayPayment';
 import { scrollToTop } from '../utils/scrollToTop';
 import api from '../services/api';
 import { formatCurrency, getGSTRateDescription } from '../utils/gstCalculator';
+import { calculateCartShipping, formatShippingCost } from '../utils/shippingCalculator';
 import './Checkout.css';
 
 const Checkout = () => {
   const navigate = useNavigate();
-  const { items: cartItems, clearCart, getTotalPrice, getGSTBreakdown, isInitialized } = useCart();
+  const { items: cartItems, clearCart, getTotalPrice, getGSTBreakdown, getTotalWithGST, isInitialized } = useCart();
   const { user, isAuthenticated } = useAuth();
+  const { settings, loadSettings } = useSettings();
   
   // All hooks must be called before any conditional returns
   const [loading, setLoading] = useState(false);
@@ -172,9 +176,32 @@ const Checkout = () => {
     setDiscountError('');
   };
 
+  // Settings are already loaded by SettingsContext on app startup
+  // No need to reload settings here as it causes infinite re-renders
+
+  // Calculate shipping cost
+  const getShippingCost = () => {
+    console.log('🔍 Debug - Settings in checkout:', settings);
+    console.log('🔍 Debug - Shipping settings:', settings?.shipping);
+    
+    if (!settings || !settings.shipping) {
+      console.log('⚠️ No shipping settings found, using defaults');
+      return { shippingCost: 0, isFreeShipping: true };
+    }
+    
+    const shippingResult = calculateCartShipping(cartItems, settings.shipping);
+    console.log('📦 Shipping calculation result:', shippingResult);
+    return shippingResult;
+  };
+
   // Calculate final total with discount
   const getFinalTotal = () => {
-    let total = getTotalPrice() || 0;
+    // Use getTotalWithGST() to get the total including GST
+    let total = getTotalWithGST() || 0;
+    const shipping = getShippingCost();
+    
+    // Add shipping cost
+    total += shipping.shippingCost;
     
     // Add COD charges if applicable
     if (formData.paymentMethod === 'cod') {
@@ -276,7 +303,8 @@ const Checkout = () => {
     console.log('🚀 Starting COD order submission...');
     console.log('📋 Form data:', formData);
     console.log('🛒 Cart items:', cartItems);
-    console.log('💰 Total price:', getTotalPrice());
+    console.log('💰 Base price:', getTotalPrice());
+    console.log('💰 Total with GST:', getTotalWithGST());
     console.log('💳 Payment method:', formData.paymentMethod);
     
     // Safety check for cart items
@@ -308,7 +336,8 @@ const Checkout = () => {
       console.log('=== COD ORDER SUBMISSION DEBUG ===');
       console.log('Payment method:', formData.paymentMethod);
       console.log('Order data being sent:', orderData);
-      console.log('Cart total:', getTotalPrice());
+      console.log('Cart base total:', getTotalPrice());
+      console.log('Cart total with GST:', getTotalWithGST());
       console.log('Final total with discounts:', getFinalTotal());
       console.log('COD total:', formData.paymentMethod === 'cod' ? getFinalTotal() : getFinalTotal());
       
@@ -407,6 +436,18 @@ const Checkout = () => {
   }
 
   if (orderPlaced) {
+    // Get order data from localStorage
+    const orderData = JSON.parse(localStorage.getItem('orderData') || '{}');
+    
+    const handleDownloadInvoice = async () => {
+      try {
+        await downloadInvoice(orderData, settings);
+      } catch (error) {
+        console.error('Error downloading invoice:', error);
+        alert('Failed to download invoice. Please try again.');
+      }
+    };
+
     return (
       <div className="checkout-page">
         <div className="container">
@@ -417,7 +458,7 @@ const Checkout = () => {
             {selectedPaymentMethod === 'cod' && (
               <div className="cod-success-info">
                 <p>💵 <strong>Cash on Delivery Order</strong></p>
-                <p>Pay ₹{((getTotalPrice() || 0) + 50).toFixed(2)} when you receive your order.</p>
+                <p>Pay ₹{getFinalTotal().toFixed(2)} when you receive your order.</p>
                 <p>Our delivery team will contact you to arrange delivery.</p>
               </div>
             )}
@@ -433,6 +474,13 @@ const Checkout = () => {
                 className="btn-secondary"
               >
                 View Orders
+              </button>
+              <button 
+                onClick={handleDownloadInvoice} 
+                className="btn-primary"
+                style={{ marginLeft: '10px' }}
+              >
+                📄 Download Invoice
               </button>
             </div>
           </div>
@@ -750,7 +798,7 @@ const Checkout = () => {
                     </div>
                     <div className="total-row">
                       <span>Shipping:</span>
-                      <span>Free</span>
+                      <span>{formatShippingCost(getShippingCost().shippingCost)}</span>
                     </div>
                     {formData.paymentMethod === 'cod' && (
                       <div className="total-row">

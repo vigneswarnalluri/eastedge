@@ -15,9 +15,9 @@ const settingsSchema = new mongoose.Schema({
     timezone: { type: String, default: 'Asia/Kolkata' }
   },
   shipping: {
-    freeShippingThreshold: { type: Number, default: 1000 },
+    freeShippingThreshold: { type: Number, default: 999 },
     forcePaidShipping: { type: Boolean, default: false },
-    defaultShippingCost: { type: Number, default: 100 }
+    defaultShippingCost: { type: Number, default: 0 }
   },
   payment: {
     razorpay: { type: Boolean, default: true },

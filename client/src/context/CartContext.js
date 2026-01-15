@@ -356,6 +356,7 @@ export const CartProvider = ({ children }) => {
           categoryName: product.categoryName,
           // Add variant-specific information
           variantStock: product.variantStock,
+          stockQuantity: product.variantStock || product.stockQuantity || 0, // Store stock for validation
           // Preserve any other variant details
           ...product
         }
@@ -380,6 +381,7 @@ export const CartProvider = ({ children }) => {
           categoryName: product.categoryName,
           // Add variant-specific information
           variantStock: defaultVariant.stock || 0,
+          stockQuantity: defaultVariant.stock || 0, // Store stock for validation
           // Preserve any other variant details
           ...product
         }
@@ -396,7 +398,8 @@ export const CartProvider = ({ children }) => {
           quantity: product.quantity || quantity,
           sku: product.sku,
           category: product.category,
-          categoryName: product.categoryName
+          categoryName: product.categoryName,
+          stockQuantity: product.stockQuantity || 0 // Store stock for validation
         }
       });
     }

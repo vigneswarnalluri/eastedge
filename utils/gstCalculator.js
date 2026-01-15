@@ -1,11 +1,11 @@
 // Backend GST Calculator Utility
-// Implements inclusive tax pricing model
+// Implements exclusive tax pricing model
 
 /**
  * GST Calculation Rules:
- * - 5% GST if cart total (including tax) ≤ ₹999
- * - 12% GST if cart total > ₹999
- * - All prices are inclusive of tax
+ * - 5% GST if base amount ≤ ₹999
+ * - 12% GST if base amount > ₹999
+ * - All prices are base amounts, GST is added on top
  */
 
 const GST_RATES = {
@@ -24,12 +24,12 @@ const getGSTRate = (totalAmount) => {
 };
 
 /**
- * Calculate GST breakdown from inclusive price
- * @param {number} inclusiveAmount - Total amount including tax
+ * Calculate GST breakdown from base amount (exclusive tax model)
+ * @param {number} baseAmount - Base amount excluding tax
  * @returns {object} GST breakdown
  */
-const calculateGSTBreakdown = (inclusiveAmount) => {
-  if (!inclusiveAmount || inclusiveAmount <= 0) {
+const calculateGSTBreakdown = (baseAmount) => {
+  if (!baseAmount || baseAmount <= 0) {
     return {
       totalAmount: 0,
       baseAmount: 0,
@@ -39,16 +39,17 @@ const calculateGSTBreakdown = (inclusiveAmount) => {
     };
   }
 
-  const gstRate = getGSTRate(inclusiveAmount);
+  const gstRate = getGSTRate(baseAmount);
   const gstPercentage = gstRate * 100;
   
-  // Calculate base amount from inclusive price
-  // Formula: Base Amount = Inclusive Amount / (1 + GST Rate)
-  const baseAmount = inclusiveAmount / (1 + gstRate);
-  const gstAmount = inclusiveAmount - baseAmount;
+  // Calculate GST amount and total (exclusive tax model)
+  // Formula: GST Amount = Base Amount * GST Rate
+  // Formula: Total Amount = Base Amount + GST Amount
+  const gstAmount = baseAmount * gstRate;
+  const totalAmount = baseAmount + gstAmount;
 
   return {
-    totalAmount: inclusiveAmount,
+    totalAmount: Math.round(totalAmount * 100) / 100,
     baseAmount: Math.round(baseAmount * 100) / 100,
     gstAmount: Math.round(gstAmount * 100) / 100,
     gstRate: gstRate,
@@ -66,12 +67,12 @@ const calculateCartGST = (cartItems) => {
     return calculateGSTBreakdown(0);
   }
 
-  // Calculate total from cart items (prices are already inclusive)
-  const cartTotal = cartItems.reduce((total, item) => {
+  // Calculate base amount from cart items (prices are base amounts, excluding tax)
+  const baseAmount = cartItems.reduce((total, item) => {
     return total + (item.price * item.quantity);
   }, 0);
 
-  return calculateGSTBreakdown(cartTotal);
+  return calculateGSTBreakdown(baseAmount);
 };
 
 module.exports = {

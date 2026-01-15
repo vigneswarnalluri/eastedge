@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import api from '../services/api';
 
 const SettingsContext = createContext();
@@ -24,12 +24,13 @@ export const SettingsProvider = ({ children }) => {
       businessAddress: 'Malkajgiri, Hyderabad, Telangana, India',
       taxRate: 18,
       currency: '₹',
-      timezone: 'Asia/Kolkata'
+      timezone: 'Asia/Kolkata',
+      gstin: 'GSTIN: Not Available'
     },
     shipping: {
-      freeShippingThreshold: 1000,
+      freeShippingThreshold: 999,
       forcePaidShipping: false,
-      defaultShippingCost: 100
+      defaultShippingCost: 0
     },
     payment: {
       razorpay: true,
@@ -63,22 +64,26 @@ export const SettingsProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  const loadSettings = async () => {
+  const loadSettings = useCallback(async () => {
     try {
       setLoading(true);
-      const response = await api.get('/api/settings');
+      console.log('🔄 Loading settings from API...');
+      const response = await api.get(`/api/settings?t=${Date.now()}`);
+      console.log('📡 API Response:', response);
       if (response.data) {
         setSettings(response.data);
         console.log('✅ Settings loaded in context:', response.data);
+        console.log('📦 Shipping settings specifically:', response.data.shipping);
       }
     } catch (error) {
       console.error('❌ Error loading settings in context:', error);
+      console.error('❌ Error details:', error.response?.data || error.message);
       setError(error.message);
       // Keep default settings if loading fails
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   const updateSettings = async (section, data) => {
     try {

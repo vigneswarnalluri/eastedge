@@ -1,13 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
+import { useSettings } from '../context/SettingsContext';
 import { useNavigate } from 'react-router-dom';
-import { FiShoppingBag, FiPackage, FiTruck, FiCheckCircle, FiXCircle, FiClock, FiMapPin, FiCalendar, FiUser, FiPhone, FiMail } from 'react-icons/fi';
+import { FiShoppingBag, FiPackage, FiTruck, FiCheckCircle, FiXCircle, FiClock, FiMapPin, FiCalendar, FiUser, FiPhone, FiMail, FiDownload } from 'react-icons/fi';
 import { scrollToTop } from '../utils/scrollToTop';
 import { formatCurrency, getGSTRateDescription } from '../utils/gstCalculator';
+import { downloadInvoice } from '../utils/invoiceGenerator';
 import './Orders.css';
 
 const Orders = () => {
   const { user, isAuthenticated } = useAuth();
+  const { settings } = useSettings();
   const navigate = useNavigate();
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -181,6 +184,15 @@ const Orders = () => {
     navigate('/products');
   };
 
+  const handleDownloadInvoice = async (order) => {
+    try {
+      await downloadInvoice(order, settings);
+    } catch (error) {
+      console.error('Error downloading invoice:', error);
+      alert('Failed to download invoice. Please try again.');
+    }
+  };
+
   if (!isAuthenticated) {
     return null; // Will redirect to login
   }
@@ -296,6 +308,14 @@ const Orders = () => {
                       className="btn-secondary"
                     >
                       View Details
+                    </button>
+                    <button 
+                      onClick={() => handleDownloadInvoice(order)}
+                      className="btn-primary"
+                      style={{ marginLeft: '10px' }}
+                    >
+                      <FiDownload style={{ marginRight: '5px' }} />
+                      Invoice
                     </button>
                     {order.status === 'delivered' && (
                       <button 
@@ -453,6 +473,14 @@ const Orders = () => {
               <div className="modal-footer">
                 <button onClick={handleCloseOrderDetails} className="btn-secondary">
                   Close
+                </button>
+                <button 
+                  onClick={() => handleDownloadInvoice(selectedOrder)} 
+                  className="btn-primary"
+                  style={{ marginLeft: '10px' }}
+                >
+                  <FiDownload style={{ marginRight: '5px' }} />
+                  Download Invoice
                 </button>
                 {selectedOrder.status === 'delivered' && (
                   <button onClick={() => handleReorder(selectedOrder)} className="btn-primary">

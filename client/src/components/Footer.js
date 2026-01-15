@@ -63,7 +63,7 @@ const Footer = () => {
           <div className="footer-bottom-content">
             <p>&copy; 2025 {settings.general.storeName}. All rights reserved.</p>
             <p className="footer-credit">
-              Designed by: <a href="https://kitek.agency" target="_blank" rel="noopener noreferrer">KiTek Group</a>
+              Designed by: <a href="https://fraylontech.com" target="_blank" rel="noopener noreferrer">Fraylon Technologies</a>
             </p>
           </div>
         </div>

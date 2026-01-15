@@ -4,10 +4,13 @@ import { useCart } from '../context/CartContext';
 import { motion, AnimatePresence } from 'framer-motion';
 import { FiTrash2, FiPlus, FiMinus, FiShoppingBag, FiArrowLeft, FiCreditCard } from 'react-icons/fi';
 import { formatCurrency, getGSTRateDescription } from '../utils/gstCalculator';
+import { calculateCartShipping, formatShippingCost } from '../utils/shippingCalculator';
+import { useSettings } from '../context/SettingsContext';
 import './Cart.css';
 
 const Cart = () => {
   const { items, total, itemCount, uniqueItemCount, updateQuantity, removeFromCart, clearCart, getGSTBreakdown } = useCart();
+  const { settings } = useSettings();
 
   // Create unique key for cart operations
   const createItemKey = (item) => {
@@ -18,12 +21,34 @@ const Cart = () => {
 
   const handleQuantityChange = (item, newQuantity) => {
     if (newQuantity > 0) {
+      // Check stock availability before allowing quantity increase
+      const availableStock = getAvailableStock(item);
+      
+      if (newQuantity > availableStock) {
+        alert(`Sorry, only ${availableStock} items are available in stock for this variant.`);
+        return;
+      }
+      
       updateQuantity(createItemKey(item), newQuantity);
     }
   };
 
+  // Helper function to get available stock for an item
+  const getAvailableStock = (item) => {
+    // Use the stockQuantity that was stored when the item was added to cart
+    return item.stockQuantity || 0;
+  };
+
   const handleRemoveItem = (item) => {
     removeFromCart(createItemKey(item));
+  };
+
+  // Calculate shipping cost
+  const getShippingCost = () => {
+    if (!settings || !settings.shipping) {
+      return { shippingCost: 0, isFreeShipping: true };
+    }
+    return calculateCartShipping(items, settings.shipping);
   };
 
   // Debug function to show cart state
@@ -116,6 +141,21 @@ const Cart = () => {
                       ₹{item.price.toLocaleString()}
                     </p>
                     
+                    {/* Stock information */}
+                    <div className="stock-info">
+                      <small className="stock-text">
+                        {getAvailableStock(item) > 0 ? (
+                          <span className="in-stock">
+                            ✓ {getAvailableStock(item)} available in stock
+                          </span>
+                        ) : (
+                          <span className="out-of-stock">
+                            ✗ Out of stock
+                          </span>
+                        )}
+                      </small>
+                    </div>
+
                     {/* Enhanced variant information display */}
                     {(item.selectedSize || item.selectedColor) ? (
                       <div className="item-options">
@@ -169,7 +209,8 @@ const Cart = () => {
                     <button
                       onClick={() => handleQuantityChange(item, item.quantity + 1)}
                       className="quantity-btn plus-btn"
-                      title="Increase quantity"
+                      disabled={item.quantity >= getAvailableStock(item)}
+                      title={item.quantity >= getAvailableStock(item) ? "Maximum stock reached" : "Increase quantity"}
                     >
                       <FiPlus />
                     </button>
@@ -218,7 +259,9 @@ const Cart = () => {
                       </div>
                       <div className="summary-row">
                         <span>Shipping</span>
-                        <span className="free-shipping">Free</span>
+                        <span className={getShippingCost().isFreeShipping ? "free-shipping" : ""}>
+                          {formatShippingCost(getShippingCost().shippingCost)}
+                        </span>
                       </div>
                       
                       {/* Show total savings when original prices are higher */}

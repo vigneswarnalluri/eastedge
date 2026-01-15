@@ -6,17 +6,21 @@ const auth = require('../middleware/auth');
 // Get all settings
 router.get('/', async (req, res) => {
   try {
+    console.log('🔍 GET /api/settings called');
     let settings = await Settings.findOne();
     
     if (!settings) {
+      console.log('⚠️ No settings found, creating defaults');
       // Create default settings if none exist
       settings = new Settings();
       await settings.save();
     }
     
+    console.log('📦 Returning settings:', JSON.stringify(settings, null, 2));
+    console.log('📦 Shipping settings specifically:', JSON.stringify(settings.shipping, null, 2));
     res.json(settings);
   } catch (error) {
-    console.error('Error fetching settings:', error);
+    console.error('❌ Error fetching settings:', error);
     res.status(500).json({ success: false, message: 'Error fetching settings' });
   }
 });

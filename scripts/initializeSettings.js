@@ -46,9 +46,9 @@ const initializeSettings = async () => {
         timezone: 'Asia/Kolkata'
       },
       shipping: {
-        freeShippingThreshold: 1000,
+        freeShippingThreshold: 999,
         forcePaidShipping: false,
-        defaultShippingCost: 100
+        defaultShippingCost: 0
       },
       payment: {
         razorpay: true,
